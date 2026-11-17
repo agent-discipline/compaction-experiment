@@ -44,7 +44,7 @@ class TranscriptTest(unittest.TestCase):
         entries = self.load([boundary(), assistant("x")])
         b = transcript.locate_boundaries(entries, [2], ["안 보낸 메시지"])
         self.assertEqual(b[0]["position"], "unknown")
-        self.assertEqual(transcript.boundary_coord(b[0]), 0.0)
+        self.assertIsNone(transcript.boundary_coord(b[0]))  # 위치 불명 — 턴 도중으로 간주하지 않는다
 
     def test_assistant_text_dedupes_same_message_block(self):
         a = assistant("한국어 응답", mid="x")

@@ -95,13 +95,32 @@ def item_results(items, cases):
     return out
 
 
+def _execute(execute, cmd, work_copy, log, timeout):
+    try:
+        return execute(cmd, work_copy, log, timeout), False
+    except subprocess.TimeoutExpired:
+        return None, True
+
+
 def run_hidden(work_copy, hidden_cfg, hidden_dir, log_path, execute):
-    """work_copy(이미 복사된 최종 작업 폴더)에 숨긴 테스트를 덮고 명령을 돌린다.
+    """work_copy(이미 복사된 최종 작업 폴더)에서 먼저 메인 코드만 컴파일하고(`main_build_command`), 되면 숨긴 테스트를
+    덮고 명령을 돌린다. 메인 컴파일이 실패하거나 시간을 넘기면 숨긴 테스트는 돌리지 않는다(cases 빈 목록).
     execute(cmd, work_copy, log_file, timeout) → 종료 코드(시간 초과면 subprocess.TimeoutExpired) — 채점기는 채점 컨테이너
-    (score_run.container_executor)를 준다. {exit_code, timed_out, cases}"""
+    (score_run.container_executor)를 준다. {main_build{exit_code, timed_out}, exit_code, timed_out, cases}"""
     work_copy = Path(work_copy)
     for d in ("build", ".gradle", ".kotlin", *hidden_cfg.get("pre_delete", [])):
         shutil.rmtree(work_copy / d, ignore_errors=True)
+    gw = work_copy / "gradlew"
+    if gw.is_file():
+        os.chmod(gw, 0o755)
+    timeout = hidden_cfg.get("timeout_s", 3600)
+    with open(log_path, "wb") as log:
+        log.write(b"=== main build: " + " ".join(hidden_cfg["main_build_command"]).encode() + b"\n")
+        log.flush()
+        rc, timed_out = _execute(execute, hidden_cfg["main_build_command"], work_copy, log, timeout)
+    main_build = {"exit_code": rc, "timed_out": timed_out}
+    if timed_out or rc != 0:
+        return {"main_build": main_build, "exit_code": None, "timed_out": False, "cases": []}
     for src, dst in hidden_cfg["overlay"]:
         s = Path(hidden_dir) / src
         if not s.exists():
@@ -111,15 +130,10 @@ def run_hidden(work_copy, hidden_cfg, hidden_dir, log_path, execute):
         else:
             (work_copy / dst).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(s, work_copy / dst)
-    gw = work_copy / "gradlew"
-    if gw.is_file():
-        os.chmod(gw, 0o755)
-    timed_out = False
-    with open(log_path, "wb") as log:
-        try:
-            rc = execute(hidden_cfg["command"], work_copy, log, hidden_cfg.get("timeout_s", 3600))
-        except subprocess.TimeoutExpired:
-            rc, timed_out = None, True
+    with open(log_path, "ab") as log:
+        log.write(b"\n=== hidden tests: " + " ".join(hidden_cfg["command"]).encode() + b"\n")
+        log.flush()
+        rc, timed_out = _execute(execute, hidden_cfg["command"], work_copy, log, timeout)
     jd = work_copy / hidden_cfg["junit_dir"]
     cases = parse_junit(jd, hidden_cfg.get("unscorable_pattern")) if jd.is_dir() else []
-    return {"exit_code": rc, "timed_out": timed_out, "cases": cases}
+    return {"main_build": main_build, "exit_code": rc, "timed_out": timed_out, "cases": cases}

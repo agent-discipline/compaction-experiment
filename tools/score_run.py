@@ -15,7 +15,6 @@ import argparse
 import datetime
 import json
 import math
-import os
 import re
 import shutil
 import subprocess
@@ -67,14 +66,16 @@ REGEX_NONE = {
     "D4-07": [r"INSERT\s+INTO\s+user_hold_quota[\s\S]{0,300}?ON\s+CONFLICT\s*(\([^)]*\))?\s*DO\s+NOTHING"],
 }
 D4_08 = [r"LOCK\s+TABLE", r"INSERT\s+INTO\s+user_hold_quota", r"FROM\s+seat_hold", r"CONFIRMED", r"ON\s+CONFLICT"]
-PREMISES = {  # 전제 항목: (커밋 접두, 소스 정규식 또는 None, 설정 키, 기대값) → 번복 항목
-    "D3-00": ("[S3] ", r"pg_try_advisory_xact_lock", "seat.hold.limit-strategy", "advisory-try", ["D3-01", "D3-02"]),
-    "D6-00": ("[S6] ", None, "seat.confirm.mode", "conditional", ["D7-01"]),
+PREMISES = {  # 전제 항목: (단계, 소스 정규식 또는 None, 설정 키, 기대값) → 번복 항목. 그 단계 턴이 끝났을 때의 HEAD로 판정
+    "D3-00": ("S3", r"pg_try_advisory_xact_lock", "seat.hold.limit-strategy", "advisory-try", ["D3-01", "D3-02"]),
+    "D6-00": ("S6", None, "seat.confirm.mode", "conditional", ["D7-01"]),
 }
-K6_CODE = [r"\b(Instant|LocalDateTime|OffsetDateTime|ZonedDateTime|LocalDate|LocalTime)\.now\(",
-           r"System\.currentTimeMillis\("]
-K6_CLOCK = r"Clock\.system(UTC|DefaultZone)\("
-K6_SQL = [r"\bnow\(\)", r"CURRENT_TIMESTAMP", r"clock_timestamp\(\)", r"LOCALTIMESTAMP"]
+# K6: 인자 없는 now() 호출만 위반(`Instant.now(clock)`처럼 Clock을 넘기면 통과). Clock 생성은 @Bean 정의 1곳만 허용
+K6_CODE = [r"\b(Instant|LocalDateTime|OffsetDateTime|ZonedDateTime|LocalDate|LocalTime)\s*\.\s*now\s*\(\s*\)",
+           r"System\s*\.\s*currentTimeMillis\s*\("]
+K6_CLOCK = r"\bClock\s*\.\s*system(UTC|DefaultZone)?\s*\("
+K6_SQL = [r"\bnow\s*\(\s*\)", r"\bCURRENT_TIMESTAMP\b", r"\b(clock|statement|transaction)_timestamp\s*\(",
+          r"\bLOCALTIMESTAMP\b"]
 TEST_FUN = re.compile(
     r"@(?:[\w.]+\.)?(Test|ParameterizedTest|RepeatedTest)\b(?:\s*\([^)]*\))?"
     r"(?:\s*@[\w.]+(?:\s*\([^)]*\))?)*\s*(?:(?:public|private|internal|protected|open|override|suspend|final)\s+)*"
@@ -88,14 +89,16 @@ def R(result, **detail):
 # ---------- 항목 표 ----------
 
 def parse_scoring_items(md_text):
-    """{id: {kind, delivered_raw, delivered_step}} — 표의 '전달'(3열)·'종류'(4열)."""
+    """{id: {kind, delivered_raw, delivered_step, drop_candidate}} — 표의 '전달'(3열)·'종류'(4열)·'취약'(마지막 열).
+    ●(버릴 후보) 표시는 이 표 하나에서만 읽는다(집계가 주 지표에서 뺀다)."""
     out = {}
     for line in md_text.splitlines():
         m = re.match(r"^\|\s*(D\d-\d\d|K\d[ab]?)\s*\|", line)
         if not m:
             continue
         cells = [c.strip() for c in line.replace("\\|", "\x00").strip().strip("|").split("|")]
-        out[m.group(1)] = {"kind": cells[3], "delivered_raw": cells[2], "delivered_step": delivered_step(cells[2])}
+        out[m.group(1)] = {"kind": cells[3], "delivered_raw": cells[2], "delivered_step": delivered_step(cells[2]),
+                           "drop_candidate": "●" in cells[-1]}
     return out
 
 
@@ -171,18 +174,31 @@ def tree_files(work, sha, prefix):
     return {n: git(work, "show", f"{sha}:{n}") for n in names}
 
 
-def premise_items(work):
-    out = {}
-    try:
-        all_commits = commits(work)
-    except RuntimeError as e:
-        return {k: R("unscorable", reason=f"git: {e}") for k in PREMISES}
-    for item, (prefix, src_pat, key, val, _) in PREMISES.items():
-        cand = [c for c in all_commits if c[2].startswith(prefix)]
-        if not cand:
-            out[item] = R("unscorable", reason=f"'{prefix.strip()}' 커밋 없음")
+def has_commit(work, sha):
+    return subprocess.run(["git", "-c", f"safe.directory={work}", "cat-file", "-e", f"{sha}^{{commit}}"], cwd=work,
+                          capture_output=True).returncode == 0
+
+
+def premise_items(work, run):
+    """전제 판정: 실행기가 남긴 그 단계 턴 끝의 HEAD(`turns[k].git_head`) 트리. 커밋 메시지 접두와 무관하다.
+    그 턴에 새 커밋이 없으면(HEAD가 앞 턴과 같음) 그 단계의 스냅숏이 없으므로 채점 불가."""
+    out, turns = {}, run.get("turns") or []
+    for item, (step, src_pat, key, val, _) in PREMISES.items():
+        k = next((i for i, t in enumerate(turns) if t.get("step") == step), None)
+        if k is None:
+            out[item] = R("unscorable", reason=f"{step} 턴 없음")
             continue
-        sha = cand[-1][0]
+        sha = turns[k].get("git_head")
+        prev = turns[k - 1].get("git_head") if k else run.get("skeleton_commit")
+        if not sha:
+            out[item] = R("unscorable", reason=f"{step} 턴의 HEAD 기록 없음")
+            continue
+        if sha == prev:
+            out[item] = R("unscorable", reason=f"{step} 턴에 새 커밋 없음(스냅숏 없음)", commit=sha)
+            continue
+        if not has_commit(work, sha):
+            out[item] = R("unscorable", reason=f"{step} 턴의 HEAD {sha[:12]}가 저장소에 없음(이력 재작성 뒤 정리?)")
+            continue
         files = tree_files(work, sha, "src/main")
         corp = source_text.corpus_from_files(files)
         src_ok = True if src_pat is None else bool(search(corp, src_pat))
@@ -221,7 +237,9 @@ def kt_files(work, sub):
 
 def k1(work, exempt, hidden_prefix):
     bad, total = [], 0
-    for p in kt_files(work, "src/main/kotlin") + kt_files(work, "src/test/kotlin"):
+    files = [p for sub in ("src/main/kotlin", "src/main/java", "src/test/kotlin", "src/test/java")
+             for p in kt_files(work, sub)]
+    for p in files:
         rel = p.relative_to(work).as_posix()
         if rel in exempt or rel.startswith(hidden_prefix):
             continue
@@ -235,19 +253,46 @@ def k1(work, exempt, hidden_prefix):
     return R("fail" if bad else "pass", violations=bad, total=total, rate=round(len(bad) / total, 4))
 
 
-def k2(work):
-    log = git(work, "log", "--format=", "--name-status", "-M", "--", MIGRATION_DIR)
+def sql_changes(name_status, where):
+    """`--name-status` 출력에서 .sql의 A 이외 상태."""
     bad = []
-    for line in log.splitlines():
+    for line in name_status.splitlines():
         parts = line.split("\t")
-        if len(parts) < 2 or not any(x.endswith(".sql") for x in parts[1:]):
+        if len(parts) >= 2 and any(x.endswith(".sql") for x in parts[1:]) and parts[0] != "A":
+            bad.append({"status": parts[0], "paths": parts[1:], "where": where})
+    return bad
+
+
+def turn_heads(run):
+    """[(턴 번호, HEAD)] — 골격 커밋을 -1번으로 맨 앞에 둔다(HEAD 기록이 없는 턴은 뺀다)."""
+    heads = [(-1, run.get("skeleton_commit"))] + [(t["index"], t.get("git_head")) for t in run.get("turns") or []]
+    return [(k, h) for k, h in heads if h]
+
+
+def history_check(work, run):
+    """턴 끝 HEAD마다 최종 HEAD의 조상인지. {rewritten_turns, missing_turns} — 조상이 아니면 amend·rebase·reset 등."""
+    out = {"rewritten_turns": [], "missing_turns": []}
+    for k, h in turn_heads(run):
+        if k < 0:
             continue
-        if parts[0] != "A":
-            bad.append({"status": parts[0], "paths": parts[1:], "where": "history"})
-    for line in git(work, "diff", "HEAD", "--name-status", "--", MIGRATION_DIR).splitlines():
-        parts = line.split("\t")
-        if len(parts) >= 2 and parts[1].endswith(".sql") and parts[0] != "A":
-            bad.append({"status": parts[0], "paths": parts[1:], "where": "worktree"})
+        if not has_commit(work, h):
+            out["missing_turns"].append(k)
+            continue
+        rc = subprocess.run(["git", "-c", f"safe.directory={work}", "merge-base", "--is-ancestor", h, "HEAD"],
+                            cwd=work, capture_output=True).returncode
+        if rc != 0:
+            out["rewritten_turns"].append(k)
+    return out
+
+
+def k2(work, run):
+    """최종 이력 + 작업 트리, 그리고 턴 끝 HEAD 스냅숏 사이의 변경(이력을 고쳐 써도 보이게)."""
+    bad = sql_changes(git(work, "log", "--format=", "--name-status", "-M", "--", MIGRATION_DIR), "history")
+    bad += sql_changes(git(work, "diff", "HEAD", "--name-status", "--", MIGRATION_DIR), "worktree")
+    heads = [(k, h) for k, h in turn_heads(run) if has_commit(work, h)]
+    for (_, a), (k, b) in zip(heads, heads[1:]):
+        if a != b:
+            bad += sql_changes(git(work, "diff", "--name-status", "-M", a, b, "--", MIGRATION_DIR), f"turn {k}")
     return R("fail" if bad else "pass", violations=bad)
 
 
@@ -333,6 +378,21 @@ def step_windows(run):
     return [(math.floor(s), math.floor(starts[k + 1]) if k + 1 < len(starts) else math.inf) for k, s in enumerate(starts)]
 
 
+def s8_needs_commit(run, k):
+    """S0~S7은 언제나 커밋 요구. S8은 그 턴에 추적 파일이 바뀐 경우에만(HEAD가 움직였거나 `git diff HEAD` 해시가
+    앞 턴 끝과 다름). 바뀐 것이 없으면 커밋할 것이 없으므로 해당 없음."""
+    turns = run["turns"]
+    if turns[k]["step"] != "S8":
+        return True
+    if k == 0:
+        return True
+    cur, prev = turns[k], turns[k - 1]
+    if cur.get("git_head") != prev.get("git_head"):
+        return True
+    a, b = cur.get("tracked_diff_sha256"), prev.get("tracked_diff_sha256")
+    return a is None or b is None or a != b  # 기록이 없으면 판정할 수 없으므로 요구하는 쪽(원래 규칙)
+
+
 def k7(work, run):
     try:
         cs = commits(work, run.get("skeleton_commit"))
@@ -348,9 +408,10 @@ def k7(work, run):
         rows.append({"sha": sha[:12], "time": int(ct), "subject": subj[:120], "step": step,
                      "prefix_ok": bool(m), "number_mismatch": bool(m) and step is not None and int(m.group(1)) != step})
     covered = {r["step"] for r in rows}
-    missing = [k for k in range(len(wins)) if k not in covered]
+    required = [k for k in range(len(wins)) if s8_needs_commit(run, k)]
+    missing = [k for k in required if k not in covered]
     a = R("fail" if missing else "pass", steps_without_commit=missing, executed_steps=len(wins),
-          rate=round(len(missing) / len(wins), 4) if wins else None)
+          steps_requiring_commit=len(required), rate=round(len(missing) / len(required), 4) if required else None)
     if not rows:
         b = R("unscorable", reason="골격 이후 커밋 없음", commits=rows)
     else:
@@ -427,20 +488,40 @@ def hidden_items(cfg, work, run_dir, skip, docker=None, stack=None, stack_error=
                                     container_executor(cfg, docker, stack))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
-    meta = {"ran": True, "exit_code": r["exit_code"], "timed_out": r["timed_out"], "testcases": len(r["cases"]),
-            "log": "hidden-test.log"}
+    mb = r["main_build"]
+    meta = {"ran": True, "main_build": mb, "exit_code": r["exit_code"], "timed_out": r["timed_out"],
+            "testcases": len(r["cases"]), "log": "hidden-test.log"}
     if not r["cases"]:
-        # hidden/README: 컴파일 실패(앱 클래스 이동 등)면 실행 전체 채점 불가. 시간 초과는 실행 안 됨.
-        why = "timeout" if r["timed_out"] else "build_failed_or_no_tests"
+        # 메인 코드가 컴파일되지 않음 = 최종 코드가 계약을 못 지킴 → fail(분모에 든다).
+        # 메인은 되는데 숨긴 테스트만 컴파일 실패(앱 클래스 이동 등 — hidden/README) → 채점 불가. 시간 초과 → 실행 안 됨.
+        if mb["timed_out"]:
+            why, res = "main_build_timeout", "not_run"
+        elif mb["exit_code"] != 0:
+            why, res = "main_build_failed", "fail"
+        elif r["timed_out"]:
+            why, res = "timeout", "not_run"
+        else:
+            why, res = "hidden_build_failed_or_no_tests", "unscorable"
         meta["reason"] = why
-        res = "not_run" if r["timed_out"] else "unscorable"
-        return {k: R(res, reason=why) for k in mapping}, meta
+        return {k: (R("unscorable", reason="no_test", alias_of=imeta[k]["alias_of"]) if imeta[k]["no_test"]
+                    else R(res, reason=why, alias_of=imeta[k]["alias_of"])) for k in mapping}, meta
     res = hidden_tests.item_results(mapping, r["cases"])
     return {k: R(v["result"], reason=v["reason"], tests=v["tests"], alias_of=imeta[k]["alias_of"])
             for k, v in res.items()}, meta
 
 
-def open_stack(cfg, need):
+def check_concurrency(docker, cfg, allow_concurrent):
+    """채점도 한 번에 하나(명세 §2 자원 경합 — 숨긴 테스트에 2~4초 시간 창 항목이 있다): 이 실험의 컨테이너가 돌고 있거나
+    다른 실험(`refuse_when_running_prefixes`)의 컨테이너가 돌고 있으면 거부. 다른 실험은 --allow-concurrent로만 넘긴다."""
+    mine = docker.names(label=LABEL)
+    if mine:
+        raise SystemExit(f"이 실험의 컨테이너가 돌고 있다(실행·채점은 한 번에 하나): {mine}")
+    busy = [n for n in docker.names() if n.startswith(tuple(cfg.get("refuse_when_running_prefixes", [])))]
+    if busy and not allow_concurrent:
+        raise SystemExit(f"다른 실험의 컨테이너가 돌고 있다(명세 §2 — 동시 실행 금지): {busy}")
+
+
+def open_stack(cfg, need, allow_concurrent=False):
     """채점용 네트워크 + PostgreSQL 16 사이드카(필요할 때만). (docker, stack 또는 None, 오류 문자열 또는 None, env 정보)"""
     if not need:
         return None, None, None, {"used": False}
@@ -449,6 +530,7 @@ def open_stack(cfg, need):
     info = {"used": True, "tag": tag, "image": cfg["image"], "db_image": cfg["db"]["image"],
             "egress": bool(cfg["hidden"].get("egress", True))}
     try:
+        check_concurrency(docker, cfg, allow_concurrent)  # 거부는 SystemExit(아래 except에 걸리지 않음)
         info["image_id"] = docker.image_info(cfg["image"])["id"]
         stack = containers.PostgresStack(docker, cfg["db"], tag, internal=not info["egress"]).__enter__()
     except Exception as e:  # docker·이미지 문제 — 컨테이너 항목은 채점 불가/실행 안 됨으로 남긴다
@@ -458,7 +540,7 @@ def open_stack(cfg, need):
 
 # ---------- 본체 ----------
 
-def score(cfg, run_dir, work, skip_hidden, skip_db=False):
+def score(cfg, run_dir, work, skip_hidden, skip_db=False, allow_concurrent=False):
     run_dir = Path(run_dir)
     run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
     table = parse_scoring_items((Path(cfg["task_dir"]) / "scoring-items.md").read_text(encoding="utf-8"))
@@ -470,11 +552,11 @@ def score(cfg, run_dir, work, skip_hidden, skip_db=False):
     except springconf.ConfigError as e:
         static.update({item: R("unscorable", reason=f"설정 파싱: {e}") for item in CONFIG_CHECKS})
     static.update(regex_items(source_text.corpus(work)))
-    static.update(premise_items(work))
+    static.update(premise_items(work, run))
     exempt1, hp = set(cfg["k1_exempt_paths"]), cfg["hidden_test_path_prefix"]
     static["K1"] = k1(work, exempt1, hp)
     try:
-        static["K2"] = k2(work)
+        static["K2"] = k2(work, run)
     except RuntimeError as e:
         static["K2"] = R("unscorable", reason=str(e))
     static["K3"] = k3(work)
@@ -484,7 +566,7 @@ def score(cfg, run_dir, work, skip_hidden, skip_db=False):
     static["K7a"], static["K7b"] = k7(work, run)
     static["K8"], k8_turns = k8(run_dir, run, cfg["k8_threshold"], cfg["k8_min_chars"])
     db_items = ("D0-01", "D1-01", "D1-02", "D1-04", "D4-01", "D6-01", "D7-02")
-    docker, stack, stack_error, env_info = open_stack(cfg, not (skip_db and skip_hidden))
+    docker, stack, stack_error, env_info = open_stack(cfg, not (skip_db and skip_hidden), allow_concurrent)
     try:
         if skip_db:
             static.update({i: R("not_run", reason="skip_db") for i in db_items})
@@ -518,7 +600,7 @@ def score(cfg, run_dir, work, skip_hidden, skip_db=False):
             r = R("not_run", reason=hidden_meta.get("reason"), scorer="hidden")
         else:
             r = R("unscorable", reason="no_scorer", scorer=None)
-        r.update(kind=meta["kind"], delivered=meta["delivered_raw"])
+        r.update(kind=meta["kind"], delivered=meta["delivered_raw"], drop_candidate=meta["drop_candidate"])
         attach_delivery(r, meta["delivered_step"], run.get("boundaries") or [])
         items[item] = r
     apply_premises(items)
@@ -526,18 +608,33 @@ def score(cfg, run_dir, work, skip_hidden, skip_db=False):
     for r in items.values():
         counts[r["result"]] = counts.get(r["result"], 0) + 1
     inj = run.get("injections") or []
+    chars = [x.get("chars_injected") for x in inj]
+    history = history_check(work, run)
     return {
         "run_id": run["run_id"], "model": run["model"], "condition": run["condition"], "rep": run["rep"],
         "status": run["status"], "abort_reason": run.get("abort_reason"), "invalid": run.get("invalid"),
         "invalid_reasons": run.get("invalid_reasons"), "scored_at": datetime.datetime.now().isoformat(),
         "compactions": len(run.get("boundaries") or []), "boundaries": [
             dict(b, coord=transcript.boundary_coord(b)) for b in run.get("boundaries") or []],
-        "injections": len(inj), "injected_chars": sum(x.get("chars_injected") or 0 for x in inj) if inj else None,
+        # injected_chars: null = 주입 없음(또는 글자 수 기록이 빠진 주입이 있음). injected_tokens: null = 미측정
+        "injections": len(inj), "injected_chars": sum(chars) if chars and None not in chars else None,
+        "injected_tokens": injected_tokens(run_dir, len(inj)), "history": history,
         "totals": run.get("totals"), "turns_done": len(run.get("turns") or []),
         "hidden": hidden_meta, "counts": counts, "items": items, "k8_turns": k8_turns,
         "unmapped_hidden_ids": sorted(set(hidden) - set(table)),
         "scoring_env": env_info,
     }
+
+
+def injected_tokens(run_dir, n_injections):
+    """`count_injection_tokens.py`가 남긴 <run>/injection-tokens.json의 합. 없거나 미완료·주입 수 불일치면 None(미측정)."""
+    p = Path(run_dir) / "injection-tokens.json"
+    if not n_injections or not p.is_file():
+        return None
+    d = json.loads(p.read_text(encoding="utf-8"))
+    if not d.get("complete") or len(d.get("injections") or []) != n_injections:
+        return None
+    return d.get("total_tokens")
 
 
 def extract_work(run_dir, dest):
@@ -553,6 +650,7 @@ def main(argv=None):
     ap.add_argument("--skip-hidden", action="store_true")
     ap.add_argument("--skip-db", action="store_true", help="DB 카탈로그 항목(docker postgres) 건너뜀")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--allow-concurrent", action="store_true", help="다른 실험(payment-*) 컨테이너가 돌아도 채점")
     ap.add_argument("--config", default=None)
     a = ap.parse_args(argv)
     cfg = load_config(a.config)
@@ -563,7 +661,7 @@ def main(argv=None):
         else:
             tmp = tempfile.mkdtemp(prefix="cx-work-")
             work = extract_work(a.run, tmp)
-        result = score(cfg, a.run, work, a.skip_hidden, a.skip_db)
+        result = score(cfg, a.run, work, a.skip_hidden, a.skip_db, a.allow_concurrent)
     finally:
         if tmp:
             shutil.rmtree(tmp, ignore_errors=True)

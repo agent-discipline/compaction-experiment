@@ -53,6 +53,7 @@
     "dir": "tasks/seat-reservation/hidden",
     "pre_delete": ["src/test"],
     "overlay": [["src", "src"]],
+    "main_build_command": ["./gradlew", "classes", "--no-daemon", "--console=plain"],
     "command": ["./gradlew", "test", "--tests", "hidden.contract.*", "--rerun", "--no-daemon", "--console=plain"],
     "junit_dir": "build/test-results/test",
     "items_file": "tasks/seat-reservation/hidden/items.json",

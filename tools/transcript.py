@@ -120,7 +120,8 @@ def locate_boundaries(entries, turn_line_ends, messages):
 
 
 def boundary_coord(b):
-    """턴 축 좌표: 턴 k 프롬프트 앞 = k − 0.5, 턴 k 도중(또는 위치 불명) = k. 턴을 모르면 None."""
-    if b.get("turn") is None:
+    """턴 축 좌표: 턴 k 프롬프트 앞 = k − 0.5, 턴 k 도중 = k. 턴을 모르거나 프롬프트 앞/뒤를 확정하지 못하면
+    (position unknown·after_last_turn) None — 이런 경계는 "전달 뒤 컴팩트" 판정에 쓰지 않고 위치 불명으로 따로 센다."""
+    if b.get("turn") is None or b.get("position") not in ("before_prompt", "mid_turn"):
         return None
-    return b["turn"] - 0.5 if b.get("position") == "before_prompt" else float(b["turn"])
+    return b["turn"] - 0.5 if b["position"] == "before_prompt" else float(b["turn"])

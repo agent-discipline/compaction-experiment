@@ -1,8 +1,10 @@
 import json
+import os
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from helpers import assistant, git, user, write, write_jsonl
 
@@ -66,6 +68,10 @@ class HoldTest {
 """
 
 
+def head(work):
+    return subprocess.run(["git", "rev-parse", "HEAD"], cwd=work, capture_output=True, text=True).stdout.strip()
+
+
 def make_case(premise_s3_ok=True):
     base = Path(tempfile.mkdtemp())
     skel, work, rdir = base / "skel", base / "work", base / "run"
@@ -78,28 +84,30 @@ def make_case(premise_s3_ok=True):
     git(work, "init", "-q", "-b", "main")
     git(work, "add", "-A")
     git(work, "commit", "-q", "-m", "skeleton", date=T0)
-    skeleton = subprocess.run(["git", "rev-parse", "HEAD"], cwd=work, capture_output=True, text=True).stdout.strip()
+    skeleton = head(work)
 
     def commit(msg, date):
         git(work, "add", "-A")
         git(work, "commit", "-q", "-m", msg, date=date)
+        return head(work)
 
     write(work, "src/main/resources/db/migration/V1__init.sql", "CREATE TABLE product (id BIGSERIAL);\n")
-    commit("[S0] 기본 구현", T0 + 10)
+    h0 = commit("[S0] 기본 구현", T0 + 10)
     write(work, "src/main/resources/db/migration/V2__add_indexes.sql", "CREATE INDEX a ON b (c);\n")
-    commit("[S1] 인덱스", T0 + 110)
+    h1 = commit("[S1] 인덱스", T0 + 110)
     write(work, "src/main/kotlin/com/example/booking/seat/Lock.kt",
           "package com.example.booking.seat\nval q = \"SELECT pg_try_advisory_xact_lock(?, ?)\"\n" if premise_s3_ok
           else "package com.example.booking.seat\n")
     write(work, "src/main/resources/application.yml", YML_S3)
-    commit("[S3] 어드바이저리", T0 + 310)
+    h3 = commit("[S3] 어드바이저리", T0 + 310)
     (work / "src/main/kotlin/com/example/booking/seat/Lock.kt").unlink()
     write(work, "src/main/resources/application.yml", YML_FINAL)
     write(work, "src/main/kotlin/com/example/booking/seat/repo/QuotaRepo.kt", REPO)
     write(work, "src/main/kotlin/com/example/booking/config/ClockConfig.kt", CONF)
     write(work, "src/test/kotlin/com/example/booking/seat/HoldTest.kt", TESTS)
     write(work, "src/main/resources/db/migration/V1__init.sql", "CREATE TABLE product (id BIGSERIAL, x INT);\n")
-    commit("S4 카운터", T0 + 410)
+    h4 = commit("S4 카운터", T0 + 410)
+    heads = [h0, h1, h1, h3, h4]  # 턴 2(S2)는 커밋 없음
 
     msgs = ["M0", "M1", "M2", "M3", "M4"]
     rows = [user("M0"), assistant("구현을 마쳤고 테스트가 통과했습니다. 다음 단계로 가겠습니다.", mid="a0"),
@@ -119,7 +127,7 @@ def make_case(premise_s3_ok=True):
            "invalid": False, "invalid_reasons": [], "skeleton_commit": skeleton, "boundaries": bounds,
            "totals": {"tokens": 1}, "injections": [],
            "turns": [{"index": k, "step": f"S{k}", "started_at": T0 + 5 + 100 * k - (5 if k else 0),
-                      "transcript_lines": ends[k]} for k in range(5)]}
+                      "transcript_lines": ends[k], "git_head": heads[k]} for k in range(5)]}
     (rdir / "run.json").write_text(json.dumps(run), encoding="utf-8")
     cfg = run_task.load_config()
     cfg["skeleton_dir"] = str(skel)
@@ -189,7 +197,7 @@ class ScoreRunTest(unittest.TestCase):
         self.assertEqual((k5["result"], k5["total"], k5["violation_count"]), ("fail", 3, 1))
         k6 = self.items["K6"]
         self.assertEqual(k6["result"], "fail")
-        self.assertEqual(sorted(v["match"] for v in k6["violations"]), ["Instant.now(", "now()"])
+        self.assertEqual(sorted(v["match"] for v in k6["violations"]), ["Instant.now()", "now()"])
         self.assertEqual(len(k6["allowed_bean_clock"]), 1)
 
     def test_k7(self):
@@ -225,6 +233,197 @@ class ScoreRunTest(unittest.TestCase):
         self.assertEqual(sr.k4(d / "w", d / "s")["result"], "fail")
         write(d / "w", "build.gradle.kts", BUILD.replace("  implementation", "implementation") + "// 주석\n")
         self.assertEqual(sr.k4(d / "w", d / "s")["result"], "pass")
+
+
+
+def k6_of(src, rel="src/main/kotlin/com/example/booking/seat/A.kt"):
+    d = Path(tempfile.mkdtemp())
+    write(d, rel, src)
+    return sr.k6(d)
+
+
+class K6Test(unittest.TestCase):
+    def test_now_with_clock_argument_passes(self):
+        r = k6_of("package a\nclass A(val clock: Clock) {\n  fun t() = Instant.now(clock)\n"
+                  "  fun u() = LocalDateTime.now(clock)\n  fun v() = OffsetDateTime.now( clock )\n}\n")
+        self.assertEqual((r["result"], r["violations"]), ("pass", []))
+
+    def test_no_arg_now_and_millis_fail(self):
+        r = k6_of("package a\nfun t() = LocalDateTime.now( )\nfun u() = System.currentTimeMillis()\n")
+        self.assertEqual(sorted(v["match"] for v in r["violations"]), ["LocalDateTime.now( )", "System.currentTimeMillis("])
+
+    def test_clock_creation_outside_bean_fails(self):
+        r = k6_of("package a\nclass S { val c = Clock.system(ZoneOffset.UTC) }\n")
+        self.assertEqual((r["result"], [v["match"] for v in r["violations"]]), ("fail", ["Clock.system("]))
+
+    def test_one_bean_clock_allowed_second_fails(self):
+        one = "@Configuration\nclass C {\n  @Bean\n  fun clock(): Clock = Clock.systemDefaultZone()\n}\n"
+        self.assertEqual(k6_of("package a\n" + one)["result"], "pass")
+        two = one + "class D {\n  @Bean\n  fun clock2(): Clock = Clock.systemUTC()\n}\n"
+        r = k6_of("package a\n" + two)
+        self.assertEqual((r["result"], len(r["allowed_bean_clock"]), len(r["violations"])), ("fail", 1, 1))
+
+    def test_sql_time_functions_in_strings(self):
+        r = k6_of('package a\nval q = "UPDATE x SET t = statement_timestamp()"\nval ok = "SELECT :now"\n')
+        self.assertEqual([v["match"] for v in r["violations"]], ["statement_timestamp("])
+
+    def test_java_file_checked(self):
+        r = k6_of("package a;\nclass J { long t() { return System.currentTimeMillis(); } }\n",
+                  "src/main/java/a/J.java")
+        self.assertEqual(r["result"], "fail")
+
+
+class K1JavaTest(unittest.TestCase):
+    def test_java_files_checked(self):
+        d = Path(tempfile.mkdtemp())
+        write(d, "src/main/kotlin/com/example/booking/seat/A.kt", "package com.example.booking.seat\n")
+        write(d, "src/test/java/com/example/other/B.java", "package com.example.other;\nclass B {}\n")
+        r = sr.k1(d, set(), "src/test/kotlin/hidden/")
+        self.assertEqual((r["result"], [v["file"] for v in r["violations"]]),
+                         ("fail", ["src/test/java/com/example/other/B.java"]))
+
+
+class DropCandidateTest(unittest.TestCase):
+    def test_drop_candidates_from_scoring_table(self):
+        t = sr.parse_scoring_items((Path(run_task.load_config()["task_dir"]) / "scoring-items.md")
+                                   .read_text(encoding="utf-8"))
+        drop = sorted(k for k, v in t.items() if v["drop_candidate"])
+        self.assertEqual(drop, ["D0-12", "D2-04", "D2-05", "D4-07", "D5-04", "D6-07", "D6-08", "D7-08"])
+
+    def test_items_json_fragile_agrees(self):
+        """items.json의 fragile은 사람이 읽는 사본 — 채점은 scoring-items.md만 읽지만 둘이 어긋나면 알린다."""
+        cfg = run_task.load_config()
+        t = sr.parse_scoring_items((Path(cfg["task_dir"]) / "scoring-items.md").read_text(encoding="utf-8"))
+        items = json.loads(run_task.resolve(cfg["hidden"]["items_file"]).read_text(encoding="utf-8"))["items"]
+        self.assertEqual({x["id"] for x in items if "●" in (x.get("fragile") or "")},
+                         {x["id"] for x in items if t[x["id"]]["drop_candidate"]})
+
+
+class GitSnapshotTest(unittest.TestCase):
+    """턴 끝 HEAD로 전제·이력 재작성·K2·K7a(S8)를 판정."""
+
+    def setUp(self):
+        self.w = Path(tempfile.mkdtemp())
+        write(self.w, "src/main/resources/db/migration/.gitkeep", "")
+        git(self.w, "init", "-q", "-b", "main")
+        git(self.w, "add", "-A")
+        git(self.w, "commit", "-q", "-m", "skeleton", date=T0)
+        self.skel = head(self.w)
+
+    def commit(self, msg, date, files):
+        for rel, text in files.items():
+            write(self.w, rel, text)
+        git(self.w, "add", "-A")
+        git(self.w, "commit", "-q", "-m", msg, date=date)
+        return head(self.w)
+
+    def run_json(self, heads, steps=None, diffs=None):
+        steps = steps or [f"S{k}" for k in range(len(heads))]
+        return {"skeleton_commit": self.skel, "turns": [
+            {"index": k, "step": steps[k], "started_at": T0 + 100 * k, "git_head": h,
+             "tracked_diff_sha256": (diffs or [None] * len(heads))[k]} for k, h in enumerate(heads)]}
+
+    def test_premise_uses_turn_head_not_commit_prefix(self):
+        yml = {"src/main/resources/application.yml": YML_S3,
+               "src/main/kotlin/A.kt": 'val q = "SELECT pg_try_advisory_xact_lock(1)"\n'}
+        h = [self.commit(f"단계 {k}", T0 + 100 * k + 10, {f"f{k}.txt": "x"}) for k in range(3)]
+        h.append(self.commit("접두 없는 메시지", T0 + 310, yml))
+        items = sr.premise_items(self.w, self.run_json(h))
+        self.assertEqual(items["D3-00"]["result"], "pass")
+        self.assertEqual(items["D3-00"]["commit"], h[3])
+        items = sr.premise_items(self.w, self.run_json(h[:3] + [h[2]]))  # S3 턴에 커밋 없음
+        self.assertEqual(items["D3-00"]["result"], "unscorable")
+        self.assertIn("새 커밋 없음", items["D3-00"]["reason"])
+
+    def test_history_rewrite_flagged_and_k2_sees_snapshot_change(self):
+        mig = "src/main/resources/db/migration/V1__init.sql"
+        h0 = self.commit("[S0] a", T0 + 10, {mig: "CREATE TABLE a (id INT);\n"})
+        h1 = self.commit("[S1] b", T0 + 110, {"x.txt": "1"})
+        # S2에서 앞 커밋들을 하나로 합치며 V1을 고친다(amend·rebase 흉내) → 최종 이력에는 V1의 A만 남는다
+        git(self.w, "reset", "-q", "--soft", self.skel)
+        write(self.w, mig, "CREATE TABLE a (id INT, b INT);\n")
+        git(self.w, "add", "-A")
+        git(self.w, "commit", "-q", "-m", "[S2] 합침", date=T0 + 210)
+        h2 = head(self.w)
+        run = self.run_json([h0, h1, h2])
+        self.assertEqual(sr.history_check(self.w, run), {"rewritten_turns": [0, 1], "missing_turns": []})
+        k2 = sr.k2(self.w, run)
+        self.assertEqual(k2["result"], "fail")
+        self.assertEqual([(v["status"], v["where"]) for v in k2["violations"]], [("M", "turn 2")])
+
+    def test_k7a_s8_requires_commit_only_when_tracked_files_changed(self):
+        h = [self.commit(f"[S{k}] x", T0 + 100 * k + 10, {f"f{k}.txt": "x"}) for k in range(8)]
+        steps = [f"S{k}" for k in range(9)]
+        same = self.run_json(h + [h[7]], steps, diffs=["d"] * 9)
+        a, _ = sr.k7(self.w, same)
+        self.assertEqual((a["result"], a["steps_requiring_commit"]), ("pass", 8))
+        changed = self.run_json(h + [h[7]], steps, diffs=["d"] * 8 + ["e"])
+        a, _ = sr.k7(self.w, changed)
+        self.assertEqual((a["result"], a["steps_without_commit"], a["steps_requiring_commit"]), ("fail", [8], 9))
+
+
+class HiddenMainBuildTest(unittest.TestCase):
+    """채점 컨테이너 대신 가짜 실행 함수 — 메인 빌드 실패면 H 항목 fail, 숨긴 테스트만 컴파일 실패면 unscorable."""
+
+    def hidden(self, main_rc, test_rc=1):
+        cfg = run_task.load_config()
+        work, rdir = Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
+        write(work, "build.gradle.kts", BUILD)
+
+        def fake_executor(*_):
+            def execute(cmd, cwd, log, timeout):
+                return main_rc if cmd == cfg["hidden"]["main_build_command"] else test_rc  # JUnit XML 없음
+            return execute
+        orig, sr.container_executor = sr.container_executor, fake_executor
+        try:
+            return sr.hidden_items(cfg, work, rdir, False, docker=None, stack=object())
+        finally:
+            sr.container_executor = orig
+
+    def test_main_build_failure_is_fail(self):
+        items, meta = self.hidden(main_rc=1)
+        self.assertEqual(meta["reason"], "main_build_failed")
+        self.assertEqual((items["D0-02"]["result"], items["D0-02"]["reason"]), ("fail", "main_build_failed"))
+        self.assertEqual(items["D0-12"]["result"], "unscorable")  # 테스트 없는 항목
+        self.assertEqual(items["D6-04"]["alias_of"], "D0-13")
+
+    def test_hidden_only_build_failure_is_unscorable(self):
+        items, meta = self.hidden(main_rc=0)
+        self.assertEqual(meta["reason"], "hidden_build_failed_or_no_tests")
+        self.assertEqual(items["D0-02"]["result"], "unscorable")
+
+
+
+class ScoringConcurrencyTest(unittest.TestCase):
+    """채점도 동시 실행 사전 확인(가짜 docker)."""
+
+    def cfg(self, base):
+        cfg = run_task.load_config()
+        fd = Path(run_task.ROOT) / "tools" / "tests" / "fake_docker.py"
+        os.chmod(fd, 0o755)
+        cfg["docker_bin"] = str(fd)
+        return cfg
+
+    def test_refuses_when_other_experiment_running(self):
+        base = Path(tempfile.mkdtemp())
+        with mock.patch.dict(os.environ, {"FAKE_DOCKER_STATE": str(base / "d"), "FAKE_DOCKER_PS": "payment-claude-1"}):
+            with self.assertRaises(SystemExit):
+                sr.open_stack(self.cfg(base), True)
+            calls = (base / "d" / "calls.jsonl").read_text()
+            self.assertNotIn('"create"', calls)
+            docker, stack, err, info = sr.open_stack(self.cfg(base), True, allow_concurrent=True)
+            self.assertIsNone(err)
+            stack.close()
+            self.assertEqual(stack.cleanup_errors, [])
+
+    def test_refuses_when_this_experiment_running(self):
+        base = Path(tempfile.mkdtemp())
+        with mock.patch.dict(os.environ, {"FAKE_DOCKER_STATE": str(base / "d")}):
+            cfg = self.cfg(base)
+            d = sr.containers.Docker.from_cfg(cfg)
+            d.run("run", "-d", "--name", "cx-other-db", "--label", sr.LABEL, "postgres:16")
+            with self.assertRaises(SystemExit):
+                sr.open_stack(cfg, True, allow_concurrent=True)
 
 
 if __name__ == "__main__":
