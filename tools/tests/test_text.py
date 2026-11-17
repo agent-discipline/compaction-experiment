@@ -43,6 +43,13 @@ class LanguageTest(unittest.TestCase):
         r = language.ratio("I implemented the hold API and all tests pass now. 좋아요", 20)
         self.assertLess(r["ratio"], 0.5)
 
+    def test_korean_slash_prose_is_not_a_path(self):
+        r = language.ratio("선점/확정 흐름과 마감/정리 배치를 구현했습니다", 5)
+        self.assertEqual(r["hangul"], 20)
+        self.assertEqual(r["ratio"], 1.0)
+        r = language.ratio("설정은 src/main/resources/application.yml 에 넣었습니다", 5)
+        self.assertEqual(r["latin"], 0)
+
     def test_short_turn_excluded(self):
         self.assertIsNone(language.ratio("완료", 20)["ratio"])
         self.assertIsNone(language.ratio("```\ncode only block that is long enough\n```", 20)["ratio"])

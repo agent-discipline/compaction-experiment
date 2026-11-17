@@ -5,8 +5,9 @@ FENCE = re.compile(r"(^|\n)[ \t]*(```|~~~)[^\n]*\n.*?(\n[ \t]*\2[^\n]*(?=\n|$)|$
 INLINE = re.compile(r"`[^`\n]*`")
 QUOTE = re.compile(r"^[ \t]*>.*$", re.M)
 URL = re.compile(r"\b[a-zA-Z][a-zA-Z0-9+.-]*://\S+")
-PATH = re.compile(r"(?<![\w가-힣])(?:\.{0,2}/)?(?:[\w.@-]+/)+[\w.@-]*"
-                  r"|(?<![\w가-힣])[\w-]+\.(?:kt|kts|java|sql|ya?ml|md|json|xml|properties|gradle|txt|sh|py)\b")
+# 경로 문자는 ASCII만 — Python `\w`는 한글도 포함해 "선점/확정" 같은 산문이 경로로 지워진다
+PATH = re.compile(r"(?<![\w가-힣])(?:\.{0,2}/)?(?:[A-Za-z0-9_.@-]+/)+[A-Za-z0-9_.@-]*"
+                  r"|(?<![\w가-힣])[A-Za-z0-9_-]+\.(?:kt|kts|java|sql|ya?ml|md|json|xml|properties|gradle|txt|sh|py)\b")
 HANGUL = re.compile(r"[가-힣ᄀ-ᇿ㄰-㆏]")
 LATIN = re.compile(r"[A-Za-z]")
 
