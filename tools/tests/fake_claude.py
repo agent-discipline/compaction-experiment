@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-"""테스트용 가짜 `claude` — 유료 호출 없이 실행기 흐름을 돌린다.
+"""테스트용 가짜 `claude` — 유료 호출 없이 실행기 흐름을 돌린다(가짜 docker가 컨테이너 대신 호스트에서 부른다).
 
-- stdin 프롬프트를 세션 기록(HOME/.claude/projects/-fake/<sid>.jsonl)에 덧붙이고 한국어 응답 한 줄을 쓴다.
-- cwd/.claude/settings.json의 훅을 실제처럼 부른다: UserPromptSubmit(매 턴), 그리고
-  CLAUDE_CODE_AUTO_COMPACT_WINDOW=100000이고 두 번째 턴부터는 프롬프트 앞에서 컴팩트
+- stdin 프롬프트를 세션 기록(CLAUDE_CONFIG_DIR/projects/-work/<sid>.jsonl)에 덧붙이고 한국어 응답 한 줄을 쓴다.
+- cwd/.claude/settings.json의 훅을 실제처럼 부른다(명령 속 컨테이너 경로는 FAKE_PATH_MAP으로 호스트 경로로 바꿈):
+  UserPromptSubmit(매 턴), 그리고 CLAUDE_CODE_AUTO_COMPACT_WINDOW=100000이고 두 번째 턴부터는 프롬프트 앞에서 컴팩트
   (PreCompact → 경계·요약 줄 → PostCompact → SessionStart(compact)).
-- 두 번째 턴에 샌드박스 자격 증명의 expiresAt을 늘린다(되쓰기 확인용).
-- FAKE_FAIL_TURN=k 이면 k번째 턴(0부터)에서 exit 1.
+- FAKE_FAIL_TURN=k 이면 k번째 턴(0부터)에서 exit 1. FAKE_LEAK_TURN=k 이면 그 턴에 환경의 토큰 값을 작업 폴더 파일에 쓴다.
 """
 import json
 import os
@@ -20,8 +19,8 @@ if args == ["--version"]:
     sys.exit(0)
 sid = args[args.index("--session-id") + 1] if "--session-id" in args else args[args.index("--resume") + 1]
 prompt = sys.stdin.read()
-home = Path(os.environ["HOME"])
-tp = home / ".claude" / "projects" / "-fake" / f"{sid}.jsonl"
+config_dir = Path(os.environ.get("CLAUDE_CONFIG_DIR") or Path(os.environ["HOME"]) / ".claude")
+tp = config_dir / "projects" / "-work" / f"{sid}.jsonl"
 tp.parent.mkdir(parents=True, exist_ok=True)
 prev = tp.read_text(encoding="utf-8").splitlines() if tp.exists() else []
 turn = sum(1 for x in prev if json.loads(x).get("type") == "user" and isinstance(json.loads(x)["message"]["content"], str)
@@ -29,7 +28,18 @@ turn = sum(1 for x in prev if json.loads(x).get("type") == "user" and isinstance
 if os.environ.get("FAKE_FAIL_TURN") == str(turn):
     print("boom", file=sys.stderr)
     sys.exit(1)
+if os.environ.get("FAKE_LEAK_TURN") == str(turn):
+    Path("leak.txt").write_text("token=" + os.environ.get("CLAUDE_CODE_OAUTH_TOKEN", "") + "\n")
 settings = json.loads(Path(".claude/settings.json").read_text(encoding="utf-8"))
+path_map = json.loads(os.environ.get("FAKE_PATH_MAP", "[]"))
+
+
+def to_host(command):
+    for dst, src in path_map:
+        command = command.replace(dst + "/", src + "/").replace(dst + " ", src + " ")
+        if command.endswith(dst):
+            command = command[:-len(dst)] + src
+    return command
 
 
 def hooks(event, payload, matcher=None):
@@ -38,7 +48,8 @@ def hooks(event, payload, matcher=None):
         if matcher and group.get("matcher") not in (None, matcher):
             continue
         for h in group["hooks"]:
-            p = subprocess.run(h["command"], shell=True, input=json.dumps(payload), capture_output=True, text=True)
+            p = subprocess.run(to_host(h["command"]), shell=True, input=json.dumps(payload), capture_output=True,
+                               text=True)
             outs.append(p.stdout)
     return outs
 
@@ -60,11 +71,6 @@ rows.append({"type": "assistant", "message": {"id": f"m{turn}", "role": "assista
 with open(tp, "a", encoding="utf-8") as f:
     for r in rows:
         f.write(json.dumps(r, ensure_ascii=False) + "\n")
-if turn == 1:
-    c = home / ".claude" / ".credentials.json"
-    d = json.loads(c.read_text())
-    d["claudeAiOauth"]["expiresAt"] += 1000
-    c.write_text(json.dumps(d))
 print(json.dumps({"type": "result", "subtype": "success", "is_error": False, "session_id": sid, "num_turns": 1,
                   "total_cost_usd": 0.01, "usage": {"input_tokens": 10, "output_tokens": 5,
                                                     "iterations": [{"input_tokens": 10, "cache_read_input_tokens": 90}]},

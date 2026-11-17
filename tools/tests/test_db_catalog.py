@@ -2,11 +2,14 @@ import re
 import subprocess
 import tempfile
 import unittest
+import uuid
 from pathlib import Path
 
 from helpers import TOOLS, write
 
+import containers
 import db_catalog as dc
+import run_task as rt
 
 
 def s0_sql():
@@ -52,21 +55,34 @@ class CheckTest(unittest.TestCase):
 
 @unittest.skipUnless(docker_ok(), "docker 없음")
 class DockerCatalogTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cfg = rt.load_config()
+        docker = containers.Docker.from_cfg(cfg)
+        cls.stack = containers.PostgresStack(docker, cfg["db"], f"cx-test-{uuid.uuid4().hex[:8]}", internal=True)
+        cls.stack.__enter__()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.stack.close()
+        assert not cls.stack.cleanup_errors, cls.stack.cleanup_errors
+
     def test_full_schema_passes_and_extra_unique_fails(self):
         d = Path(tempfile.mkdtemp())
         write(d, "V1__init.sql", s0_sql())
         write(d, "V2__indexes.sql", V2)
         write(d, "V3__rest.sql", V3)
-        r = dc.check(dc.collect(d))
+        collect = lambda m: dc.collect(m, self.stack)  # noqa: E731 — 호출마다 새 데이터베이스
+        r = dc.check(collect(d))
         self.assertEqual({k: v["result"] for k, v in r.items()},
                          {k: "pass" for k in ("D0-01", "D1-01", "D1-02", "D1-04", "D4-01", "D6-01", "D7-02")}, r)
         write(d, "V4__bad.sql", "ALTER TABLE product ADD CONSTRAINT uq_product_name UNIQUE (name);\n"
                                 "SELECT broken syntax here;\n")
-        cat = dc.collect(d)
+        cat = collect(d)
         self.assertEqual(cat["migration_error"]["file"], "V4__bad.sql")
         self.assertEqual(dc.check(cat)["D1-04"]["result"], "pass")  # 실패한 파일은 한 트랜잭션으로 롤백
         write(d, "V4__bad.sql", "ALTER TABLE product ADD CONSTRAINT uq_product_name UNIQUE (name);\n")
-        r = dc.check(dc.collect(d))
+        r = dc.check(collect(d))
         self.assertEqual((r["D1-04"]["result"], r["D1-04"]["extra_unique"]), ("fail", ["uq_product_name"]))
 
 

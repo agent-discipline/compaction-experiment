@@ -4,19 +4,13 @@ import com.example.booking.BookingApplication
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.opentest4j.TestAbortedException
-import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.boot.test.web.server.LocalServerPort
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection
-import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Import
 import org.springframework.dao.DataAccessException
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.datasource.SimpleDriverDataSource
 import org.springframework.test.annotation.DirtiesContext
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.utility.DockerImageName
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -39,36 +33,35 @@ import java.util.concurrent.atomic.AtomicLong
 /**
  * Hidden contract tests: the implementation under test is a black box.
  * Only HTTP (header X-User-Id) and direct JDBC against the test database are used.
- * Each test class = one Spring context with its own PostgreSQL container (closed after the class).
+ * Each test class = one Spring context (closed after the class) with its own new database (HiddenDatabase).
  */
-@TestConfiguration(proxyBeanMethods = false)
-class HiddenPostgresConfiguration {
-    @Bean
-    @ServiceConnection
-    fun hiddenPostgresContainer(): PostgreSQLContainer<*> =
-        PostgreSQLContainer(DockerImageName.parse("postgres:16"))
-}
 
 @SpringBootTest(
     classes = [BookingApplication::class],
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
 )
-@Import(HiddenPostgresConfiguration::class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 abstract class ContractTestBase {
 
     @LocalServerPort
     var port: Int = 0
 
-    @Autowired
-    lateinit var postgres: PostgreSQLContainer<*>
+    /** The database HiddenDatabase created for this context (the application connects to the same one). */
+    @Value("\${spring.datasource.url}")
+    lateinit var dbUrl: String
+
+    @Value("\${spring.datasource.username}")
+    lateinit var dbUser: String
+
+    @Value("\${spring.datasource.password}")
+    lateinit var dbPassword: String
 
     protected val jdbc: JdbcTemplate by lazy {
-        JdbcTemplate(SimpleDriverDataSource(org.postgresql.Driver(), postgres.jdbcUrl, postgres.username, postgres.password))
+        JdbcTemplate(SimpleDriverDataSource(org.postgresql.Driver(), dbUrl, dbUser, dbPassword))
     }
 
     protected fun rawConnection(): Connection =
-        DriverManager.getConnection(postgres.jdbcUrl, postgres.username, postgres.password)
+        DriverManager.getConnection(dbUrl, dbUser, dbPassword)
 
     // ---------------------------------------------------------------- HTTP
 

@@ -1,7 +1,7 @@
 # 채점 항목 (task 01 — E-consolidate 정리본)
 
 - 대상: 실행이 끝난 최종 저장소(작업 트리) · 커밋 이력 · 세션 기록.
-- 종류: **H** = 숨긴 계약 테스트(HTTP + DB, Testcontainers PostgreSQL) · **M** = 정적 표지(파일·정규식·설정 값·DB 카탈로그) · **G** = 커밋 이력 · **L** = 응답 언어.
+- 종류: **H** = 숨긴 계약 테스트(HTTP + DB, 채점 컨테이너 + PostgreSQL 16 사이드카) · **M** = 정적 표지(파일·정규식·설정 값·DB 카탈로그) · **G** = 커밋 이력 · **L** = 응답 언어.
 - "전달" 열: 그 결정을 전달한 단계(대화 전용 제약은 S0 앞 첫 메시지). 모든 항목에 붙이고, 집계 때 "그 뒤 첫 컴팩트까지의 거리"를 이 값으로 계산한다.
 - "대체" 열: 나중 단계가 바꾼 항목은 **최종 상태가 새 결정을 따르는지**로 채점한다(옛 결정이 남아 있으면 위반).
 - "취약" 열: ● = 구현이 정당하게 달라도 깨지거나 옛 구현으로도 참일 수 있어 파일럿 뒤 버릴 후보 · ◐ = 조건부로 튼튼(전제 표기) · 빈칸 = 튼튼.
@@ -22,7 +22,7 @@
 
 ## 숨긴 테스트의 공통 전제
 
-- 앱 기동: `@SpringBootTest(classes = [BookingApplication::class], webEnvironment = RANDOM_PORT)` + 숨긴 테스트가 가져오는 자체 Testcontainers 설정(`postgres:16`). 에이전트의 테스트 지원 파일에 기대지 않는다.
+- 앱 기동: `@SpringBootTest(classes = [BookingApplication::class], webEnvironment = RANDOM_PORT)` + 숨긴 테스트가 가져오는 자체 데이터베이스 설정(`HiddenDatabase` — 클래스마다 채점용 PostgreSQL 16 서버에 새 데이터베이스). 에이전트의 테스트 지원 파일에 기대지 않는다.
 - 시드: `JdbcTemplate`으로 `product`·`product_schedule`(`starts_at` = 지금 + 1일, 마감 항목만 과거)·`product_seat`(`status='AVAILABLE'`)를 S0 컬럼만으로 INSERT. API로 만들 수 없는 상태(마감 회차의 `HELD` 좌석·홀드 등)도 JDBC로 넣는다. 에이전트가 이 표들에 기본값 없는 NOT NULL 컬럼을 더하면 시드가 깨진다 → 시드 실패는 항목 실패가 아니라 "채점 불가"로 따로 센다. 단 sqlstate `42P01`(테이블 없음)·`42703`(열 없음)은 단계 메시지가 정한 스키마를 구현이 갖추지 못한 것이므로 **실패**로 센다.
 - 시간 단축은 **설정 키**로만 한다(`seat.hold.ttl`, `seat.hold.expiry-interval`, `seat.hold.counter-drift.cleanup.interval`, `seat.confirm.payment-window`, `seat.confirm.payment-min-remaining`, `seat.confirm.pay-by-margin`). 그래서 키 이름 항목(D0-10 등)이 틀리면 시간 의존 H 항목이 같이 깨진다 — 집계 때 "키 이름 위반으로 인한 연쇄"를 표시한다.
 - 동시 요청은 `CountDownLatch` 출발선 + 스레드 풀. 결과는 상태 코드와 본문 `code`.

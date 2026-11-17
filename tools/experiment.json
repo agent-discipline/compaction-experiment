@@ -1,15 +1,35 @@
 {
-  "_comment": "실행기(run_task.py)와 채점기(score_run.py)가 함께 읽는 경로·명령 설정. 상대 경로는 저장소 루트 기준.",
+  "_comment": "실행기(run_task.py)와 채점기(score_run.py)가 함께 읽는 경로·명령 설정. 상대 경로는 저장소 루트 기준. 에이전트·채점은 컨테이너 안(tools/README.md).",
   "task_dir": "tasks/seat-reservation",
   "skeleton_dir": "tasks/seat-reservation/skeleton",
   "steps": ["S0", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8"],
   "runs_dir": ".runs",
   "run_root": "/tmp/cx-run",
-  "claude_bin": "~/.local/bin/claude",
-  "hook_python": "/usr/bin/python3",
-  "credentials_file": "~/.claude/.credentials.json",
-  "java_home": "~/.sdkman/candidates/java/21.0.5-tem",
-  "gradle_user_home": "~/.cache/cx-gradle",
+  "docker_bin": "docker",
+  "resource_prefix": "cx-",
+  "image": "cx-agent:2.1.326",
+  "token_env_file": "~/.config/payment-lab/claude.env",
+  "token_env_key": "CLAUDE_CODE_OAUTH_TOKEN",
+  "refuse_when_running_prefixes": ["payment-"],
+  "container": {
+    "claude_bin": "claude",
+    "hook_python": "/usr/bin/python3",
+    "work": "/work",
+    "home": "/home/agent",
+    "hooks": "/cx/hooks",
+    "hookdata": "/cx/hookdata",
+    "cpus": "4",
+    "memory": "6g",
+    "pids_limit": 2048
+  },
+  "db": {
+    "image": "postgres:16",
+    "alias": "db",
+    "name": "booking",
+    "user": "booking",
+    "password": "booking",
+    "server_args": ["-c", "fsync=off", "-c", "max_connections=500"]
+  },
   "allowed_tools": ["Bash", "Read", "Edit", "Write", "Grep", "Glob"],
   "permission_mode": "bypassPermissions",
   "compact_window": {"control": "1000000", "compact": "100000", "outbox": "100000"},
@@ -25,8 +45,8 @@
     "backend-labs-commerce",
     "compaction-experiment",
     "agent-discipline",
-    "{run_root}/hooks",
-    "{run_root}/hookdata"
+    "{hooks}",
+    "{hookdata}"
   ],
   "forbidden_tools": ["WebFetch", "WebSearch"],
   "hidden": {
@@ -37,11 +57,12 @@
     "junit_dir": "build/test-results/test",
     "items_file": "tasks/seat-reservation/hidden/items.json",
     "timeout_s": 3600,
-    "unscorable_pattern": "^UNSCORABLE"
+    "unscorable_pattern": "^UNSCORABLE",
+    "egress": true
   },
   "k1_exempt_paths": [
     "src/main/kotlin/com/example/booking/BookingApplication.kt",
-    "src/test/kotlin/com/example/booking/TestcontainersConfiguration.kt",
+    "src/test/kotlin/com/example/booking/TestDatabaseIsolation.kt",
     "src/test/kotlin/com/example/booking/BookingApplicationTests.kt"
   ],
   "k5_exempt_paths": [

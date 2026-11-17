@@ -7,6 +7,7 @@
     "fail": "<failure> or <error> (includes seed failures with sqlstate 42P01/42703: message starts with 'SEED_SCHEMA_MISSING')",
     "unscorable": "<skipped> whose message starts with 'UNSCORABLE' (other seed failures, message carries sqlstate; D4-05 wait not observed within 2s)"
   },
+  "database": "No Testcontainers. HiddenDatabase (EnvironmentPostProcessor, registered in src/test/resources/META-INF/spring.factories) creates a new empty database on the scoring PostgreSQL 16 sidecar for every Spring application started in the test JVM (one per test class; one per programmatic start in StartupValidationContractTest), using DB_URL/DB_USERNAME/DB_PASSWORD of the scoring container, and overrides spring.datasource.* with the highest precedence.",
   "contexts": {
     "hidden.contract.DefaultConfigContractTest": [],
     "hidden.contract.NoExpiryBatchContractTest": [

@@ -1,24 +1,30 @@
 #!/usr/bin/env python3
-"""실행기 — 실행 1회 = (모델, 조건, 반복 번호). 단계 메시지를 한 턴씩 `claude -p`로 재생하고 턴마다 기록한다.
+"""실행기 — 실행 1회 = (모델, 조건, 반복 번호). 단계 메시지를 한 턴씩 컨테이너 안의 `claude -p`로 재생하고 턴마다 기록한다.
 
 사용:
   python3 tools/run_task.py --model claude-sonnet-5-5 --condition compact --rep 1 \
       [--last-step 8] [--turn-timeout 5400] [--max-tokens N] [--max-wall 36000] [--max-budget-usd X] \
-      [--keep-root] [--dry-run] [--check-env [--check-gradle]] [--config tools/experiment.json]
+      [--keep-root] [--allow-concurrent] [--dry-run] [--check-env [--check-gradle]] [--config tools/experiment.json]
 
-출력: <runs_dir>/<run id>/ (저장소 안, gitignore) — run.json(턴마다 갱신), settings.json, messages.json,
-turns/NN/{result.json, stderr.txt, transcript.jsonl, boundaries.json, meta.json}, hookdata/, work.tar.gz.
-작업 폴더는 <run_root>/work(기본 /tmp/cx-run/work — 호스트 프로젝트 폴더 밖, 실행마다 같은 경로).
+격리(tools/README.md): 에이전트는 이미지 `cfg.image` 컨테이너(root 아닌 호스트 uid) 안에서 돈다. 호스트 파일 시스템은
+작업 폴더 bind 하나(<run_root>/work → /work)와 읽기 전용 훅 폴더(<run_root>/hooks → /cx/hooks)만 보인다. HOME(~/.claude
+세션 기록)과 훅 데이터는 실행 전용 Docker 볼륨이고, 테스트 DB는 실행 전용 네트워크의 PostgreSQL 16 사이드카다.
+Docker 소켓·호스트 HOME·프로젝트 폴더는 마운트하지 않는다. 인증은 `--env-file`(토큰 파일)로만 넘긴다.
+
+출력: <runs_dir>/<run id>/ — run.json(턴마다 갱신), settings.json, messages.json,
+turns/NN/{result.json, stderr.txt, transcript.jsonl, boundaries.json, meta.json, container.json}, hookdata/,
+work.tar.gz, claude-home.tar.gz.
 """
 import argparse
 import datetime
-import fcntl
 import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tarfile
@@ -28,13 +34,14 @@ import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import containers  # noqa: E402
 import transcript  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 CONDITIONS = ("control", "compact", "outbox")
 COPY_IGNORE = shutil.ignore_patterns(".git", "build", ".gradle", ".kotlin", ".idea", "out")
-SAFE_ENV_SHOWN = ("HOME", "TMPDIR", "JAVA_HOME", "GRADLE_USER_HOME", "CLAUDE_CODE_AUTO_COMPACT_WINDOW",
-                  "DISABLE_AUTOUPDATER")
+LABEL = containers.EXPERIMENT_LABEL
+EXIT = {"complete": 0, "aborted": 2, "failed": 3}
 
 
 # ---------- 설정 ----------
@@ -45,7 +52,7 @@ def load_config(path=None):
     cfg["_path"] = str(p)
     for k in ("task_dir", "skeleton_dir", "runs_dir"):
         cfg[k] = str(resolve(cfg[k]))
-    for k in ("run_root", "claude_bin", "credentials_file", "java_home", "gradle_user_home"):
+    for k in ("run_root", "token_env_file"):
         cfg[k] = str(Path(os.path.expanduser(cfg[k])))
     return cfg
 
@@ -82,36 +89,35 @@ def build_messages(cfg, last_step=None):
     return msgs
 
 
-# ---------- 조건별 설정 ----------
+# ---------- 조건별 설정 (모든 경로는 컨테이너 안 경로) ----------
 
-def hook_cmd(py, run_root, script, *args):
-    return " ".join([py, "-I", f"{run_root}/hooks/{script}", *args])
+def hook_cmd(py, hooks_dir, script, *args):
+    return " ".join([py, "-I", f"{hooks_dir}/{script}", *args])
 
 
 def settings_for(condition, cfg):
     """작업 폴더 .claude/settings.json 내용(dict). 조건 간 차이는 outbox 훅 유무뿐."""
     if condition not in CONDITIONS:
         raise ValueError(f"알 수 없는 조건: {condition}")
-    r, home, py = cfg["run_root"], str(Path.home()), cfg["hook_python"]
-    data = f"{r}/hookdata"
-    collect = [{"hooks": [{"type": "command", "command": hook_cmd(py, r, "compact_log.py", data), "timeout": 30}]}]
-    hooks = {"PreCompact": collect, "PostCompact": collect}
+    c = cfg["container"]
+    py, hooks, data = c["hook_python"], c["hooks"], c["hookdata"]
+    collect = [{"hooks": [{"type": "command", "command": hook_cmd(py, hooks, "compact_log.py", data), "timeout": 30}]}]
+    hk = {"PreCompact": collect, "PostCompact": collect}
     if condition == "outbox":
-        hooks["UserPromptSubmit"] = [{"hooks": [{"type": "command", "timeout": 30,
-                                                 "command": hook_cmd(py, r, "capture.py", data)}]}]
-        hooks["SessionStart"] = [{"matcher": "compact", "hooks": [{
+        hk["UserPromptSubmit"] = [{"hooks": [{"type": "command", "timeout": 30,
+                                              "command": hook_cmd(py, hooks, "capture.py", data)}]}]
+        hk["SessionStart"] = [{"matcher": "compact", "hooks": [{
             "type": "command", "timeout": 30,
-            "command": hook_cmd(py, r, "inject.py", data, f"{r}/hooks/outbox-config.json")}]}]
+            "command": hook_cmd(py, hooks, "inject.py", data, f"{hooks}/outbox-config.json")}]}]
     file_tools = ("Read", "Edit", "Write", "Grep", "Glob")
-    deny = [f"{t}(/{home}/project/**)" for t in file_tools]
-    # home/ 은 막지 않는다 — CLI가 큰 도구 출력을 home/.claude/projects/.../tool-results에 두고 에이전트가 Read로 읽는다
-    deny += [f"{t}(/{r}/{d}/**)" for d in ("hooks", "hookdata") for t in file_tools]
-    deny += [f"{t}(/{r}/work/.claude/**)" for t in ("Edit", "Write")]
+    # HOME(~/.claude)은 막지 않는다 — CLI가 큰 도구 출력을 ~/.claude/projects/.../tool-results에 두고 에이전트가 Read로 읽는다
+    deny = [f"{t}(/{d}/**)" for d in (hooks, data) for t in file_tools]
+    deny += [f"{t}(/{c['work']}/.claude/**)" for t in ("Edit", "Write")]
     deny += list(cfg["forbidden_tools"])
     return {"permissions": {"allow": list(cfg["allowed_tools"]), "deny": deny,
                             "blockReadsOutsideWorkingDirectories": True,
                             "blockWritesOutsideWorkingDirectories": True},
-            "hooks": hooks}
+            "hooks": hk}
 
 
 def settings_text(d):
@@ -119,9 +125,10 @@ def settings_text(d):
 
 
 def claude_cmd(cfg, model, session_id, first, budget=None):
-    cmd = [cfg["claude_bin"], "-p", "--model", model, "--output-format", "json",
+    c = cfg["container"]
+    cmd = [c["claude_bin"], "-p", "--model", model, "--output-format", "json",
            "--setting-sources", "project", "--strict-mcp-config",
-           "--mcp-config", f"{cfg['run_root']}/empty-mcp.json",
+           "--mcp-config", f"{c['hooks']}/empty-mcp.json",
            "--tools", ",".join(cfg["allowed_tools"]),
            "--permission-mode", cfg["permission_mode"]]
     cmd += ["--session-id", session_id] if first else ["--resume", session_id]
@@ -130,50 +137,167 @@ def claude_cmd(cfg, model, session_id, first, budget=None):
     return cmd
 
 
-def sandbox_env(cfg, condition):
-    """호스트 환경에서 Claude 관련 변수와 프로젝트 폴더를 가리키는 변수를 빼고 임시 HOME 등을 넣는다.
-    (env, 뺀 변수 이름 목록)"""
-    proj = str(Path.home() / "project")
-    dropped = sorted(k for k, v in os.environ.items()
-                     if k.startswith(("CLAUDE", "ANTHROPIC")) or k in ("OLDPWD", "PWD") or proj in v)
-    env = {k: v for k, v in os.environ.items() if k not in dropped}
-    r = cfg["run_root"]
-    env.update({"HOME": f"{r}/home", "TMPDIR": f"{r}/tmp", "DISABLE_AUTOUPDATER": "1",
-                "JAVA_HOME": cfg["java_home"], "GRADLE_USER_HOME": cfg["gradle_user_home"],
-                "CLAUDE_CODE_AUTO_COMPACT_WINDOW": cfg["compact_window"][condition]})
-    env["PATH"] = f"{cfg['java_home']}/bin:" + env.get("PATH", "")
-    return env, dropped
+def container_env(cfg, condition):
+    """에이전트 컨테이너 환경(토큰 제외 — 토큰은 --env-file로만). 조건 간 차이는 컴팩트 기준값뿐."""
+    home = cfg["container"]["home"]
+    return {"HOME": home, "CLAUDE_CONFIG_DIR": f"{home}/.claude", "DISABLE_AUTOUPDATER": "1",
+            "CLAUDE_CODE_AUTO_COMPACT_WINDOW": cfg["compact_window"][condition], **containers.jdbc_env(cfg["db"])}
 
 
-# ---------- 자격 증명(내용은 읽어 출력·기록하지 않는다 — 만료 시각만 비교) ----------
+# ---------- Docker 리소스 ----------
 
-def creds_expiry(p):
-    try:
-        return json.loads(Path(p).read_text())["claudeAiOauth"]["expiresAt"] / 1000
-    except (OSError, ValueError, KeyError, TypeError):
-        return 0.0
-
-
-def creds_in(host, sb):
-    """샌드박스 사본이 없거나 호스트 쪽이 더 새것이면 복사."""
-    if not Path(host).is_file():
-        raise FileNotFoundError(f"자격 증명 파일 없음: {host}")
-    if not Path(sb).is_file() or creds_expiry(host) > creds_expiry(sb):
-        shutil.copy2(host, sb)
-        os.chmod(sb, 0o600)
+def resource_names(cfg, run_id):
+    tag = re.sub(r"[^a-z0-9_.-]", "-", (cfg["resource_prefix"] + run_id).lower())
+    return {"tag": tag, "net": f"{tag}-net", "db": f"{tag}-db", "pgdata": f"{tag}-pgdata",
+            "home": f"{tag}-home", "hookdata": f"{tag}-hookdata", "init": f"{tag}-init", "collect": f"{tag}-collect"}
 
 
-def creds_writeback(host, sb, lock_path):
-    """샌드박스 안에서 토큰이 갱신(회전)됐으면 호스트 파일에 원자적으로 되쓴다(선례 방식)."""
-    with open(lock_path, "w") as lk:
-        fcntl.flock(lk, fcntl.LOCK_EX)
-        if creds_expiry(sb) > creds_expiry(host):
-            tmp = Path(str(host) + ".tmp-cx")
-            shutil.copy2(sb, tmp)
-            os.chmod(tmp, 0o600)
-            os.replace(tmp, host)
-            return True
-    return False
+def turn_container(names, k):
+    return f"{names['tag']}-t{k:02d}"
+
+
+def uid_gid():
+    return f"{os.getuid()}:{os.getgid()}"
+
+
+def agent_create_args(cfg, names, root, condition, name, cmd):
+    """턴 하나의 `docker create` 인자. 쓰기 가능한 호스트 경로는 작업 폴더 하나뿐."""
+    c = cfg["container"]
+    args = ["create", "--name", name, "--label", LABEL, "--label", f"cx.run={names['tag']}",
+            "--interactive", "--init", "--cap-drop=ALL", "--security-opt=no-new-privileges",
+            f"--pids-limit={c['pids_limit']}", f"--cpus={c['cpus']}", f"--memory={c['memory']}",
+            "--user", uid_gid(), "--network", names["net"], "--workdir", c["work"],
+            "--env-file", cfg["token_env_file"]]
+    for k, v in sorted(container_env(cfg, condition).items()):
+        args += ["--env", f"{k}={v}"]
+    args += ["--mount", f"type=bind,src={root}/work,dst={c['work']}",
+             "--mount", f"type=bind,src={root}/hooks,dst={c['hooks']},readonly",
+             "--mount", f"type=volume,src={names['home']},dst={c['home']}",
+             "--mount", f"type=volume,src={names['hookdata']},dst={c['hookdata']}"]
+    return args + [cfg["image"], *cmd]
+
+
+def preflight(docker, cfg, names, allow_concurrent):
+    """만들기 전에 확인: 이미지(uid 레이블), 같은 이름의 잔여 리소스, 이 실험의 다른 실행, 다른 실험의 실행 중 컨테이너."""
+    info = docker.image_info(cfg["image"])
+    want, got = uid_gid().split(":"), [info["labels"].get("cx.uid"), info["labels"].get("cx.gid")]
+    if got != want:
+        raise SystemExit(f"이미지 {cfg['image']}의 uid:gid {got} ≠ 호스트 {want} — --build-arg UID/GID로 다시 빌드")
+    left = [f"{k} {n}" for k, n in planned_resources(names) if docker.exists(k, n)]
+    if left:
+        raise SystemExit(f"이전 실행의 Docker 잔여물: {left} — 확인 뒤 직접 지우고 다시 실행")
+    mine = docker.names(all=True, label=LABEL)
+    if mine:
+        raise SystemExit(f"이 실험의 컨테이너가 이미 있다(한 번에 하나만): {mine}")
+    busy = [n for n in docker.names() if n.startswith(tuple(cfg.get("refuse_when_running_prefixes", [])))]
+    if busy and not allow_concurrent:
+        raise SystemExit(f"다른 실험의 컨테이너가 돌고 있다(명세 §2 — 동시 실행 금지): {busy}")
+    return info
+
+
+def planned_resources(names):
+    return [("container", names["db"]), ("container", names["init"]), ("container", names["collect"]),
+            ("network", names["net"]), ("volume", names["pgdata"]), ("volume", names["home"]),
+            ("volume", names["hookdata"])]
+
+
+def setup_stack(docker, cfg, names, created):
+    """네트워크·볼륨·DB 사이드카를 만들고 HOME 볼륨을 초기화. 만든 것은 즉시 created에 적는다(정리용)."""
+    c = cfg["container"]
+    created.append(("network", names["net"]))
+    docker.create_network(names["net"], names["tag"])
+    for v in ("pgdata", "home", "hookdata"):
+        created.append(("volume", names[v]))
+        docker.create_volume(names[v], names["tag"])
+    created.append(("container", names["db"]))
+    containers.start_postgres(docker, cfg["db"], names["db"], names["net"], names["tag"],
+                              f"type=volume,src={names['pgdata']},dst=/var/lib/postgresql/data")
+    sc = cfg["skeleton_commit"]
+    script = " && ".join(['mkdir -p "$CLAUDE_CONFIG_DIR"',
+                          f"git config --global user.name {shlex.quote(sc['name'])}",
+                          f"git config --global user.email {shlex.quote(sc['email'])}",
+                          "git config --global init.defaultBranch main"])
+    created.append(("container", names["init"]))
+    docker.check(docker.run(
+        "run", "--rm", "--name", names["init"], "--label", LABEL, "--network", "none", "--user", uid_gid(),
+        "--env", f"HOME={c['home']}", "--env", f"CLAUDE_CONFIG_DIR={c['home']}/.claude",
+        "--mount", f"type=volume,src={names['home']},dst={c['home']}",
+        "--mount", f"type=volume,src={names['hookdata']},dst={c['hookdata']}",
+        cfg["image"], "sh", "-c", script, timeout=300), "HOME 볼륨 초기화")
+
+
+def cleanup_stack(docker, created):
+    """만든 것을 역순으로 지운다(정확한 이름만). 오류 목록."""
+    errors = []
+    for kind in ("container", "network", "volume"):
+        for k, n in reversed(created):
+            if k == kind:
+                err = docker.remove(k, n)
+                if err:
+                    errors.append(err)
+    return errors
+
+
+# ---------- 토큰(값은 출력·기록하지 않는다) ----------
+
+def token_file_status(path):
+    """dry-run·check-env용 — 내용은 읽지 않는다."""
+    p = Path(path)
+    if not p.is_file():
+        return {"path": str(p), "exists": False, "mode": None}
+    return {"path": str(p), "exists": True, "mode": oct(stat.S_IMODE(p.stat().st_mode))}
+
+
+def read_token(path, key):
+    """토큰 파일 형식 확인 후 값(검사용 바늘)만 돌려준다: 저장소 밖 · 권한 600 · `KEY=값` 한 줄."""
+    p = Path(path)
+    if not p.is_file():
+        raise ValueError(f"토큰 파일 없음: {p}")
+    if ROOT in p.resolve().parents:
+        raise ValueError("토큰 파일은 저장소 밖에 있어야 한다")
+    if stat.S_IMODE(p.stat().st_mode) & 0o077:
+        raise ValueError("토큰 파일 권한이 느슨하다(chmod 600)")
+    if "," in str(p.resolve()):
+        raise ValueError("토큰 파일 경로에 쉼표가 있다")
+    lines = [x for x in p.read_text().splitlines() if x.strip() and not x.lstrip().startswith("#")]
+    k, _, v = (lines[0] if len(lines) == 1 else "").partition("=")
+    if len(lines) != 1 or k.strip() != key or not v.strip():
+        raise ValueError(f"토큰 파일에는 {key}=<값> 한 줄만 있어야 한다")
+    return v.strip()
+
+
+SCAN_CHUNK = 1 << 20
+
+
+def file_contains(path, needle):
+    tail, overlap = b"", len(needle) - 1
+    with open(path, "rb") as f:
+        while True:
+            chunk = f.read(SCAN_CHUNK)
+            if not chunk:
+                return False
+            if needle in tail + chunk:
+                return True
+            tail = (tail + chunk)[-overlap:] if overlap else b""
+
+
+def scrub(base, secret, skip_suffixes=()):
+    """base 아래 모든 파일(이름 포함)에서 secret을 찾아 `<REDACTED-SECRET>`로 바꾼다. 찾은 상대 경로 목록."""
+    base, needle, hits = Path(base), secret.encode(), []
+    if not base.exists():
+        return hits
+    for f in sorted(base.rglob("*"), key=lambda p: -len(p.parts)):
+        if f.is_symlink():
+            continue
+        if secret in f.name:
+            target = f.with_name(f.name.replace(secret, "REDACTED-SECRET"))
+            f.rename(target)
+            hits.append(str(target.relative_to(base)))
+            f = target
+        if f.is_file() and not f.name.endswith(tuple(skip_suffixes)) and file_contains(f, needle):
+            f.write_bytes(f.read_bytes().replace(needle, b"<REDACTED-SECRET>"))
+            hits.append(str(f.relative_to(base)))
+    return sorted(set(hits))
 
 
 # ---------- 준비 ----------
@@ -182,29 +306,36 @@ def git(args, cwd, env=None, check=True):
     return subprocess.run(["git", *args], cwd=cwd, env=env, capture_output=True, text=True, check=check)
 
 
+def stage_hooks(dest, condition):
+    """훅 스크립트·설정을 dest(→ 컨테이너 /cx/hooks, 읽기 전용)로 복사."""
+    tools = ROOT / "tools"
+    dest.mkdir(parents=True, exist_ok=True)
+    (dest / "empty-mcp.json").write_text('{"mcpServers":{}}', encoding="utf-8")
+    shutil.copy2(tools / "compact_log.py", dest / "compact_log.py")
+    if condition == "outbox":
+        shutil.copy2(tools / "outbox" / "capture.py", dest / "capture.py")
+        shutil.copy2(tools / "outbox" / "inject.py", dest / "inject.py")
+        shutil.copy2(tools / "outbox" / "config.json", dest / "outbox-config.json")
+
+
 def prepare_root(cfg, condition, settings):
     r = Path(cfg["run_root"])
     if r.exists():
         raise SystemExit(f"{r} 가 이미 있다 — 이전 실행의 잔여물. 내용을 확인한 뒤 직접 지우고 다시 실행.")
-    for d in ("home/.claude", "tmp", "hooks", "hookdata", "work"):
+    for d in ("hooks", "work", "scratch"):
         (r / d).mkdir(parents=True)
     os.chmod(r, 0o700)
-    (r / "empty-mcp.json").write_text('{"mcpServers":{}}', encoding="utf-8")
-    tools = ROOT / "tools"
-    shutil.copy2(tools / "compact_log.py", r / "hooks" / "compact_log.py")
-    if condition == "outbox":
-        shutil.copy2(tools / "outbox" / "capture.py", r / "hooks" / "capture.py")
-        shutil.copy2(tools / "outbox" / "inject.py", r / "hooks" / "inject.py")
-        shutil.copy2(tools / "outbox" / "config.json", r / "hooks" / "outbox-config.json")
+    stage_hooks(r / "hooks", condition)
     sc = cfg["skeleton_commit"]
-    (r / "home" / ".gitconfig").write_text(
-        f"[user]\n\tname = {sc['name']}\n\temail = {sc['email']}\n[init]\n\tdefaultBranch = main\n", encoding="utf-8")
     work = r / "work"
     skel = Path(cfg["skeleton_dir"])
     if not (skel / "build.gradle.kts").is_file():
         raise SystemExit(f"골격이 없다: {skel}")
     shutil.copytree(skel, work, dirs_exist_ok=True, ignore=COPY_IGNORE)
-    genv = dict(os.environ, HOME=str(r / "home"), GIT_AUTHOR_DATE=sc["date"], GIT_COMMITTER_DATE=sc["date"])
+    # 호스트 git 설정을 읽지 않고 이름·시각을 고정 → 실행마다 같은 SHA
+    genv = dict(os.environ, GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1",
+                GIT_AUTHOR_NAME=sc["name"], GIT_AUTHOR_EMAIL=sc["email"], GIT_AUTHOR_DATE=sc["date"],
+                GIT_COMMITTER_NAME=sc["name"], GIT_COMMITTER_EMAIL=sc["email"], GIT_COMMITTER_DATE=sc["date"])
     git(["init", "-q", "-b", "main"], work, genv)
     git(["add", "-A"], work, genv)
     git(["commit", "-q", "-m", sc["message"]], work, genv)
@@ -212,13 +343,15 @@ def prepare_root(cfg, condition, settings):
         f.write(".claude/\n")
     (work / ".claude").mkdir()
     (work / ".claude" / "settings.json").write_text(settings, encoding="utf-8")
-    return git(["rev-parse", "HEAD"], work).stdout.strip()
+    return git(["rev-parse", "HEAD"], work, genv).stdout.strip()
 
 
 # ---------- 감사·무효 ----------
 
 def audit_patterns(cfg):
-    return [p.format(real_home=str(Path.home()), run_root=cfg["run_root"]) for p in cfg["audit_forbidden_patterns"]]
+    c = cfg["container"]
+    return [p.format(real_home=str(Path.home()), hooks=c["hooks"], hookdata=c["hookdata"])
+            for p in cfg["audit_forbidden_patterns"]]
 
 
 def audit(entries, cfg):
@@ -271,16 +404,17 @@ def context_tokens_last(res):
     return sum(last.get(k) or 0 for k in ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
 
 
-def run_turn(cmd, msg, cwd, env, timeout, out_path, err_path):
-    """(exit_code, timed_out, wall_s)"""
+def run_turn(docker, name, msg, timeout, out_path, err_path):
+    """만들어 둔 컨테이너를 붙어서 시작하고 메시지를 표준 입력으로 보낸다. (exit_code, timed_out, wall_s)"""
     t0 = time.time()
     with open(out_path, "wb") as fo, open(err_path, "wb") as fe:
-        p = subprocess.Popen(cmd, cwd=cwd, env=env, stdin=subprocess.PIPE, stdout=fo, stderr=fe,
-                             start_new_session=True)
+        p = subprocess.Popen([docker.bin, "start", "--attach", "--interactive", name], stdin=subprocess.PIPE,
+                             stdout=fo, stderr=fe, start_new_session=True)
         try:
             p.communicate(msg.encode("utf-8"), timeout=timeout)
             return p.returncode, False, time.time() - t0
         except subprocess.TimeoutExpired:
+            docker.run("kill", name)  # docker 클라이언트만 죽이면 데몬 쪽 컨테이너는 계속 돈다
             for sig in (signal.SIGTERM, signal.SIGKILL):
                 try:
                     os.killpg(p.pid, sig)
@@ -294,9 +428,20 @@ def run_turn(cmd, msg, cwd, env, timeout, out_path, err_path):
             return p.returncode, True, time.time() - t0
 
 
-def find_transcript(home, session_id):
-    hits = sorted(Path(home, ".claude", "projects").glob(f"*/{session_id}.jsonl"))
-    return hits[0] if hits else None
+def collect_turn(docker, cfg, name, session_id, scratch, rdir):
+    """끝난 턴 컨테이너에서 세션 기록과 훅 데이터를 꺼낸다. (transcript 경로 또는 None, 문제 목록)"""
+    c, problems = cfg["container"], []
+    proj = scratch / "projects"
+    shutil.rmtree(proj, ignore_errors=True)
+    p = docker.run("cp", f"{name}:{c['home']}/.claude/projects", str(proj), timeout=600)
+    if p.returncode != 0:
+        problems.append(f"세션 기록 복사 실패(docker cp rc={p.returncode}): {p.stderr.strip()[:200]}")
+    hits = sorted(proj.glob(f"*/{session_id}.jsonl")) if proj.is_dir() else []
+    (rdir / "hookdata").mkdir(exist_ok=True)
+    h = docker.run("cp", f"{name}:{c['hookdata']}/.", str(rdir / "hookdata"), timeout=300)
+    if h.returncode != 0:
+        problems.append(f"훅 데이터 복사 실패(docker cp rc={h.returncode}): {h.stderr.strip()[:200]}")
+    return (hits[0] if hits else None), problems
 
 
 def read_jsonl(p):
@@ -312,12 +457,11 @@ def write_json(p, obj):
     os.replace(tmp, p)
 
 
-def archive_work(work, dest):
+def archive_dir(src, dest, arcname, skip=("build", ".gradle", ".kotlin")):
     def flt(ti):
-        parts = Path(ti.name).parts
-        return None if any(x in ("build", ".gradle", ".kotlin") for x in parts) else ti
+        return None if any(x in skip for x in Path(ti.name).parts) else ti
     with tarfile.open(dest, "w:gz") as tf:
-        tf.add(work, arcname="work", filter=flt)
+        tf.add(src, arcname=arcname, filter=flt)
 
 
 # ---------- 본체 ----------
@@ -333,17 +477,31 @@ def make_run_id(model, condition, rep):
 def dry_run(cfg, a):
     settings = settings_text(settings_for(a.condition, cfg))
     msgs = build_messages(cfg, a.last_step)
-    env, dropped = sandbox_env(cfg, a.condition)
-    sid = "<session-uuid>"
-    print(f"run_id(예): {make_run_id(a.model, a.condition, a.rep)}")
-    print(f"run_root: {cfg['run_root']}  work: {cfg['run_root']}/work  기록: {cfg['runs_dir']}/<run id>/")
+    run_id = make_run_id(a.model, a.condition, a.rep)
+    names = resource_names(cfg, run_id)
+    docker = containers.Docker.from_cfg(cfg)
+    root, sid = cfg["run_root"], "<session-uuid>"
+    print(f"run_id(예): {run_id}")
+    print(f"run_root: {root}  work: {root}/work → {cfg['container']['work']}  기록: {cfg['runs_dir']}/<run id>/")
     print(f"골격: {cfg['skeleton_dir']} ({'있음' if Path(cfg['skeleton_dir'], 'build.gradle.kts').is_file() else '없음'})")
+    try:
+        info = docker.image_info(cfg["image"])
+        print(f"이미지: {cfg['image']} id={info['id']} labels={info['labels']}")
+    except (containers.DockerError, OSError) as e:
+        print(f"이미지: {cfg['image']} — 확인 실패: {e}")
+    print("토큰 파일(경로·권한만, 내용은 읽지 않음):", token_file_status(cfg["token_env_file"]))
+    print("Docker 리소스(이 실행 전용):", {k: v for k, v in names.items() if k != "tag"})
     print(f"settings.json sha256={sha256_bytes(settings.encode())}")
     print(settings, end="")
-    print("env(보이는 값):", {k: env[k] for k in SAFE_ENV_SHOWN})
-    print("env(뺀 변수 이름):", dropped)
-    print("첫 턴 명령:", " ".join(claude_cmd(cfg, a.model, sid, True, a.max_budget_usd)), "< 메시지 0")
-    print("이후 턴 명령:", " ".join(claude_cmd(cfg, a.model, sid, False, a.max_budget_usd)), "< 메시지 k")
+    print("컨테이너 env(토큰 제외):", container_env(cfg, a.condition))
+    print("DB 사이드카:", "docker " + " ".join(containers.postgres_args(
+        cfg["db"], names["db"], names["net"], names["tag"], f"type=volume,src={names['pgdata']},dst=/var/lib/postgresql/data")))
+    first = agent_create_args(cfg, names, root, a.condition, turn_container(names, 0),
+                              claude_cmd(cfg, a.model, sid, True, a.max_budget_usd))
+    later = claude_cmd(cfg, a.model, sid, False, a.max_budget_usd)
+    print("턴 0: docker " + " ".join(first))
+    print(f"      docker start --attach --interactive {turn_container(names, 0)} < 메시지 0")
+    print("턴 k: 같은 create 인자(이름 -tNN), 명령만:", " ".join(later), "< 메시지 k")
     allm = hashlib.sha256()
     for k, m in enumerate(msgs):
         b = m.encode("utf-8")
@@ -356,32 +514,98 @@ def dry_run(cfg, a):
     return 0
 
 
+PROBE = r"""
+claude --version
+java -version 2>&1 | head -1
+git --version
+python3 --version
+echo "id=$(id -u):$(id -g) user=$(id -un) HOME=$HOME"
+for p in __HOST_PATHS__ /var/run/docker.sock /run/docker.sock; do
+  if [ -e "$p" ]; then echo "VISIBLE $p"; else echo "absent $p"; fi
+done
+echo "--- mounts(/work·/cx·/home·/var/run·/run)"
+awk '$2 ~ /^\/(work|cx|home|var\/run|run)/ {print $2, $3, $4}' /proc/self/mounts | cut -c1-120
+echo "--- hooks(fake input)"
+echo '{"session_id":"probe","hook_event_name":"PreCompact","trigger":"auto"}' | python3 -I /cx/hooks/compact_log.py /cx/hookdata
+echo '{"session_id":"probe","prompt":"hello"}' | python3 -I /cx/hooks/capture.py /cx/hookdata
+echo '{"session_id":"probe","source":"compact"}' | python3 -I /cx/hooks/inject.py /cx/hookdata /cx/hooks/outbox-config.json | cut -c1-160
+echo
+ls /cx/hookdata /cx/hookdata/outbox
+if [ -s /cx/hookdata/hook-errors.jsonl ]; then echo HOOK_ERRORS; cat /cx/hookdata/hook-errors.jsonl; fi
+"""
+
+
 def check_env(cfg, with_gradle):
-    """유료 호출 없이 임시 HOME에서 java·docker·git·claude(버전만)·(선택) gradle 테스트를 확인."""
-    base = Path(tempfile.mkdtemp(prefix="cx-envcheck-"))
+    """유료 호출 없이: 이미지·토큰 파일(경로·권한)·컨테이너 안 도구 버전·격리(호스트 경로·Docker 소켓)·훅 실행,
+    (선택) 실행 전용 네트워크 + PostgreSQL 사이드카에서 골격 `./gradlew test --offline` 두 번."""
+    docker, ok = containers.Docker.from_cfg(cfg), True
+
+    def show(label, good, detail=""):
+        nonlocal ok
+        ok &= bool(good)
+        print(f"[{'ok' if good else 'FAIL'}] {label}: {detail}")
+
     try:
-        c2 = dict(cfg, run_root=str(base))
-        for d in ("home", "tmp"):
-            (base / d).mkdir()
-        env, _ = sandbox_env(c2, "compact")
-        checks = [["java", "-version"], ["docker", "info", "--format", "{{.ServerVersion}}"],
-                  ["git", "--version"], [cfg["claude_bin"], "--version"]]
-        ok = True
-        for c in checks:
-            p = subprocess.run(c, env=env, cwd=base, capture_output=True, text=True, timeout=120)
-            print(f"[{'ok' if p.returncode == 0 else 'FAIL'}] {' '.join(c)}: {(p.stdout + p.stderr).strip()[:300]}")
-            ok &= p.returncode == 0
+        info = docker.image_info(cfg["image"])
+    except (containers.DockerError, OSError) as e:
+        show("이미지", False, str(e))
+        return 1
+    show("이미지", True, f"{cfg['image']} id={info['id']} size={info['size']} labels={info['labels']}")
+    show("이미지 uid:gid = 호스트", [info["labels"].get("cx.uid"), info["labels"].get("cx.gid")] == uid_gid().split(":"),
+         f"{info['labels'].get('cx.uid')}:{info['labels'].get('cx.gid')} vs {uid_gid()}")
+    tf = token_file_status(cfg["token_env_file"])
+    show("토큰 파일(경로·권한만 — 내용은 읽지 않음)", tf["exists"] and tf["mode"] == "0o600", tf)
+    tag = f"{cfg['resource_prefix']}envcheck-{uuid.uuid4().hex[:8]}"
+    base = Path(tempfile.mkdtemp(prefix="cx-envcheck-"))
+    c = cfg["container"]
+    try:
+        stage_hooks(base / "hooks", "outbox")
+        (base / "work").mkdir()
+        host_paths = " ".join(shlex.quote(p) for p in (str(Path.home()), str(Path.home() / "project"), str(ROOT)))
+        p = docker.run("run", "--rm", "--name", f"{tag}-probe", "--label", LABEL, "--network", "none",
+                       "--cap-drop=ALL", "--security-opt=no-new-privileges", "--user", uid_gid(),
+                       "--mount", f"type=bind,src={base}/work,dst={c['work']}",
+                       "--mount", f"type=bind,src={base}/hooks,dst={c['hooks']},readonly",
+                       "--mount", f"type=tmpfs,dst={c['hookdata']},tmpfs-mode=1777",
+                       cfg["image"], "sh", "-c", PROBE.replace("__HOST_PATHS__", host_paths), timeout=300)
+        out = p.stdout + p.stderr
+        print(out.rstrip())
+        show("프로브 종료 코드", p.returncode == 0, p.returncode)
+        show("claude --version = 2.1.326", "2.1.326" in out.splitlines()[0] if out else False, out.splitlines()[:1])
+        show("호스트 경로·Docker 소켓이 보이지 않음", "VISIBLE" not in out, "")
+        show("훅 3개 실행(오류 없음, 주입 출력 있음)", "HOOK_ERRORS" not in out and "hookSpecificOutput" in out
+             and "compact-log.jsonl" in out, "")
         if with_gradle:
-            w = base / "work"
-            shutil.copytree(cfg["skeleton_dir"], w, ignore=COPY_IGNORE)
-            p = subprocess.run(["./gradlew", "test", "--no-daemon", "--console=plain"], env=env, cwd=w,
-                               capture_output=True, text=True, timeout=3600)
-            print(f"[{'ok' if p.returncode == 0 else 'FAIL'}] gradlew test (골격 사본, 임시 HOME): "
-                  f"{p.stdout[-1500:]}{p.stderr[-800:]}")
-            ok &= p.returncode == 0
-        return 0 if ok else 1
+            ok &= check_gradle(cfg, docker, tag, base, show)
     finally:
         shutil.rmtree(base, ignore_errors=True)
+    return 0 if ok else 1
+
+
+def check_gradle(cfg, docker, tag, base, show):
+    c, good = cfg["container"], True
+    w = base / "skeleton"
+    shutil.copytree(cfg["skeleton_dir"], w, ignore=COPY_IGNORE)
+    with containers.PostgresStack(docker, cfg["db"], tag, internal=True) as st:
+        for i in (1, 2):
+            t0 = time.time()
+            env = sum((["--env", f"{k}={v}"] for k, v in containers.jdbc_env(cfg["db"]).items()), [])
+            p = docker.run("run", "--rm", "--name", f"{tag}-gradle{i}", "--label", LABEL, "--network", st.network,
+                           "--cap-drop=ALL", "--security-opt=no-new-privileges", "--user", uid_gid(),
+                           "--mount", f"type=bind,src={w},dst={c['work']}", "--workdir", c["work"], *env,
+                           cfg["image"], "./gradlew", "test", "--rerun", "--offline", "--no-daemon",
+                           "--console=plain", timeout=1800)
+            tail = "\n".join((p.stdout + p.stderr).strip().splitlines()[-6:])
+            show(f"골격 ./gradlew test --rerun --offline #{i}(내부 전용 네트워크 + 사이드카, {time.time() - t0:.0f}s)",
+                 p.returncode == 0, "\n" + tail)
+            good &= p.returncode == 0
+            q = st.psql(cfg["db"]["name"], "-At", "-c",
+                        "SELECT string_agg(datname, ',') FROM pg_database WHERE datname LIKE 'test\\_%'")
+            h = st.psql(cfg["db"]["name"], "-At", "-c", "SELECT to_regclass('flyway_schema_history') IS NULL")
+            print(f"  실행 #{i} 뒤 test_* 데이터베이스: {q.stdout.strip()} · 기본 DB({cfg['db']['name']})에 "
+                  f"flyway_schema_history 없음: {h.stdout.strip()}")
+    show("사이드카·네트워크 정리", not st.cleanup_errors, st.cleanup_errors)
+    return good and not st.cleanup_errors
 
 
 def main(argv=None):
@@ -394,8 +618,8 @@ def main(argv=None):
     ap.add_argument("--max-tokens", type=int, default=None, help="실행 전체 토큰 합 상한(modelUsage 합)")
     ap.add_argument("--max-wall", type=int, default=None, help="실행 전체 시간 상한(초)")
     ap.add_argument("--max-budget-usd", default=None, help="턴마다 claude --max-budget-usd 로 넘김")
-    ap.add_argument("--no-creds-writeback", action="store_true", help="갱신된 토큰을 호스트에 되쓰지 않음")
-    ap.add_argument("--keep-root", action="store_true", help="끝난 뒤 run_root를 지우지 않음")
+    ap.add_argument("--keep-root", action="store_true", help="끝난 뒤 run_root(호스트 작업 폴더)를 지우지 않음")
+    ap.add_argument("--allow-concurrent", action="store_true", help="다른 실험(payment-*) 컨테이너가 돌아도 실행")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--check-env", action="store_true")
     ap.add_argument("--check-gradle", action="store_true")
@@ -413,11 +637,15 @@ def run(cfg, a):
     msgs = build_messages(cfg, a.last_step)
     settings = settings_text(settings_for(a.condition, cfg))
     run_id = make_run_id(a.model, a.condition, a.rep)
+    names = resource_names(cfg, run_id)
     rdir = Path(cfg["runs_dir"]) / run_id
     root = Path(cfg["run_root"])
-    work, home = root / "work", root / "home"
+    work, scratch = root / "work", root / "scratch"
+    docker = containers.Docker.from_cfg(cfg)
     if root.exists():
         raise SystemExit(f"{root} 가 이미 있다 — 이전 실행의 잔여물. 내용을 확인한 뒤 직접 지우고 다시 실행.")
+    token = read_token(cfg["token_env_file"], cfg["token_env_key"])  # 검사용 — 출력·기록하지 않는다
+    image = preflight(docker, cfg, names, a.allow_concurrent)
     try:
         skeleton_head = prepare_root(cfg, a.condition, settings)
     except BaseException:
@@ -428,38 +656,42 @@ def run(cfg, a):
     (rdir / "settings.json").write_text(settings, encoding="utf-8")
     write_json(rdir / "messages.json", [{"step": cfg["steps"][k], "sha256": sha256_bytes(m.encode()), "chars": len(m),
                                          "text": m} for k, m in enumerate(msgs)])
-    env, dropped = sandbox_env(cfg, a.condition)
-    cli = subprocess.run([cfg["claude_bin"], "--version"], capture_output=True, text=True).stdout.strip()
     session_id = str(uuid.uuid4())
+    env = container_env(cfg, a.condition)
     state = {
         "run_id": run_id, "model": a.model, "condition": a.condition, "rep": a.rep, "status": "running",
-        "abort_reason": None, "invalid": None, "invalid_reasons": [], "warnings": [],
-        "started_at": now_iso(), "ended_at": None, "cli_version": cli, "session_id": session_id,
-        "run_root": str(root), "work_dir": str(work), "skeleton_commit": skeleton_head,
+        "abort_reason": None, "failure_reasons": [], "invalid": None, "invalid_reasons": [], "warnings": [],
+        "started_at": now_iso(), "ended_at": None, "cli_version": None, "session_id": session_id,
+        "image": cfg["image"], "image_id": image["id"], "image_labels": image["labels"],
+        "docker": {k: v for k, v in names.items()}, "token_env_file": cfg["token_env_file"],
+        "run_root": str(root), "work_dir": cfg["container"]["work"], "skeleton_commit": skeleton_head,
         "steps_planned": cfg["steps"][:len(msgs)], "compact_window_env": env["CLAUDE_CODE_AUTO_COMPACT_WINDOW"],
-        "settings_sha256": settings_sha, "env_dropped": dropped,
+        "settings_sha256": settings_sha, "container_env": env, "container_limits": {
+            k: cfg["container"][k] for k in ("cpus", "memory", "pids_limit")},
         "outbox_config": None, "outbox_config_sha256": None,
         "messages_sha256": [sha256_bytes(m.encode()) for m in msgs],
         "limits": {"turn_timeout": a.turn_timeout, "max_tokens": a.max_tokens, "max_wall": a.max_wall,
                    "max_budget_usd": a.max_budget_usd},
         "turns": [], "boundaries": [], "totals": {"tokens": None, "cost_usd": None, "wall_s": 0.0},
         "audit": [], "unexpected_tools": [], "injections": [], "compact_log": [], "hook_errors": [],
-        "creds_written_back": 0,
+        "cleanup_errors": [], "secret_scan": None,
     }
     if a.condition == "outbox":
         oc = (root / "hooks" / "outbox-config.json").read_bytes()
         state["outbox_config"] = json.loads(oc)
         state["outbox_config_sha256"] = sha256_bytes(oc)
     write_json(rdir / "run.json", state)
-    sb_creds = home / ".claude" / ".credentials.json"
-    line_ends, entries, prev_size, prev_hash = [], [], 0, None
+    created, entries, tampered = [], [], False
+    line_ends, prev_size, prev_hash = [], 0, None
     t_start, tokens_total, cost_total, tokens_known = time.time(), 0, 0.0, True
-    tampered = False
     try:
+        setup_stack(docker, cfg, names, created)
+        v = docker.run("run", "--rm", "--name", f"{names['tag']}-version", "--label", LABEL, "--network", "none",
+                       "--user", uid_gid(), cfg["image"], cfg["container"]["claude_bin"], "--version")
+        state["cli_version"] = v.stdout.strip() or None
         for k, msg in enumerate(msgs):
             tdir = rdir / "turns" / f"{k:02d}"
             tdir.mkdir()
-            creds_in(cfg["credentials_file"], sb_creds)
             timeout, wall_limited = a.turn_timeout, False
             if a.max_wall:
                 left = a.max_wall - (time.time() - t_start)
@@ -468,17 +700,25 @@ def run(cfg, a):
                     break
                 if left < timeout:
                     timeout, wall_limited = int(left), True
-            cmd = claude_cmd(cfg, a.model, session_id, k == 0, a.max_budget_usd)
+            name = turn_container(names, k)
+            created.append(("container", name))
+            docker.check(docker.run(*agent_create_args(cfg, names, root, a.condition, name,
+                                                       claude_cmd(cfg, a.model, session_id, k == 0, a.max_budget_usd))),
+                         f"create {name}")
             started = time.time()
-            rc, timed_out, wall = run_turn(cmd, msg, work, env, timeout, tdir / "result.json", tdir / "stderr.txt")
+            rc, timed_out, wall = run_turn(docker, name, msg, timeout, tdir / "result.json", tdir / "stderr.txt")
             ended = time.time()
-            if not a.no_creds_writeback and creds_writeback(cfg["credentials_file"], sb_creds, root / ".creds.lock"):
-                state["creds_written_back"] += 1
+            cstate = docker.container_state(name)
+            write_json(tdir / "container.json", {"name": name, "state": cstate, "start_exit_code": rc})
+            tpath, problems = collect_turn(docker, cfg, name, session_id, scratch, rdir)
+            err = docker.remove("container", name)
+            if err:
+                state["cleanup_errors"].append(err)
+            state["warnings"] += [f"turn {k}: {x}" for x in problems]
             try:
                 res = json.loads((tdir / "result.json").read_text(encoding="utf-8"))
             except (ValueError, OSError):
                 res = None
-            tpath = find_transcript(home, session_id)
             n_lines = None
             if tpath:
                 raw = tpath.read_bytes()
@@ -501,14 +741,14 @@ def run(cfg, a):
             cost = res.get("total_cost_usd") if res else None
             if cost is not None:
                 cost_total += cost
-            head = git(["rev-parse", "HEAD"], work, check=False).stdout.strip() or None
+            head = git(["-c", f"safe.directory={work}", "rev-parse", "HEAD"], work, check=False).stdout.strip() or None
             cur_settings = (work / ".claude" / "settings.json")
             if not cur_settings.is_file() or sha256_bytes(cur_settings.read_bytes()) != settings_sha:
                 tampered = True
             extra = sorted(p.name for p in (work / ".claude").iterdir()) if (work / ".claude").is_dir() else []
             turn = {"step": cfg["steps"][k], "index": k, "started_at": started, "ended_at": ended,
                     "started_iso": datetime.datetime.fromtimestamp(started, datetime.timezone.utc).isoformat(),
-                    "wall_s": round(wall, 1), "exit_code": rc, "timed_out": timed_out,
+                    "wall_s": round(wall, 1), "exit_code": rc, "timed_out": timed_out, "container": cstate,
                     "result_parsed": res is not None,
                     "is_error": res.get("is_error") if res else None, "subtype": res.get("subtype") if res else None,
                     "result_session_id": res.get("session_id") if res else None,
@@ -523,15 +763,17 @@ def run(cfg, a):
             write_json(tdir / "meta.json", turn)
             state["boundaries"] = transcript.locate_boundaries(entries, line_ends, msgs)
             write_json(tdir / "boundaries.json", state["boundaries"])
-            if (root / "hookdata").is_dir():
-                shutil.copytree(root / "hookdata", rdir / "hookdata", dirs_exist_ok=True)
             state["totals"] = {"tokens": tokens_total if tokens_known else None, "cost_usd": round(cost_total, 4),
                                "wall_s": round(time.time() - t_start, 1)}
             failed = None
             if timed_out:
                 failed = "time_cap" if wall_limited else "turn_timeout"
+            elif cstate.get("oom_killed"):
+                failed = "container_oom_killed"
             elif rc != 0 or res is None or res.get("is_error") or res.get("subtype") not in (None, "success"):
                 failed = f"turn_failed(exit={rc}, subtype={res.get('subtype') if res else None})"
+            elif tpath is None:
+                failed = "transcript_missing"
             elif a.max_tokens and tokens_known and tokens_total > a.max_tokens:
                 failed = "token_cap"
             elif a.max_wall and time.time() - t_start > a.max_wall:
@@ -548,14 +790,36 @@ def run(cfg, a):
         write_json(rdir / "run.json", state)
         raise
     finally:
-        finalize(cfg, a, state, rdir, root, work, entries, tampered)
-    return 0 if state["status"] == "complete" else 2
+        finalize(docker, cfg, a, state, rdir, root, names, created, entries, tampered, token)
+    return EXIT.get(state["status"], 1)
 
 
-def finalize(cfg, a, state, rdir, root, work, entries, tampered):
+def finalize(docker, cfg, a, state, rdir, root, names, created, entries, tampered, token):
+    """끝(정상·중단·예외 모두): HOME 볼륨 사본 → 토큰 검사 → 기록 정리·보관 → Docker 리소스 정리 → 최종 상태."""
+    work, scratch, c = root / "work", root / "scratch", cfg["container"]
+    failures = []
+    if ("volume", names["home"]) in created:
+        created.append(("container", names["collect"]))
+        p = docker.run("create", "--name", names["collect"], "--label", LABEL, "--network", "none",
+                       "--mount", f"type=volume,src={names['home']},dst={c['home']}", cfg["image"], "true")
+        if p.returncode == 0:
+            cp = docker.run("cp", f"{names['collect']}:{c['home']}/.claude", str(scratch / "claude-home"), timeout=900)
+            if cp.returncode != 0:
+                state["warnings"].append(f"finalize: ~/.claude 사본 실패(rc={cp.returncode}) {cp.stderr.strip()[:200]}")
+        else:
+            state["warnings"].append(f"finalize: 수집 컨테이너 생성 실패 {p.stderr.strip()[:200]}")
+    try:
+        hits = {"work": scrub(work, token), "claude-home": scrub(scratch / "claude-home", token),
+                "record": scrub(rdir, token, skip_suffixes=(".tar.gz",))}
+        state["secret_scan"] = {"hits": hits, "error": None}
+    except Exception as e:  # 검사 자체 실패 = 범위를 모름 → 실패
+        state["secret_scan"] = {"hits": None, "error": repr(e).replace(token, "<REDACTED-SECRET>")}
+        failures.append("secret_scan_error")
+    if state["secret_scan"]["hits"] and any(state["secret_scan"]["hits"].values()):
+        failures.append("secret_leak")
+        (rdir / "SECRET-LEAK.txt").write_text(json.dumps(state["secret_scan"]["hits"], ensure_ascii=False, indent=1),
+                                              encoding="utf-8")
     hd = rdir / "hookdata"
-    if (root / "hookdata").is_dir():
-        shutil.copytree(root / "hookdata", hd, dirs_exist_ok=True)
     state["injections"] = read_jsonl(hd / "inject-log.jsonl")
     state["compact_log"] = [{k: v for k, v in r.items() if k != "compact_summary"} | {
         "summary_chars": len(r.get("compact_summary") or "")} for r in read_jsonl(hd / "compact-log.jsonl")]
@@ -564,21 +828,34 @@ def finalize(cfg, a, state, rdir, root, work, entries, tampered):
     state["unexpected_tools"] = unexpected_tools(entries, cfg)
     reasons = invalid_reasons(state["condition"], state["boundaries"], state["audit"], tampered, state["injections"])
     state["invalid_reasons"], state["invalid"] = reasons, bool(reasons)
-    state["ended_at"] = now_iso()
     try:
-        if (work / "gradlew").is_file():
-            env, _ = sandbox_env(cfg, state["condition"])
-            subprocess.run(["./gradlew", "--stop"], cwd=work, env=env, capture_output=True, timeout=120)
         if work.is_dir():
-            archive_work(work, rdir / "work.tar.gz")
+            archive_dir(work, rdir / "work.tar.gz", "work")
             state["work_archive"] = "work.tar.gz"
+        if (scratch / "claude-home").is_dir():
+            archive_dir(scratch / "claude-home", rdir / "claude-home.tar.gz", "claude-home", skip=())
+            state["claude_home_archive"] = "claude-home.tar.gz"
     except Exception as e:
-        state["warnings"].append(f"finalize: {e!r}")
+        state["warnings"].append(f"finalize: 보관 실패 {e!r}")
+        failures.append("archive_failed")
+    state["cleanup_errors"] += cleanup_stack(docker, created)
+    if state["cleanup_errors"]:
+        failures.append("docker_cleanup_failed")
+    state["failure_reasons"] = failures
+    if failures:
+        state["status"] = "failed"
+    state["ended_at"] = now_iso()
     write_json(rdir / "run.json", state)
+    late = scrub(rdir, token, skip_suffixes=(".tar.gz",))  # run.json 등 마지막에 쓴 파일까지
+    if late:
+        state["secret_scan"]["late_hits"] = late
+        state["status"] = "failed"
+        state["failure_reasons"] = sorted(set(state["failure_reasons"]) | {"secret_leak"})
+        write_json(rdir / "run.json", state)
     if not a.keep_root:
         shutil.rmtree(root, ignore_errors=True)
-    print(json.dumps({k: state[k] for k in ("run_id", "status", "abort_reason", "invalid", "invalid_reasons")},
-                     ensure_ascii=False))
+    print(json.dumps({k: state[k] for k in ("run_id", "status", "abort_reason", "failure_reasons", "invalid",
+                                            "invalid_reasons")}, ensure_ascii=False))
     print(f"기록: {rdir}")
 
 

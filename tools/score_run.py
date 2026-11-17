@@ -7,7 +7,9 @@
 --work가 없으면 <run>/work.tar.gz를 임시 폴더에 풀어 쓴다. 출력 기본값 <run>/score.json.
 
 결과 값: pass · fail · not_run(실행 안 됨) · unscorable(채점 불가) · premise_unmet(번복 전제 미충족).
-모델이 채점하는 항목은 없다.
+모델이 채점하는 항목은 없다. 숨긴 테스트와 DB 카탈로그는 채점 전용 컨테이너(에이전트 이미지, 토큰 없음) + PostgreSQL 16
+사이드카(채점마다 새로 띄우고 지움 — containers.PostgresStack)에서 돈다. 정리 실패는 score.json `scoring_env.cleanup_errors`
++ 종료 코드 1.
 """
 import argparse
 import datetime
@@ -20,16 +22,18 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import containers  # noqa: E402
 import db_catalog  # noqa: E402
 import hidden_tests  # noqa: E402
 import language  # noqa: E402
 import source_text  # noqa: E402
 import springconf  # noqa: E402
 import transcript  # noqa: E402
-from run_task import load_config, resolve  # noqa: E402
+from run_task import LABEL, load_config, resolve, uid_gid  # noqa: E402
 
 I = re.I
 MIGRATION_DIR = "src/main/resources/db/migration"
@@ -384,22 +388,43 @@ def k8(run_dir, run, threshold, min_chars):
 
 # ---------- 숨긴 테스트 ----------
 
-def hidden_items(cfg, work, run_dir, skip):
+def container_executor(cfg, docker, stack):
+    """숨긴 테스트를 채점 컨테이너에서 돌리는 실행 함수 — 에이전트와 같은 이미지(토큰 없음), 사본 폴더 bind 하나,
+    채점 네트워크(사이드카 + hidden.egress면 외부)만."""
+    c = cfg["container"]
+
+    def execute(cmd, cwd, log, timeout):
+        name = docker.guard(f"{stack.tag}-hidden")
+        env = sum((["--env", f"{k}={v}"] for k, v in containers.jdbc_env(cfg["db"]).items()), [])
+        argv = [docker.bin, "run", "--rm", "--name", name, "--label", LABEL, "--network", stack.network,
+                "--cap-drop=ALL", "--security-opt=no-new-privileges", "--user", uid_gid(),
+                f"--cpus={c['cpus']}", f"--memory={c['memory']}", f"--pids-limit={c['pids_limit']}",
+                "--mount", f"type=bind,src={cwd},dst={c['work']}", "--workdir", c["work"], *env, cfg["image"], *cmd]
+        try:
+            return subprocess.run(argv, stdout=log, stderr=subprocess.STDOUT, timeout=timeout).returncode
+        except subprocess.TimeoutExpired:
+            err = docker.remove("container", name)
+            if err:
+                stack.cleanup_errors.append(err)
+            raise
+    return execute
+
+
+def hidden_items(cfg, work, run_dir, skip, docker=None, stack=None, stack_error=None):
     hc = cfg["hidden"]
     items_file, hidden_dir = resolve(hc["items_file"]), resolve(hc["dir"])
     if not items_file.is_file():
         return {}, {"ran": False, "reason": f"items.json 없음: {items_file}"}
     mapping, imeta = hidden_tests.load_items(items_file)
-    if skip:
-        return ({k: R("not_run", reason="skip_hidden") for k in mapping},
-                {"ran": False, "reason": "skip_hidden"})
+    if skip or stack is None:
+        why = "skip_hidden" if skip else f"scoring_env: {stack_error}"
+        return ({k: R("not_run", reason=why) for k in mapping}, {"ran": False, "reason": why})
     tmp = Path(tempfile.mkdtemp(prefix="cx-score-"))
     try:
         wc = tmp / "work"
         shutil.copytree(work, wc, symlinks=True)
-        env = dict(os.environ, JAVA_HOME=cfg["java_home"], GRADLE_USER_HOME=cfg["gradle_user_home"])
-        env["PATH"] = f"{cfg['java_home']}/bin:" + env.get("PATH", "")
-        r = hidden_tests.run_hidden(wc, hc, hidden_dir, env, Path(run_dir) / "hidden-test.log")
+        r = hidden_tests.run_hidden(wc, hc, hidden_dir, Path(run_dir) / "hidden-test.log",
+                                    container_executor(cfg, docker, stack))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     meta = {"ran": True, "exit_code": r["exit_code"], "timed_out": r["timed_out"], "testcases": len(r["cases"]),
@@ -413,6 +438,22 @@ def hidden_items(cfg, work, run_dir, skip):
     res = hidden_tests.item_results(mapping, r["cases"])
     return {k: R(v["result"], reason=v["reason"], tests=v["tests"], alias_of=imeta[k]["alias_of"])
             for k, v in res.items()}, meta
+
+
+def open_stack(cfg, need):
+    """채점용 네트워크 + PostgreSQL 16 사이드카(필요할 때만). (docker, stack 또는 None, 오류 문자열 또는 None, env 정보)"""
+    if not need:
+        return None, None, None, {"used": False}
+    docker = containers.Docker.from_cfg(cfg)
+    tag = docker.guard(f"{cfg['resource_prefix']}score-{uuid.uuid4().hex[:8]}")
+    info = {"used": True, "tag": tag, "image": cfg["image"], "db_image": cfg["db"]["image"],
+            "egress": bool(cfg["hidden"].get("egress", True))}
+    try:
+        info["image_id"] = docker.image_info(cfg["image"])["id"]
+        stack = containers.PostgresStack(docker, cfg["db"], tag, internal=not info["egress"]).__enter__()
+    except Exception as e:  # docker·이미지 문제 — 컨테이너 항목은 채점 불가/실행 안 됨으로 남긴다
+        return docker, None, repr(e), info
+    return docker, stack, None, info
 
 
 # ---------- 본체 ----------
@@ -443,17 +484,27 @@ def score(cfg, run_dir, work, skip_hidden, skip_db=False):
     static["K7a"], static["K7b"] = k7(work, run)
     static["K8"], k8_turns = k8(run_dir, run, cfg["k8_threshold"], cfg["k8_min_chars"])
     db_items = ("D0-01", "D1-01", "D1-02", "D1-04", "D4-01", "D6-01", "D7-02")
-    if skip_db:
-        static.update({i: R("not_run", reason="skip_db") for i in db_items})
-    else:
-        try:
-            cat = db_catalog.collect(Path(work) / MIGRATION_DIR)
-            (Path(run_dir) / "db-catalog.json").write_text(json.dumps(cat, ensure_ascii=False, indent=1),
-                                                           encoding="utf-8")
-            static.update(db_catalog.check(cat))
-        except Exception as e:  # docker 등 채점 환경 문제 — 항목은 채점 불가로 남긴다
-            static.update({i: R("unscorable", reason=f"db_catalog: {e!r}") for i in db_items})
-    hidden, hidden_meta = hidden_items(cfg, work, run_dir, skip_hidden)
+    docker, stack, stack_error, env_info = open_stack(cfg, not (skip_db and skip_hidden))
+    try:
+        if skip_db:
+            static.update({i: R("not_run", reason="skip_db") for i in db_items})
+        elif stack is None:
+            static.update({i: R("unscorable", reason=f"scoring_env: {stack_error}") for i in db_items})
+        else:
+            try:
+                cat = db_catalog.collect(Path(work) / MIGRATION_DIR, stack)
+                (Path(run_dir) / "db-catalog.json").write_text(json.dumps(cat, ensure_ascii=False, indent=1),
+                                                               encoding="utf-8")
+                static.update(db_catalog.check(cat))
+            except Exception as e:  # docker·psql 등 채점 환경 문제 — 항목은 채점 불가로 남긴다
+                static.update({i: R("unscorable", reason=f"db_catalog: {e!r}") for i in db_items})
+        hidden, hidden_meta = hidden_items(cfg, work, run_dir, skip_hidden, docker, stack, stack_error)
+    finally:
+        if stack is not None:
+            stack.close()
+            env_info["cleanup_errors"] = stack.cleanup_errors
+        if stack_error:
+            env_info["error"] = stack_error
 
     items = {}
     for item, meta in table.items():
@@ -485,6 +536,7 @@ def score(cfg, run_dir, work, skip_hidden, skip_db=False):
         "totals": run.get("totals"), "turns_done": len(run.get("turns") or []),
         "hidden": hidden_meta, "counts": counts, "items": items, "k8_turns": k8_turns,
         "unmapped_hidden_ids": sorted(set(hidden) - set(table)),
+        "scoring_env": env_info,
     }
 
 
@@ -517,8 +569,11 @@ def main(argv=None):
             shutil.rmtree(tmp, ignore_errors=True)
     out = Path(a.out) if a.out else Path(a.run) / "score.json"
     out.write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(json.dumps({"run_id": result["run_id"], "counts": result["counts"], "out": str(out)}, ensure_ascii=False))
-    return 0
+    env = result["scoring_env"]
+    print(json.dumps({"run_id": result["run_id"], "counts": result["counts"], "out": str(out),
+                      "scoring_env_error": env.get("error"), "cleanup_errors": env.get("cleanup_errors")},
+                     ensure_ascii=False))
+    return 1 if env.get("cleanup_errors") else 0
 
 
 if __name__ == "__main__":

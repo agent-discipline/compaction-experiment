@@ -95,9 +95,10 @@ def item_results(items, cases):
     return out
 
 
-def run_hidden(work_copy, hidden_cfg, hidden_dir, env, log_path):
+def run_hidden(work_copy, hidden_cfg, hidden_dir, log_path, execute):
     """work_copy(이미 복사된 최종 작업 폴더)에 숨긴 테스트를 덮고 명령을 돌린다.
-    {exit_code, timed_out, junit_dir, cases}"""
+    execute(cmd, work_copy, log_file, timeout) → 종료 코드(시간 초과면 subprocess.TimeoutExpired) — 채점기는 채점 컨테이너
+    (score_run.container_executor)를 준다. {exit_code, timed_out, cases}"""
     work_copy = Path(work_copy)
     for d in ("build", ".gradle", ".kotlin", *hidden_cfg.get("pre_delete", [])):
         shutil.rmtree(work_copy / d, ignore_errors=True)
@@ -116,9 +117,7 @@ def run_hidden(work_copy, hidden_cfg, hidden_dir, env, log_path):
     timed_out = False
     with open(log_path, "wb") as log:
         try:
-            p = subprocess.run(hidden_cfg["command"], cwd=work_copy, env=env, stdout=log, stderr=subprocess.STDOUT,
-                               timeout=hidden_cfg.get("timeout_s", 3600))
-            rc = p.returncode
+            rc = execute(hidden_cfg["command"], work_copy, log, hidden_cfg.get("timeout_s", 3600))
         except subprocess.TimeoutExpired:
             rc, timed_out = None, True
     jd = work_copy / hidden_cfg["junit_dir"]

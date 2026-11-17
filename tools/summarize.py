@@ -58,7 +58,7 @@ def summarize(scores):
         rows.append({
             "model": model, "condition": cond, "runs": len(ss), "valid_complete": len(ok),
             "invalid": sum(bool(s.get("invalid")) for s in ss),
-            "aborted": sum(s["status"] == "aborted" for s in ss),
+            "aborted": sum(s["status"] in ("aborted", "failed") for s in ss),  # failed = 토큰 검출·정리 실패 등
             "violation_rate": rate(f, p), "judged": f + p,
             "violation_rate_after_compaction": rate(fa, pa), "judged_after_compaction": fa + pa,
             "not_judged": other,

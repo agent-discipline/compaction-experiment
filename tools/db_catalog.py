@@ -1,12 +1,11 @@
-"""DB 카탈로그 항목(D0-01·D1-01·D1-02·D1-04·D4-01·D6-01·D7-02) — 최종 마이그레이션을 빈 PostgreSQL에 적용하고
+"""DB 카탈로그 항목(D0-01·D1-01·D1-02·D1-04·D4-01·D6-01·D7-02) — 최종 마이그레이션을 빈 PostgreSQL 데이터베이스에 적용하고
 information_schema·pg_catalog를 조회해 판정한다.
 
-방식: `docker run postgres:16` 일회용 컨테이너 → V<n>__*.sql을 번호 순으로 `psql --single-transaction
--v ON_ERROR_STOP=1`로 적용(Flyway 대신 — 파일 하나 = 트랜잭션 하나, 첫 실패에서 멈춤) → 조회 → 컨테이너 삭제.
+방식: 채점용 PostgreSQL 16 사이드카(containers.PostgresStack — 숨긴 테스트와 같은 서버)에 새 데이터베이스
+`catalog_<hex>`를 만들고 → V<n>__*.sql을 번호 순으로 `psql --single-transaction -v ON_ERROR_STOP=1`로 적용(Flyway 대신 —
+파일 하나 = 트랜잭션 하나, 첫 실패에서 멈춤) → 조회. 파일은 표준 입력으로 넘긴다(마운트 없음).
 """
 import re
-import subprocess
-import time
 import uuid
 from pathlib import Path
 
@@ -51,39 +50,26 @@ def migration_files(migration_dir):
     return sorted(files, key=lambda p: int(re.match(r"V(\d+)__", p.name).group(1)))
 
 
-def _docker(*args, stdin=None, timeout=120):
-    return subprocess.run(["docker", *args], input=stdin, capture_output=True, text=True, timeout=timeout)
-
-
-def collect(migration_dir, image="postgres:16"):
-    """{applied, migration_error, columns, indexes, constraints}. docker 실패는 예외로 올린다."""
-    name = f"cx-catalog-{uuid.uuid4().hex[:8]}"
-    p = _docker("run", "-d", "--rm", "--name", name, "-e", "POSTGRES_PASSWORD=x", image, timeout=600)
-    if p.returncode != 0:
-        raise RuntimeError(f"docker run 실패: {p.stderr.strip()[:300]}")
-    try:
-        for _ in range(120):
-            if _docker("exec", name, "pg_isready", "-U", "postgres", "-h", "127.0.0.1").returncode == 0:
-                break
-            time.sleep(0.5)
-        else:
-            raise RuntimeError("postgres 준비 안 됨")
-        psql = ["exec", "-i", name, "psql", "-U", "postgres", "-h", "127.0.0.1", "-X", "-q", "-v", "ON_ERROR_STOP=1"]
-        out = {"applied": [], "migration_error": None}
-        for f in migration_files(migration_dir):
-            r = _docker(*psql, "--single-transaction", "-f", "-", stdin=f.read_text(encoding="utf-8"))
-            if r.returncode != 0:
-                out["migration_error"] = {"file": f.name, "stderr": r.stderr.strip()[:800]}
-                break
-            out["applied"].append(f.name)
-        for key, q in QUERIES.items():
-            r = _docker(*psql, "-At", "-F", "\x1f", "-c", q)
-            if r.returncode != 0:
-                raise RuntimeError(f"조회 실패({key}): {r.stderr.strip()[:300]}")
-            out[key] = [line.split("\x1f") for line in r.stdout.splitlines() if line]
-        return out
-    finally:
-        _docker("rm", "-f", name)
+def collect(migration_dir, stack):
+    """{applied, migration_error, columns, indexes, constraints, database}. docker·psql 실패는 예외로 올린다.
+    stack = 열려 있는 containers.PostgresStack."""
+    dbname = f"catalog_{uuid.uuid4().hex[:12]}"
+    r = stack.psql(stack.db["name"], "-c", f'CREATE DATABASE "{dbname}"')
+    if r.returncode != 0:
+        raise RuntimeError(f"카탈로그 DB 생성 실패: {r.stderr.strip()[:300]}")
+    out = {"database": dbname, "applied": [], "migration_error": None}
+    for f in migration_files(migration_dir):
+        r = stack.psql(dbname, "--single-transaction", "-f", "-", input=f.read_text(encoding="utf-8"))
+        if r.returncode != 0:
+            out["migration_error"] = {"file": f.name, "stderr": r.stderr.strip()[:800]}
+            break
+        out["applied"].append(f.name)
+    for key, q in QUERIES.items():
+        r = stack.psql(dbname, "-At", "-F", "\x1f", "-c", q)
+        if r.returncode != 0:
+            raise RuntimeError(f"조회 실패({key}): {r.stderr.strip()[:300]}")
+        out[key] = [line.split("\x1f") for line in r.stdout.splitlines() if line]
+    return out
 
 
 def _R(result, **kw):

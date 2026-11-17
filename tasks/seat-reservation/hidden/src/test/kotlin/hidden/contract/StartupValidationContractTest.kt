@@ -1,43 +1,28 @@
 package hidden.contract
 
 import com.example.booking.BookingApplication
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.Timeout
 import org.springframework.boot.builder.SpringApplicationBuilder
-import org.testcontainers.containers.PostgreSQLContainer
-import org.testcontainers.utility.DockerImageName
 import java.util.concurrent.TimeUnit
 import kotlin.test.fail
 
 /**
- * Starts the application programmatically against a real database and checks that an invalid
- * configuration fails at startup. A control start with the application's own configuration must succeed
+ * Starts the application programmatically against a real database (a new empty one per start — HiddenDatabase)
+ * and checks that an invalid configuration fails at startup. A control start with the application's own configuration must succeed
  * first, so that a failure is attributable to the property under test.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @Timeout(value = 180, unit = TimeUnit.SECONDS)
 class StartupValidationContractTest {
 
-    private val postgres: PostgreSQLContainer<*> = PostgreSQLContainer(DockerImageName.parse("postgres:16"))
-
-    @BeforeAll
-    fun startDb() = postgres.start()
-
-    @AfterAll
-    fun stopDb() = postgres.stop()
-
     private val control: Throwable? by lazy { startOnce() }
 
     /** null = started (and closed) successfully. */
     private fun startOnce(vararg extra: String): Throwable? {
         val args = arrayOf(
-            "--spring.datasource.url=${postgres.jdbcUrl}",
-            "--spring.datasource.username=${postgres.username}",
-            "--spring.datasource.password=${postgres.password}",
             "--server.port=0",
             *extra.map { "--$it" }.toTypedArray(),
         )

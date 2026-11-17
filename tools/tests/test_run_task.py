@@ -1,6 +1,5 @@
 import json
 import os
-import shutil
 import subprocess
 import tarfile
 import tempfile
@@ -10,10 +9,11 @@ from unittest import mock
 
 from helpers import TOOLS, assistant, write
 
+import containers
 import run_task as rt
-import transcript
 
-FAKE = TOOLS / "tests" / "fake_claude.py"
+FAKE_DOCKER = TOOLS / "tests" / "fake_docker.py"
+TOKEN = "sk-fake-oat01-TOKENVALUE123"
 
 
 def fake_cfg(base):
@@ -21,19 +21,25 @@ def fake_cfg(base):
     skel = base / "skel"
     write(skel, "build.gradle.kts", "plugins {}\ndependencies {}\n")
     write(skel, "src/main/resources/db/migration/.gitkeep", "")
-    os.chmod(FAKE, 0o755)
-    creds = base / "host-creds.json"
-    creds.write_text(json.dumps({"claudeAiOauth": {"expiresAt": 1_000_000}}))
+    os.chmod(FAKE_DOCKER, 0o755)
+    tok = base / "claude.env"
+    tok.write_text(f"CLAUDE_CODE_OAUTH_TOKEN={TOKEN}\n")
+    os.chmod(tok, 0o600)
     cfg.update(run_root=str(base / "root"), runs_dir=str(base / "runs"), skeleton_dir=str(skel),
-               claude_bin=str(FAKE), credentials_file=str(creds))
+               docker_bin=str(FAKE_DOCKER), token_env_file=str(tok))
     return cfg
 
 
 class Args:
     def __init__(self, **kw):
         self.__dict__.update(dict(model="claude-fake-1", condition="compact", rep=1, last_step=2, turn_timeout=60,
-                                  max_tokens=None, max_wall=None, max_budget_usd=None, no_creds_writeback=False,
-                                  keep_root=False), **kw)
+                                  max_tokens=None, max_wall=None, max_budget_usd=None, keep_root=False,
+                                  allow_concurrent=False), **kw)
+
+
+def docker_leftovers(state):
+    return {d: sorted(p.name for p in (state / d).iterdir()) for d in ("containers", "networks", "volumes")
+            if (state / d).is_dir() and any((state / d).iterdir())}
 
 
 class MessagesTest(unittest.TestCase):
@@ -65,27 +71,120 @@ class SettingsTest(unittest.TestCase):
         self.assertEqual({e: o["hooks"][e] for e in c["hooks"]}, c["hooks"])
         self.assertEqual(o["hooks"]["SessionStart"][0]["matcher"], "compact")
 
-    def test_deny_rules_and_tools(self):
-        p = rt.settings_for("compact", self.cfg)["permissions"]
-        home = str(Path.home())
+    def test_container_paths_in_hooks_and_deny_rules(self):
+        s = rt.settings_for("outbox", self.cfg)
+        cmds = [h["command"] for groups in s["hooks"].values() for g in groups for h in g["hooks"]]
+        self.assertTrue(all(c.startswith("/usr/bin/python3 -I /cx/hooks/") for c in cmds), cmds)
+        self.assertTrue(all(" /cx/hookdata" in c for c in cmds), cmds)
+        p = s["permissions"]
         for t in ("Read", "Edit", "Write", "Grep", "Glob"):
-            self.assertIn(f"{t}(/{home}/project/**)", p["deny"])
+            self.assertIn(f"{t}(//cx/hooks/**)", p["deny"])
+            self.assertIn(f"{t}(//cx/hookdata/**)", p["deny"])
+        self.assertIn("Edit(//work/.claude/**)", p["deny"])
         self.assertIn("WebFetch", p["deny"])
         self.assertIn("WebSearch", p["deny"])
-        self.assertTrue(p["blockReadsOutsideWorkingDirectories"])
+        self.assertFalse([d for d in p["deny"] if str(Path.home()) in d], "호스트 경로 deny 규칙은 없어야 함")
         cmd = rt.claude_cmd(self.cfg, "m", "sid", True)
+        self.assertEqual(cmd[0], "claude")
         self.assertEqual(cmd[cmd.index("--tools") + 1], "Bash,Read,Edit,Write,Grep,Glob")
+        self.assertEqual(cmd[cmd.index("--mcp-config") + 1], "/cx/hooks/empty-mcp.json")
+        self.assertEqual(cmd[cmd.index("--permission-mode") + 1], "bypassPermissions")
         self.assertIn("--strict-mcp-config", cmd)
         self.assertEqual(cmd[cmd.index("--setting-sources") + 1], "project")
         self.assertIn("--resume", rt.claude_cmd(self.cfg, "m", "sid", False))
 
-    def test_env_window_and_dropped(self):
-        with mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "x", "SOMETHING": str(Path.home() / "project" / "a")}):
-            env, dropped = rt.sandbox_env(self.cfg, "control")
-        self.assertEqual(env["CLAUDE_CODE_AUTO_COMPACT_WINDOW"], "1000000")
-        self.assertNotIn("ANTHROPIC_API_KEY", env)
-        self.assertIn("SOMETHING", dropped)
-        self.assertEqual(rt.sandbox_env(self.cfg, "outbox")[0]["CLAUDE_CODE_AUTO_COMPACT_WINDOW"], "100000")
+    def test_container_env(self):
+        e = rt.container_env(self.cfg, "control")
+        self.assertEqual(e["CLAUDE_CODE_AUTO_COMPACT_WINDOW"], "1000000")
+        self.assertEqual(rt.container_env(self.cfg, "outbox")["CLAUDE_CODE_AUTO_COMPACT_WINDOW"], "100000")
+        self.assertEqual((e["HOME"], e["CLAUDE_CONFIG_DIR"]), ("/home/agent", "/home/agent/.claude"))
+        self.assertEqual(e["DB_URL"], "jdbc:postgresql://db:5432/booking")
+        self.assertFalse([k for k in e if "TOKEN" in k or k.startswith("ANTHROPIC")])
+
+
+class ContainerArgsTest(unittest.TestCase):
+    def setUp(self):
+        self.cfg = rt.load_config()
+        self.names = rt.resource_names(self.cfg, "fake-1-compact-r1-20260101T000000")
+
+    def args(self, cond, name="cx-x-t00"):
+        return rt.agent_create_args(self.cfg, self.names, "/tmp/cx-run", cond, name, ["claude", "-p"])
+
+    def test_mounts_user_and_isolation(self):
+        a = self.args("compact")
+        mounts = [a[i + 1] for i, x in enumerate(a) if x == "--mount"]
+        self.assertEqual(mounts, ["type=bind,src=/tmp/cx-run/work,dst=/work",
+                                  "type=bind,src=/tmp/cx-run/hooks,dst=/cx/hooks,readonly",
+                                  f"type=volume,src={self.names['home']},dst=/home/agent",
+                                  f"type=volume,src={self.names['hookdata']},dst=/cx/hookdata"])
+        rw_binds = [m for m in mounts if m.startswith("type=bind") and not m.endswith(",readonly")]
+        self.assertEqual(len(rw_binds), 1)
+        joined = " ".join(a)
+        self.assertNotIn("docker.sock", joined)
+        for bad in ("--privileged", "-v", "--volume", "--volumes-from", "--pid", "--ipc", "--cap-add", "--device"):
+            self.assertFalse([x for x in a if x == bad or x.startswith(bad + "=")], bad)
+        self.assertNotEqual(a[a.index("--network") + 1], "host")
+        self.assertFalse([m for m in mounts if str(Path.home()) in m], "호스트 HOME 아래 경로는 마운트하지 않음")
+        self.assertEqual(a[a.index("--user") + 1], f"{os.getuid()}:{os.getgid()}")
+        self.assertEqual(a[a.index("--network") + 1], self.names["net"])
+        self.assertEqual(a[a.index("--env-file") + 1], self.cfg["token_env_file"])
+        self.assertIn("--cap-drop=ALL", a)
+        self.assertNotIn(TOKEN, joined)
+        self.assertEqual(a[a.index(self.cfg["image"]) + 1:], ["claude", "-p"])
+
+    def test_conditions_differ_only_by_window(self):
+        a, b = self.args("control"), self.args("outbox")
+        diff = [(x, y) for x, y in zip(a, b) if x != y]
+        self.assertEqual(len(a), len(b))
+        self.assertEqual(diff, [("CLAUDE_CODE_AUTO_COMPACT_WINDOW=1000000", "CLAUDE_CODE_AUTO_COMPACT_WINDOW=100000")])
+
+    def test_resource_names_have_prefix(self):
+        for k, v in self.names.items():
+            self.assertTrue(v.startswith("cx-"), (k, v))
+        self.assertEqual(rt.turn_container(self.names, 3), self.names["tag"] + "-t03")
+
+    def test_docker_guard(self):
+        d = containers.Docker("docker", "cx-")
+        self.assertEqual(d.guard("cx-a"), "cx-a")
+        for bad in ("payment-claude-x", "alert-system-postgres-1", "cxa"):
+            with self.assertRaises(ValueError):
+                d.guard(bad)
+        with self.assertRaises(ValueError):
+            containers.Docker("docker", "payment-")
+        with self.assertRaises(ValueError):
+            containers.Docker("docker", "")
+
+
+class TokenTest(unittest.TestCase):
+    def setUp(self):
+        self.d = Path(tempfile.mkdtemp())
+
+    def tok(self, text, mode=0o600):
+        p = self.d / "t.env"
+        p.write_text(text)
+        os.chmod(p, mode)
+        return p
+
+    def test_read_token_validation(self):
+        key = "CLAUDE_CODE_OAUTH_TOKEN"
+        self.assertEqual(rt.read_token(self.tok(f"{key}=abc\n"), key), "abc")
+        for text, mode in ((f"{key}=abc\n", 0o644), (f"{key}=abc\nOTHER=1\n", 0o600), ("OTHER=abc\n", 0o600),
+                           (f"{key}=\n", 0o600), ("", 0o600)):
+            with self.assertRaises(ValueError, msg=(text, oct(mode))):
+                rt.read_token(self.tok(text, mode), key)
+        with self.assertRaises(ValueError):
+            rt.read_token(self.d / "none.env", key)
+        st = rt.token_file_status(self.tok(f"{key}=abc\n"))
+        self.assertEqual((st["exists"], st["mode"]), (True, "0o600"))
+
+    def test_scrub_redacts_contents_and_names(self):
+        write(self.d / "s", "a/b.txt", f"x{TOKEN}y")
+        write(self.d / "s", f"c/{TOKEN}.log", "clean")
+        write(self.d / "s", "d/ok.txt", "nothing")
+        hits = rt.scrub(self.d / "s", TOKEN)
+        self.assertEqual(hits, ["a/b.txt", "c/REDACTED-SECRET.log"])
+        self.assertEqual((self.d / "s/a/b.txt").read_text(), "x<REDACTED-SECRET>y")
+        self.assertEqual(rt.scrub(self.d / "s", TOKEN), [])
 
 
 class ValidityTest(unittest.TestCase):
@@ -104,28 +203,13 @@ class ValidityTest(unittest.TestCase):
         cfg = rt.load_config()
         home = str(Path.home())
         entries = [assistant(tools=[("Bash", {"command": f"cat {home}/project/x/README.md"}),
-                                    ("Read", {"file_path": "/tmp/cx-run/work/src/a.kt"}),
+                                    ("Read", {"file_path": "/work/src/a.kt"}),
+                                    ("Bash", {"command": "cat /cx/hookdata/outbox/s.jsonl"}),
                                     ("Grep", {"pattern": "x", "path": "/opt/seat-reservation-lab"}),
                                     ("WebSearch", {"query": "q"}), ("Task", {})])]
         hits = {h["hit"] for h in rt.audit(entries, cfg)}
-        self.assertEqual(hits, {f"{home}/project", "seat-reservation-lab", "tool:WebSearch"})
+        self.assertEqual(hits, {f"{home}/project", "/cx/hookdata", "seat-reservation-lab", "tool:WebSearch"})
         self.assertEqual(rt.unexpected_tools(entries, cfg), ["Task"])
-
-
-class CredsTest(unittest.TestCase):
-    def test_copy_in_and_writeback_only_when_newer(self):
-        d = Path(tempfile.mkdtemp())
-        host, sb = d / "h.json", d / "s.json"
-        host.write_text(json.dumps({"claudeAiOauth": {"expiresAt": 2000}}))
-        rt.creds_in(host, sb)
-        self.assertEqual(rt.creds_expiry(sb), 2.0)
-        self.assertFalse(rt.creds_writeback(host, sb, d / "lock"))
-        sb.write_text(json.dumps({"claudeAiOauth": {"expiresAt": 5000}}))
-        self.assertTrue(rt.creds_writeback(host, sb, d / "lock"))
-        self.assertEqual(rt.creds_expiry(host), 5.0)
-        self.assertEqual(oct(host.stat().st_mode & 0o777), "0o600")
-        with self.assertRaises(FileNotFoundError):
-            rt.creds_in(d / "none.json", sb)
 
 
 class PrepareTest(unittest.TestCase):
@@ -134,13 +218,13 @@ class PrepareTest(unittest.TestCase):
         cfg = fake_cfg(base)
         head = rt.prepare_root(cfg, "outbox", rt.settings_text(rt.settings_for("outbox", cfg)))
         work = base / "root" / "work"
-        log = subprocess.run(["git", "log", "--format=%s"], cwd=work, capture_output=True, text=True).stdout
-        self.assertEqual(log.strip(), "skeleton")
-        self.assertNotIn("[S", log)
+        log = subprocess.run(["git", "log", "--format=%s %an <%ae>"], cwd=work, capture_output=True, text=True).stdout
+        self.assertEqual(log.strip(), "skeleton booking <booking@example.invalid>")
         status = subprocess.run(["git", "status", "--porcelain"], cwd=work, capture_output=True, text=True).stdout
         self.assertEqual(status, "")  # .claude/ 는 info/exclude
         self.assertTrue((work / ".claude" / "settings.json").is_file())
-        self.assertTrue((base / "root" / "hooks" / "inject.py").is_file())
+        self.assertEqual(sorted(p.name for p in (base / "root" / "hooks").iterdir()),
+                         ["capture.py", "compact_log.py", "empty-mcp.json", "inject.py", "outbox-config.json"])
         self.assertEqual(len(head), 40)
         with self.assertRaises(SystemExit):
             rt.prepare_root(cfg, "outbox", "{}")
@@ -149,56 +233,71 @@ class PrepareTest(unittest.TestCase):
         heads = []
         for _ in range(2):
             base = Path(tempfile.mkdtemp())
-            cfg = fake_cfg(base)
-            heads.append(rt.prepare_root(cfg, "compact", "{}"))
+            heads.append(rt.prepare_root(fake_cfg(base), "compact", "{}"))
         self.assertEqual(heads[0], heads[1])
 
 
 class RunLoopTest(unittest.TestCase):
-    def run_fake(self, cond, **kw):
+    def run_fake(self, cond, expect_exit=None, **kw):
         base = Path(tempfile.mkdtemp())
         cfg = fake_cfg(base)
         env = {k: kw.pop(k) for k in list(kw) if k.startswith("FAKE_")}
+        env["FAKE_DOCKER_STATE"] = str(base / "docker")
         with mock.patch.dict(os.environ, env):
             rc = rt.run(cfg, Args(condition=cond, **kw))
         rdir = next((base / "runs").iterdir())
-        return rc, json.loads((rdir / "run.json").read_text(encoding="utf-8")), rdir, base, cfg
+        return rc, json.loads((rdir / "run.json").read_text(encoding="utf-8")), rdir, base
+
+    def calls(self, base):
+        return [json.loads(x) for x in (base / "docker" / "calls.jsonl").read_text().splitlines()]
 
     def test_outbox_run_end_to_end(self):
-        rc, run, rdir, base, cfg = self.run_fake("outbox")
-        self.assertEqual((rc, run["status"], run["invalid"]), (0, "complete", False))
+        rc, run, rdir, base = self.run_fake("outbox")
+        self.assertEqual((rc, run["status"], run["invalid"], run["failure_reasons"]), (0, "complete", False, []))
         self.assertEqual(len(run["turns"]), 3)
         self.assertEqual([(b["turn"], b["position"]) for b in run["boundaries"]],
                          [(1, "before_prompt"), (2, "before_prompt")])
         self.assertEqual(len(run["injections"]), 2)
         self.assertGreater(run["injections"][0]["chars_injected"], 0)
         self.assertEqual(run["compact_window_env"], "100000")
+        self.assertEqual(run["image_id"], "sha256:fakeimage")
+        self.assertEqual(run["cli_version"], "0.0.0 (fake)")
         for k in range(3):
             t = rdir / "turns" / f"{k:02d}"
-            for f in ("result.json", "stderr.txt", "transcript.jsonl", "boundaries.json", "meta.json"):
+            for f in ("result.json", "stderr.txt", "transcript.jsonl", "boundaries.json", "meta.json", "container.json"):
                 self.assertTrue((t / f).is_file(), f"{t}/{f}")
+        self.assertEqual(run["turns"][2]["container"]["exit_code"], 0)
         self.assertEqual(run["messages_sha256"], [t["message_sha256"] for t in run["turns"]])
         self.assertEqual(run["totals"]["tokens"], 300)
-        self.assertEqual(run["creds_written_back"], 1)
-        self.assertEqual(rt.creds_expiry(cfg["credentials_file"]), 1001.0)
+        self.assertEqual(run["secret_scan"]["hits"], {"work": [], "claude-home": [], "record": []})
+        self.assertEqual(run["cleanup_errors"], [])
+        self.assertEqual(docker_leftovers(base / "docker"), {})
         self.assertFalse((base / "root").exists())
         with tarfile.open(rdir / "work.tar.gz") as tf:
             self.assertIn("work/build.gradle.kts", tf.getnames())
+        with tarfile.open(rdir / "claude-home.tar.gz") as tf:
+            self.assertIn(f"claude-home/projects/-work/{run['session_id']}.jsonl", tf.getnames())
         outbox = (rdir / "hookdata" / "outbox" / f"{run['session_id']}.jsonl").read_text(encoding="utf-8")
         self.assertEqual(len(outbox.splitlines()), 3)
+        creates = [c for c in self.calls(base) if c[0] == "create" and "-t0" in c[c.index("--name") + 1]]
+        self.assertEqual(len(creates), 3)
+        self.assertTrue(all("--env-file" in c for c in creates))
+        self.assertFalse([c for c in self.calls(base) if TOKEN in json.dumps(c)], "토큰 값이 docker 인자에 나오면 안 됨")
 
-    def test_control_is_invalid_if_compaction_seen_and_valid_otherwise(self):
+    def test_control_is_valid_without_compaction(self):
         rc, run, *_ = self.run_fake("control")
         self.assertEqual(run["boundaries"], [])
         self.assertFalse(run["invalid"])
         self.assertEqual(run["compact_window_env"], "1000000")
 
-    def test_turn_failure_aborts_and_keeps_record(self):
-        rc, run, rdir, *_ = self.run_fake("compact", FAKE_FAIL_TURN="1")
+    def test_turn_failure_aborts_keeps_record_and_cleans_up(self):
+        rc, run, rdir, base = self.run_fake("compact", FAKE_FAIL_TURN="1")
         self.assertEqual((rc, run["status"]), (2, "aborted"))
         self.assertIn("turn 1", run["abort_reason"])
+        self.assertEqual(run["turns"][1]["container"]["exit_code"], 1)
         self.assertEqual(len(run["turns"]), 2)
         self.assertTrue((rdir / "work.tar.gz").is_file())
+        self.assertEqual(docker_leftovers(base / "docker"), {})
 
     def test_token_cap(self):
         rc, run, *_ = self.run_fake("compact", max_tokens=150)
@@ -206,10 +305,39 @@ class RunLoopTest(unittest.TestCase):
         self.assertTrue(run["abort_reason"].startswith("token_cap at turn 1"))
 
     def test_forbidden_path_in_tool_input_invalid(self):
-        # 호스트 프로젝트 경로를 값으로 가진 환경 변수는 샌드박스에 넘어가지 않으므로 이름 패턴으로 확인
         rc, run, *_ = self.run_fake("compact", FAKE_TOOL_CMD="cat /opt/seat-reservation-lab/docs/adr.md")
         self.assertTrue(run["invalid"])
         self.assertIn("audit:seat-reservation-lab", run["invalid_reasons"])
+
+    def test_token_leak_fails_run_and_is_redacted(self):
+        rc, run, rdir, base = self.run_fake("compact", FAKE_LEAK_TURN="0")
+        self.assertEqual((rc, run["status"]), (3, "failed"))
+        self.assertIn("secret_leak", run["failure_reasons"])
+        self.assertEqual(run["secret_scan"]["hits"]["work"], ["leak.txt"])
+        self.assertTrue((rdir / "SECRET-LEAK.txt").is_file())
+        with tarfile.open(rdir / "work.tar.gz") as tf:
+            self.assertEqual(tf.extractfile("work/leak.txt").read(), b"token=<REDACTED-SECRET>\n")
+        self.assertNotIn(TOKEN, (rdir / "run.json").read_text())
+
+    def test_cleanup_failure_fails_run(self):
+        rc, run, rdir, base = self.run_fake("compact", FAKE_DOCKER_FAIL_RM="-net")
+        self.assertEqual(run["status"], "failed")
+        self.assertIn("docker_cleanup_failed", run["failure_reasons"])
+        self.assertTrue(any("-net" in e for e in run["cleanup_errors"]))
+
+    def test_refuses_while_other_experiment_runs(self):
+        base = Path(tempfile.mkdtemp())
+        cfg = fake_cfg(base)
+        with mock.patch.dict(os.environ, {"FAKE_DOCKER_STATE": str(base / "docker"),
+                                          "FAKE_DOCKER_PS": "payment-claude-c01-a1"}):
+            with self.assertRaises(SystemExit):
+                rt.run(cfg, Args())
+        self.assertFalse((base / "root").exists())
+        self.assertFalse((base / "runs").exists())
+        self.assertEqual(docker_leftovers(base / "docker"), {})
+        made = [c for c in self.calls(base) if c[0] in ("create", "run") or c[:2] in (["network", "create"],
+                                                                                      ["volume", "create"])]
+        self.assertEqual(made, [])
 
 
 if __name__ == "__main__":
