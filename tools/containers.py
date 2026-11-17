@@ -54,11 +54,27 @@ class Docker:
         self.check(self.run("volume", "create", "--label", EXPERIMENT_LABEL, "--label", f"cx.run={run_label}",
                             self.guard(name)), f"volume create {name}")
 
+    def labels(self, kind, name):
+        """리소스의 레이블 dict. 읽지 못하면 None."""
+        fmt = "{{json .Config.Labels}}" if kind == "container" else "{{json .Labels}}"
+        p = self.run(kind, "inspect", "--format", fmt, name)
+        if p.returncode != 0:
+            return None
+        try:
+            return json.loads(p.stdout or "null") or {}
+        except ValueError:
+            return None
+
     def remove(self, kind, name, timeout=120):
-        """정확한 이름 하나를 지운다. 없으면 성공으로 본다. 반환: None(성공) 또는 오류 문자열."""
+        """정확한 이름 하나를 지운다. 없으면 성공으로 본다. 이 실험의 레이블(`cx.experiment`)이 없으면 지우지 않고
+        오류로 돌려준다(이름이 겹친 남의 리소스 보호). 반환: None(성공) 또는 오류 문자열."""
         self.guard(name)
         if not self.exists(kind, name):
             return None
+        key, _, value = EXPERIMENT_LABEL.partition("=")
+        got = self.labels(kind, name)
+        if got is None or got.get(key) != value:
+            return f"{kind} {name}: 레이블 {EXPERIMENT_LABEL} 없음(읽은 값 {got}) — 지우지 않음"
         args = {"container": ["rm", "-f", name], "network": ["network", "rm", name], "volume": ["volume", "rm", name]}[kind]
         try:
             p = self.run(*args, timeout=timeout)

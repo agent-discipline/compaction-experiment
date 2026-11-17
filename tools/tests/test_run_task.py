@@ -155,6 +155,27 @@ class ContainerArgsTest(unittest.TestCase):
             containers.Docker("docker", "")
 
 
+class RemoveLabelTest(unittest.TestCase):
+    """지우기 전에 이 실험의 레이블을 확인한다(가짜 docker)."""
+
+    def test_remove_refuses_resource_without_experiment_label(self):
+        base = Path(tempfile.mkdtemp())
+        os.chmod(FAKE_DOCKER, 0o755)
+        with mock.patch.dict(os.environ, {"FAKE_DOCKER_STATE": str(base / "docker")}):
+            d = containers.Docker(str(FAKE_DOCKER), "cx-")
+            d.run("volume", "create", "--label", "other=1", "cx-foreign")
+            d.create_volume("cx-mine", "run-x")
+            err = d.remove("volume", "cx-foreign")
+            self.assertIn("지우지 않음", err)
+            self.assertTrue(d.exists("volume", "cx-foreign"))
+            self.assertIsNone(d.remove("volume", "cx-mine"))
+            self.assertFalse(d.exists("volume", "cx-mine"))
+            d.run("create", "--name", "cx-c1", "--label", "x=y", "img")
+            self.assertIn("지우지 않음", d.remove("container", "cx-c1"))
+            d.run("create", "--name", "cx-c2", "--label", rt.LABEL, "img")
+            self.assertIsNone(d.remove("container", "cx-c2"))
+
+
 class TokenTest(unittest.TestCase):
     def setUp(self):
         self.d = Path(tempfile.mkdtemp())

@@ -5,6 +5,7 @@
 컨테이너 실행 = 마운트 대상 경로를 호스트 폴더로 바꿔(bind → src, volume → volumes/<이름>, tmpfs → 임시 폴더) 명령을
 호스트에서 돌린다. `claude` → tests/fake_claude.py. 훅 명령의 컨테이너 경로는 FAKE_PATH_MAP(JSON)으로 fake_claude가 바꾼다.
 조작: FAKE_DOCKER_PS(쉼표 목록 — 실행 중인 다른 컨테이너 이름) · FAKE_DOCKER_FAIL_RM(이 문자열이 든 이름의 rm 실패).
+`<kind> inspect --format …` = 레이블 조회(컨테이너는 `Labels`가 든 형식일 때만, 그 밖은 State).
 """
 import json
 import os
@@ -59,6 +60,14 @@ def load(name):
 def save(c):
     cpath(c["name"]).parent.mkdir(parents=True, exist_ok=True)
     cpath(c["name"]).write_text(json.dumps(c))
+
+
+def label_file(kind, name):
+    return STATE / "labels" / f"{kind}-{name}.json"
+
+
+def labels_of(items):
+    return dict(x.split("=", 1) if "=" in x else (x, "") for x in items)
 
 
 def fail(msg, rc=1):
@@ -156,9 +165,16 @@ def main(argv):
             if (d / pos[0]).exists():
                 fail(f"{cmd} with name {pos[0]} already exists")
             (d / pos[0]).mkdir(parents=True)
+            label_file(cmd, pos[0]).parent.mkdir(parents=True, exist_ok=True)
+            label_file(cmd, pos[0]).write_text(json.dumps(labels_of(opts.get("--label", []))))
             print(pos[0])
         elif sub == "inspect":
-            sys.exit(0 if (d / pos[0]).exists() else 1)
+            if not (d / pos[0]).exists():
+                sys.exit(1)
+            if "--format" in opts:  # 레이블 조회만 흉내
+                lf = label_file(cmd, pos[0])
+                print(lf.read_text() if lf.is_file() else "null")
+            sys.exit(0)
         elif sub == "rm":
             if os.environ.get("FAKE_DOCKER_FAIL_RM", "\0") in pos[0]:
                 fail("fake rm failure")
@@ -172,7 +188,8 @@ def main(argv):
     if cmd == "container" and rest[0] == "inspect":
         opts, pos = parse(rest[1:])
         c = load(pos[0]) or fail(f"No such container: {pos[0]}")
-        print(json.dumps(c["state"]))
+        fmt = (opts.get("--format") or [""])[0]
+        print(json.dumps(labels_of(c["labels"]) if "Labels" in fmt else c["state"]))
         return 0
     if cmd == "ps":
         opts, pos = parse(rest)
