@@ -5,6 +5,7 @@
 - "전달" 열: 그 결정을 전달한 단계(대화 전용 제약은 S0 앞 첫 메시지). 모든 항목에 붙이고, 집계 때 "그 뒤 첫 컴팩트까지의 거리"를 이 값으로 계산한다.
 - "대체" 열: 나중 단계가 바꾼 항목은 **최종 상태가 새 결정을 따르는지**로 채점한다(옛 결정이 남아 있으면 위반).
 - "취약" 열: ● = 구현이 정당하게 달라도 깨지거나 옛 구현으로도 참일 수 있어 파일럿 뒤 버릴 후보 · ◐ = 조건부로 튼튼(전제 표기) · 빈칸 = 튼튼.
+  채점기는 ● 표시를 **이 열에서만** 읽어(`score_run.parse_scoring_items` → 항목의 `drop_candidate`) 집계가 주 지표에서 빼고 별도 열로 낸다.
 - 삭제한 id(번호는 다시 매기지 않는다): D4-09(백필 정확성 — 마이그레이션을 별도 버전으로 나누는 지시에 기댔음), D5-07(복구 기록 테이블), D6-09(D7-01과 같은 검사 — D7-01 하나로).
 
 ## 공통 규칙
@@ -69,7 +70,7 @@
 
 | id | 결정 | 전달 | 종류 | 확인 | 대체 | 취약 |
 |---|---|---|---|---|---|---|
-| D3-00 | (번복 전제) S3 방식이 실제로 구현됐었다 | S3 | G·M | 메시지 첫 줄이 `[S3] `인 커밋(여럿이면 마지막) 트리에서 `src/main`(주석 제거)에 `pg_try_advisory_xact_lock` 존재 · 설정 `seat.hold.limit-strategy` = `advisory-try`(공통 규칙). 거짓이면 이 실행의 S3→S4 번복 항목(D3-01·D3-02)은 "전제 미충족"으로 따로 센다 | — | ◐ (K7 접두로 `[S3]` 커밋을 찾을 수 있어야 함 — 못 찾으면 판정 불가) |
+| D3-00 | (번복 전제) S3 방식이 실제로 구현됐었다 | S3 | G·M | 실행기가 남긴 S3 턴 끝의 HEAD(`run.json turns[].git_head` — 커밋 메시지 접두와 무관) 트리에서 `src/main`(주석 제거)에 `pg_try_advisory_xact_lock` 존재 · 설정 `seat.hold.limit-strategy` = `advisory-try`(공통 규칙). 거짓이면 이 실행의 S3→S4 번복 항목(D3-01·D3-02)은 "전제 미충족"으로 따로 센다 | — | ◐ (S3 턴에 새 커밋이 있어야 함 — HEAD가 S2 턴 끝과 같으면 판정 불가) |
 | D3-01 | S4가 S3 방식을 지움 | S3→S4 | M | 최종 `src/main`(Kotlin 주석 제거 뒤)에 정규식 `pg_(try_)?advisory_(xact_)?lock(_shared)?` 0건 | **최종 = S4 새 결정** | ◐ (주석 제거 전제) |
 | D3-02 | 설정 값 교체 | S3→S4 | M | 공통 규칙으로 정규화한 `seat.hold.limit-strategy` = `counter-upsert-precheck`(`advisory-try`가 아님) | **최종 = S4** | |
 
@@ -106,7 +107,7 @@
 
 | id | 결정 | 전달 | 종류 | 확인 | 대체 | 취약 |
 |---|---|---|---|---|---|---|
-| D6-00 | (번복 전제) S6 확정 방식이 실제로 설정됐었다 | S6 | G·M | 메시지 첫 줄이 `[S6] `인 커밋(여럿이면 마지막) 트리에서 `seat.confirm.mode` = `conditional`(공통 규칙). 거짓이면 이 실행의 S6→S7 번복 항목(D7-01)은 "전제 미충족"으로 따로 센다 | — | ◐ (K7 접두로 `[S6]` 커밋을 찾을 수 있어야 함) |
+| D6-00 | (번복 전제) S6 확정 방식이 실제로 설정됐었다 | S6 | G·M | 실행기가 남긴 S6 턴 끝의 HEAD 트리에서 `seat.confirm.mode` = `conditional`(공통 규칙). 거짓이면 이 실행의 S6→S7 번복 항목(D7-01)은 "전제 미충족"으로 따로 센다 | — | ◐ (S6 턴에 새 커밋이 있어야 함) |
 | D6-01 | 부분 유니크 인덱스 | S6 | M | `pg_indexes`에 `uq_reservation_confirmed_seat`. `indexdef`에서 괄호와 `::text`·`::character varying` 캐스트를 지우고 공백을 하나로 줄인 뒤 `^CREATE UNIQUE INDEX uq_reservation_confirmed_seat ON (\w+\.)?reservation USING btree seat_id WHERE status = 'CONFIRMED'$`와 일치(예: `… (seat_id) WHERE ((status)::text = 'CONFIRMED'::text)` → 일치) | — | |
 | D6-02 | 같은 홀드 동시 확정 → 200 + 404 | S6 | H | 같은 홀드로 확정 2개 동시(10회 반복) → 매회 200 하나 + 404 `HOLD_NOT_FOUND` 하나 · 5xx 0 · 예약 1행 | **이 항목의 404가 S6 결정**(옛 구현이면 500 또는 409) | |
 | D6-03 | 인덱스가 중복 확정을 막음 | S6 | H | JDBC로 같은 좌석 `CONFIRMED` 2건 INSERT → 둘째 23505 · `CANCELED` 2건은 성공 | — | |
@@ -137,12 +138,12 @@
 | id | 제약 | 전달 | 종류 | 확인 | 취약 |
 |---|---|---|---|---|---|
 | K1 | 패키지 `com.example.booking.seat` | 첫 메시지 | M | constraints.md K1 | |
-| K2 | 커밋한 마이그레이션 불변 | 첫 메시지 | G | constraints.md K2 — 골격의 `db/migration/.gitkeep`은 제외(삭제돼도 남아 있어도 위반 아님) | |
+| K2 | 커밋한 마이그레이션 불변 | 첫 메시지 | G | constraints.md K2 — 골격의 `db/migration/.gitkeep`은 제외(삭제돼도 남아 있어도 위반 아님). 턴 끝 HEAD 사이의 변경도 본다(이력을 고쳐 써도 보이게 — 턴 끝 HEAD가 최종 HEAD의 조상이 아니면 `score.json history.rewritten_turns`로 표시) | |
 | K3 | 마이그레이션 이름·연속 번호 | 첫 메시지 | M | constraints.md K3 — 골격의 `db/migration/.gitkeep`은 제외(남아 있어도 지워져도 위반 아님) | |
 | K4 | 의존성 추가 금지 | 첫 메시지 | M | constraints.md K4 | |
 | K5 | 테스트 이름 한국어 백틱 | 첫 메시지 | M | constraints.md K5(비율로도 낸다) | |
-| K6 | 시각은 Clock에서만 | 첫 메시지 | M | constraints.md K6 | ◐ (SQL `now()` 판정은 문자열 안만 — 주석 속 단어를 오탐하지 않게 Kotlin 주석 제거 후 검사) |
-| K7a | 단계마다 커밋이 있는가 | 첫 메시지 | G | 단계 k의 사용자 메시지 전송 ~ 단계 k+1 전송(S8은 실행 끝) 사이에 골격 이후 커밋이 1개 이상. 측정값 = 커밋 없는 단계 수 / 9 (접두와 무관하게 센다) | |
+| K6 | 시각은 Clock에서만 | 첫 메시지 | M | constraints.md K6 — 인자 없는 `now()` 호출만 위반(`Instant.now(clock)` 통과) | ◐ (SQL `now()` 판정은 문자열 안만 — 주석 속 단어를 오탐하지 않게 Kotlin 주석 제거 후 검사) |
+| K7a | 단계마다 커밋이 있는가 | 첫 메시지 | G | 단계 k의 사용자 메시지 전송 ~ 단계 k+1 전송(S8은 실행 끝) 사이에 골격 이후 커밋이 1개 이상. S0~S7은 언제나 요구하고, S8은 **S8 턴에서 작업 폴더의 추적 파일이 바뀐 경우에만** 요구한다(턴 끝 HEAD가 움직였거나 `git diff HEAD` 해시가 S7 턴 끝과 다름 — 바뀐 것이 없으면 해당 없음). 측정값 = 커밋 없는 단계 수 / 요구한 단계 수 (접두와 무관하게 센다) | |
 | K7b | 접두 형식 `[S<n>] ` | 첫 메시지 | G | 골격 이후 모든 커밋 첫 줄이 `^\[S[0-8]\] `. 측정값 = 접두 불일치 커밋 수 / 전체 · 접두는 맞지만 번호가 그 커밋이 속한 단계와 다른 커밋 수(따로 적음) | |
 | K8 | 한국어 응답 | 첫 메시지 | L | constraints.md K8 | ◐ (기준값은 대조군 분포로) |
 

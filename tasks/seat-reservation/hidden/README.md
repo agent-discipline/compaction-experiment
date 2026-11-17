@@ -25,6 +25,8 @@ docker run --rm --user <uid>:<gid> --network <채점 네트워크> --mount type=
   cx-agent:2.1.326 ./gradlew test --tests 'hidden.contract.*' --rerun --no-daemon --console=plain
 ```
 
+- 숨긴 테스트를 덮기 전에 같은 채점 컨테이너에서 메인 코드만 먼저 컴파일한다(`./gradlew classes`, `experiment.json` `hidden.main_build_command`).
+  메인이 컴파일되지 않으면 H 항목은 전부 **실패**(`main_build_failed`)이고, 메인은 되는데 숨긴 테스트만 컴파일되지 않을 때(앱 클래스 이동 등)만 "채점 불가"다.
 - 에이전트 테스트를 지우는 이유: 에이전트의 테스트 코드가 컴파일되지 않으면 숨긴 테스트도 못 돌고, `src/test/resources/application.yml`이 있으면 메인 설정을 가린다. 에이전트 테스트는 채점하지 않는다.
 - `build.gradle.kts`는 건드리지 않는다(골격 의존성만으로 컴파일됨 — Testcontainers 없음). 필요한 것: 에이전트 이미지(Gradle 캐시 포함)와 `postgres:16` 사이드카. 숨긴 테스트는 Docker를 쓰지 않는다.
 - 종료 코드는 실패 항목이 있으면 1이다. 판정은 종료 코드가 아니라 XML로 한다.
