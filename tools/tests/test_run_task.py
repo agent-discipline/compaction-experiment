@@ -210,15 +210,28 @@ class TokenTest(unittest.TestCase):
 
 class ValidityTest(unittest.TestCase):
     def test_invalid_reasons(self):
-        b = [{"turn": 1}]
-        self.assertEqual(rt.invalid_reasons("control", b, [], False, []), ["control_has_compaction"])
+        b, log = [{"turn": 1}], [{"event": "PreCompact"}, {"event": "PostCompact"}]
+        self.assertEqual(rt.invalid_reasons("control", b, [], False, [], log), ["control_has_compaction"])
         self.assertEqual(rt.invalid_reasons("compact", [], [], False, []), ["no_compaction"])
-        self.assertEqual(rt.invalid_reasons("compact", b, [], False, []), [])
-        self.assertEqual(rt.invalid_reasons("outbox", b, [], False, []), ["outbox_injection_missing"])
-        self.assertEqual(rt.invalid_reasons("outbox", b, [], False, [{}]), [])
-        self.assertIn("settings_tampered", rt.invalid_reasons("compact", b, [], True, []))
-        self.assertEqual(rt.invalid_reasons("compact", b, [{"hit": "tool:WebFetch"}], False, []),
+        self.assertEqual(rt.invalid_reasons("compact", b, [], False, [], log), [])
+        self.assertEqual(rt.invalid_reasons("outbox", b, [], False, [], log), ["outbox_injection_count_mismatch"])
+        self.assertEqual(rt.invalid_reasons("outbox", b, [], False, [{}], log), [])
+        self.assertEqual(rt.invalid_reasons("outbox", b, [], False, [{}, {}], log), ["outbox_injection_count_mismatch"])
+        self.assertIn("settings_tampered", rt.invalid_reasons("compact", b, [], True, [], log))
+        self.assertEqual(rt.invalid_reasons("compact", b, [{"hit": "tool:WebFetch"}], False, [], log),
                          ["audit:tool:WebFetch"])
+
+    def test_invalid_reasons_added_checks(self):
+        b, log = [{"turn": 1}], [{"event": "PreCompact"}, {"event": "PostCompact"}]
+        self.assertEqual(rt.invalid_reasons("compact", b, [], False, [], log[:1]), ["compact_hook_count_mismatch"])
+        self.assertEqual(rt.invalid_reasons("control", [], [], False, [], log), ["compact_hook_count_mismatch"])
+        self.assertEqual(rt.invalid_reasons("compact", b, [], False, [], log, transcript_unparsed=True),
+                         ["transcript_unparsed"])
+        self.assertEqual(rt.invalid_reasons("outbox", b, [], False, [{}], log, [{"hook": "capture"}]),
+                         ["outbox_capture_error"])
+        self.assertEqual(rt.invalid_reasons("compact", b, [], False, [], log, [{"hook": "capture"}]), [])
+        self.assertEqual(rt.invalid_reasons("compact", b, [], False, [], log, collection_reads=[{}]),
+                         ["collection_data_read"])
 
     def test_audit_paths_and_web(self):
         cfg = rt.load_config()
@@ -226,11 +239,58 @@ class ValidityTest(unittest.TestCase):
         entries = [assistant(tools=[("Bash", {"command": f"cat {home}/project/x/README.md"}),
                                     ("Read", {"file_path": "/work/src/a.kt"}),
                                     ("Bash", {"command": "cat /cx/hookdata/outbox/s.jsonl"}),
+                                    ("Bash", {"command": "cat /cx/hooks/inject.py"}),
                                     ("Grep", {"pattern": "x", "path": "/opt/seat-reservation-lab"}),
                                     ("WebSearch", {"query": "q"}), ("Task", {})])]
         hits = {h["hit"] for h in rt.audit(entries, cfg)}
-        self.assertEqual(hits, {f"{home}/project", "/cx/hookdata", "seat-reservation-lab", "tool:WebSearch"})
+        # 훅 데이터(아웃박스)는 막지 않고 재독 공변량으로 센다(RereadTest) — 감사 대상 아님
+        self.assertEqual(hits, {f"{home}/project", "/cx/hooks", "seat-reservation-lab", "tool:WebSearch"})
         self.assertEqual(rt.unexpected_tools(entries, cfg), ["Task"])
+
+
+SID = "0b6f7c1e-1111-2222-3333-444455556666"
+
+
+def kinds(tools, start=0, end=None):
+    hits = rt.reread_hits([assistant(tools=tools)], start, end, SID)
+    return {k: [h["match"] for h in v] for k, v in hits.items() if v}
+
+
+class RereadTest(unittest.TestCase):
+    def test_session_log_paths(self):
+        for inp in ({"command": "ls ~/.claude/projects"}, {"file_path": f"/home/agent/.claude/projects/-work/{SID}.jsonl"},
+                    {"command": "find / -name '*.jsonl' 2>/dev/null | head"}, {"command": "cat $CLAUDE_CONFIG_DIR/x"},
+                    {"pattern": f"{SID}"}):
+            self.assertIn("session_log", kinds([("Bash", inp)]), inp)
+
+    def test_tool_results_read_is_not_reread(self):
+        p = f"/home/agent/.claude/projects/-work/{SID}/tool-results/toolu_01.txt"
+        self.assertEqual(kinds([("Read", {"file_path": p})]), {})
+
+    def test_outbox_and_root_search(self):
+        k = kinds([("Bash", {"command": "cd /cx && cat hookdata/outbox/*"})])
+        self.assertEqual(list(k), ["outbox_data"])
+        self.assertIn("root_search", kinds([("Bash", {"command": "cd /work\ngrep -rn 'Clock' / 2>/dev/null"})]))
+        self.assertIn("root_search", kinds([("Grep", {"pattern": "x", "path": "/"})]))
+        self.assertIn("root_search", kinds([("Bash", {"command": "find /cx -type f"})]))
+        self.assertEqual(kinds([("Bash", {"command": "find src/main -name '*.kt'"}),
+                                ("Grep", {"pattern": "x", "path": "/work/src"})]), {})
+
+    def test_memo_files(self):
+        for inp in ({"file_path": "/work/CLAUDE.md", "content": "x"}, {"file_path": "/work/docs/decisions.md"},
+                    {"command": "cat > .claude/notes.txt <<EOF\nx\nEOF"}, {"file_path": "/work/docs/작업-규칙.md"},
+                    {"command": "echo x >> NOTES.md"}):
+            self.assertEqual(list(kinds([("Write", inp)])), ["memo"], inp)
+        for inp in ({"file_path": "/work/README.md"}, {"file_path": "/work/.claude/settings.json"},
+                    {"file_path": "/work/src/main/kotlin/com/example/booking/seat/HoldRules.kt"}):
+            self.assertEqual(kinds([("Read", inp)]), {}, inp)
+
+    def test_range_and_collection_data(self):
+        entries = [assistant(tools=[("Bash", {"command": "cat /cx/hookdata/compact-log.jsonl"})]),
+                   assistant(tools=[("Bash", {"command": "ls"})])]
+        self.assertEqual(rt.reread_hits(entries, 1, 2, SID)["outbox_data"], [])
+        self.assertEqual(len(rt.reread_hits(entries, 0, 1, SID)["outbox_data"]), 1)
+        self.assertEqual([h["match"] for h in rt.collection_data_reads(entries)], ["compact-log"])
 
 
 class PrepareTest(unittest.TestCase):
@@ -290,7 +350,12 @@ class RunLoopTest(unittest.TestCase):
         self.assertEqual(run["turns"][2]["container"]["exit_code"], 0)
         self.assertEqual(run["messages_sha256"], [t["message_sha256"] for t in run["turns"]])
         self.assertEqual(run["totals"]["tokens"], 300)
-        self.assertEqual(run["secret_scan"]["hits"], {"work": [], "claude-home": [], "record": []})
+        self.assertEqual(run["secret_scan"]["hits"], {"work": [], "scratch": [], "record": []})
+        self.assertTrue(run["measurement_complete"])
+        self.assertEqual(run["totals"]["cost_usd"], 0.03)
+        self.assertEqual(run["messages_sha256_all"], rt.messages_digest(run["messages_sha256"]))
+        self.assertEqual([len(t["tracked_diff_sha256"]) for t in run["turns"]], [64] * 3)
+        self.assertEqual([t["reread"] for t in run["turns"]], [{k: [] for k in rt.REREAD}] * 3)
         self.assertEqual(run["cleanup_errors"], [])
         self.assertEqual(docker_leftovers(base / "docker"), {})
         self.assertFalse((base / "root").exists())
@@ -314,6 +379,7 @@ class RunLoopTest(unittest.TestCase):
     def test_turn_failure_aborts_keeps_record_and_cleans_up(self):
         rc, run, rdir, base = self.run_fake("compact", FAKE_FAIL_TURN="1")
         self.assertEqual((rc, run["status"]), (2, "aborted"))
+        self.assertFalse(run["measurement_complete"])
         self.assertIn("turn 1", run["abort_reason"])
         self.assertEqual(run["turns"][1]["container"]["exit_code"], 1)
         self.assertEqual(len(run["turns"]), 2)
@@ -340,8 +406,30 @@ class RunLoopTest(unittest.TestCase):
             self.assertEqual(tf.extractfile("work/leak.txt").read(), b"token=<REDACTED-SECRET>\n")
         self.assertNotIn(TOKEN, (rdir / "run.json").read_text())
 
+    def test_unparsed_transcript_line_invalidates(self):
+        rc, run, *_ = self.run_fake("compact", FAKE_BAD_LINE_TURN="2")
+        self.assertIn("transcript_unparsed", run["invalid_reasons"])
+        self.assertEqual((run["transcript_unparsed_turns"], run["turns"][2]["transcript_bad_lines"]), ([2], 1))
+
+    def test_collection_data_read_invalidates_and_outbox_read_is_covariate(self):
+        rc, run, *_ = self.run_fake("compact", FAKE_TOOL_CMD="cat /cx/hookdata/compact-log.jsonl")
+        self.assertIn("collection_data_read", run["invalid_reasons"])
+        self.assertEqual([len(t["reread"]["outbox_data"]) for t in run["turns"]], [1, 1, 1])
+        rc, run, *_ = self.run_fake("compact", FAKE_TOOL_CMD="cat /cx/hookdata/outbox/*.jsonl")
+        self.assertFalse(run["invalid"], run["invalid_reasons"])
+        self.assertEqual(len(run["turns"][1]["reread"]["outbox_data"]), 1)
+
+    def test_keep_root_scans_scratch_session_copies(self):
+        rc, run, rdir, base = self.run_fake("compact", keep_root=True, FAKE_TOOL_CMD=f"echo {TOKEN}")
+        self.assertIn("secret_leak", run["failure_reasons"])
+        self.assertTrue(run["measurement_complete"])  # 측정은 끝났다 — 운영 문제는 failure_reasons에 따로
+        self.assertTrue([h for h in run["secret_scan"]["hits"]["scratch"] if h.startswith("projects/")])
+        left = [p for p in (base / "root" / "scratch").rglob("*") if p.is_file() and TOKEN in p.read_text(errors="replace")]
+        self.assertEqual(left, [])
+
     def test_cleanup_failure_fails_run(self):
         rc, run, rdir, base = self.run_fake("compact", FAKE_DOCKER_FAIL_RM="-net")
+        self.assertTrue(run["measurement_complete"])
         self.assertEqual(run["status"], "failed")
         self.assertIn("docker_cleanup_failed", run["failure_reasons"])
         self.assertTrue(any("-net" in e for e in run["cleanup_errors"]))

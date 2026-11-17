@@ -6,6 +6,7 @@
   UserPromptSubmit(매 턴), 그리고 CLAUDE_CODE_AUTO_COMPACT_WINDOW=100000이고 두 번째 턴부터는 프롬프트 앞에서 컴팩트
   (PreCompact → 경계·요약 줄 → PostCompact → SessionStart(compact)).
 - FAKE_FAIL_TURN=k 이면 k번째 턴(0부터)에서 exit 1. FAKE_LEAK_TURN=k 이면 그 턴에 환경의 토큰 값을 작업 폴더 파일에 쓴다.
+  FAKE_BAD_LINE_TURN=k 이면 그 턴 끝에 JSON이 아닌 줄을 덧붙인다. FAKE_TOOL_CMD = 어시스턴트 Bash 도구 입력.
 """
 import json
 import os
@@ -71,6 +72,8 @@ rows.append({"type": "assistant", "message": {"id": f"m{turn}", "role": "assista
 with open(tp, "a", encoding="utf-8") as f:
     for r in rows:
         f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    if os.environ.get("FAKE_BAD_LINE_TURN") == str(turn):  # 읽지 못하는 줄(마지막 턴에만 쓸 것 — 다음 턴이 못 센다)
+        f.write("{not json\n")
 print(json.dumps({"type": "result", "subtype": "success", "is_error": False, "session_id": sid, "num_turns": 1,
                   "total_cost_usd": 0.01, "usage": {"input_tokens": 10, "output_tokens": 5,
                                                     "iterations": [{"input_tokens": 10, "cache_read_input_tokens": 90}]},

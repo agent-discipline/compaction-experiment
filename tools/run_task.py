@@ -66,6 +66,14 @@ def sha256_bytes(b):
     return hashlib.sha256(b).hexdigest()
 
 
+def messages_digest(hashes):
+    """메시지 전체 해시 = 메시지별 sha256(16진 문자열)을 차례로 이은 것의 sha256."""
+    h = hashlib.sha256()
+    for x in hashes:
+        h.update(x.encode())
+    return h.hexdigest()
+
+
 def now_iso():
     return datetime.datetime.now(datetime.timezone.utc).isoformat()
 
@@ -365,12 +373,57 @@ def audit(entries, cfg):
     return out
 
 
+# 원문 재독 경로(공변량 — 막지 않고 기록한다). 도구 입력 문자열에 대한 패턴 검사라 우회·오탐이 있다(README).
+TOOL_RESULTS = re.compile(r"[^\s\"']*/tool-results/[^\s\"']*")  # CLI가 큰 도구 출력을 두는 곳 — 정상 경로라 지운 뒤 본다
+MEMO_NAME = (r"(?:CLAUDE|AGENTS)\.md|[^\s/'\"]*(?:notes?|decisions?|memo|rules?|constraints?|conventions?|guidelines?"
+             r"|규칙|결정|메모|제약|노트|지침)[^\s/'\"]*\.(?:md|txt|markdown|rst)")
+REREAD = {
+    # (가) 세션 기록 폴더: ~/.claude(projects 등), *.jsonl 전역 탐색, 이 세션 id
+    "session_log": r"\.claude/projects|(?:~|/home/agent|\$\{?HOME\}?)/\.claude\b|CLAUDE_CONFIG_DIR|\*[^\s\"']*\.jsonl",
+    # (나) 아웃박스 데이터(훅 데이터 볼륨)
+    "outbox_data": r"hookdata|outbox/[^\s\"']*\.jsonl|inject-log",
+    # (다) 루트·HOME·/cx 전역 탐색
+    "root_search": r"(?:^|[\s;&|(])(?:find|grep|egrep|rg|ls|du|tree|fd|locate)\b[^\n;&|]*?"
+                   r"\s(?:/|/cx|/home|/home/agent|~|\$\{?HOME\}?)/?(?=[\s;&|)]|$)",
+    # (라) 작업 폴더의 자기 메모: CLAUDE.md·AGENTS.md, 작업 폴더 .claude/ 아래 새 파일, 이름에 notes·decisions·규칙 등이 든 문서
+    "memo": r"(?:^|[\s'\"=>]|/work/|\./)\.claude/(?!settings\.json)[^\s'\"]+|(?:^|[\s/'\"=>])(?i:" + MEMO_NAME + ")",
+}
+ROOT_PATHS = ("/", "/cx", "/home", "/home/agent", "~")
+COLLECTION_DATA = re.compile(r"compact-log|hook-errors")  # 수집 전용(요약문·프롬프트 앞부분이 든다) — 접근하면 무효
+
+
+def tool_text(inp):
+    """도구 입력의 문자열 값들을 줄로 이은 것(JSON 이스케이프 없이 — 명령 속 줄바꿈이 공백으로 보이게)."""
+    return "\n".join(v if isinstance(v, str) else json.dumps(v, ensure_ascii=False) for v in inp.values())
+
+
+def reread_hits(entries, start, end, session_id):
+    """[start, end) 줄의 도구 입력에서 원문 재독 경로(가~라). {종류: [{line, tool, match}]}"""
+    pats = {k: re.compile(v + (f"|{re.escape(session_id)}" if k == "session_log" else "")) for k, v in REREAD.items()}
+    out = {k: [] for k in REREAD}
+    for line, name, inp in transcript.tool_uses(entries, start, end):
+        text = TOOL_RESULTS.sub(" ", tool_text(inp))
+        for kind, pat in pats.items():
+            m = pat.search(text)
+            if m:
+                out[kind].append({"line": line, "tool": name, "match": m.group(0).strip()[:120]})
+        if name in ("Grep", "Glob") and str(inp.get("path") or "").rstrip("/") in [x.rstrip("/") for x in ROOT_PATHS]:
+            out["root_search"].append({"line": line, "tool": name, "match": f"path={inp.get('path')}"})
+    return out
+
+
+def collection_data_reads(entries):
+    return [{"line": line, "tool": name, "match": m.group(0)} for line, name, inp in transcript.tool_uses(entries)
+            for m in [COLLECTION_DATA.search(json.dumps(inp, ensure_ascii=False))] if m]
+
+
 def unexpected_tools(entries, cfg):
     allowed = set(cfg["allowed_tools"]) | set(cfg["forbidden_tools"])
     return sorted({name for _, name, _ in transcript.tool_uses(entries) if name not in allowed})
 
 
-def invalid_reasons(condition, bounds, audit_hits, settings_tampered, injections):
+def invalid_reasons(condition, bounds, audit_hits, settings_tampered, injections, compact_log=(), hook_errors=(),
+                    transcript_unparsed=False, collection_reads=()):
     out = []
     if condition == "control" and bounds:
         out.append("control_has_compaction")
@@ -379,8 +432,19 @@ def invalid_reasons(condition, bounds, audit_hits, settings_tampered, injections
     out += sorted({f"audit:{h['hit']}" for h in audit_hits})
     if settings_tampered:
         out.append("settings_tampered")
-    if condition == "outbox" and len(injections) < len(bounds):
-        out.append("outbox_injection_missing")
+    if transcript_unparsed:  # 읽지 못한 줄이 경계였을 수 있다 → 경계 수를 믿을 수 없다
+        out.append("transcript_unparsed")
+    for event in ("PreCompact", "PostCompact"):  # 수집 훅이 본 컴팩트 횟수 = 세션 기록의 경계 수
+        if sum(r.get("event") == event for r in compact_log) != len(bounds):
+            out.append("compact_hook_count_mismatch")
+            break
+    if condition == "outbox":
+        if len(injections) != len(bounds):
+            out.append("outbox_injection_count_mismatch")
+        if any(e.get("hook") == "capture" for e in hook_errors):
+            out.append("outbox_capture_error")
+    if collection_reads:
+        out.append("collection_data_read")
     return out
 
 
@@ -402,6 +466,12 @@ def context_tokens_last(res):
         return None
     last = it[-1]
     return sum(last.get(k) or 0 for k in ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens"))
+
+
+def tracked_diff_sha256(work):
+    """추적 파일의 작업 트리 변경(`git diff HEAD --binary`)의 sha256 — 턴 사이에 추적 파일이 바뀌었는지 비교용. 실패면 None."""
+    p = subprocess.run(["git", "-c", f"safe.directory={work}", "diff", "HEAD", "--binary"], cwd=work, capture_output=True)
+    return sha256_bytes(p.stdout) if p.returncode == 0 else None
 
 
 def run_turn(docker, name, msg, timeout, out_path, err_path):
@@ -502,12 +572,9 @@ def dry_run(cfg, a):
     print("턴 0: docker " + " ".join(first))
     print(f"      docker start --attach --interactive {turn_container(names, 0)} < 메시지 0")
     print("턴 k: 같은 create 인자(이름 -tNN), 명령만:", " ".join(later), "< 메시지 k")
-    allm = hashlib.sha256()
     for k, m in enumerate(msgs):
-        b = m.encode("utf-8")
-        allm.update(sha256_bytes(b).encode())
-        print(f"메시지 {k} ({cfg['steps'][k]}): {len(m)}자 sha256={sha256_bytes(b)}")
-    print(f"메시지 전체 sha256={allm.hexdigest()}")
+        print(f"메시지 {k} ({cfg['steps'][k]}): {len(m)}자 sha256={sha256_bytes(m.encode())}")
+    print(f"메시지 전체 sha256={messages_digest([sha256_bytes(m.encode()) for m in msgs])}")
     if a.condition == "outbox":
         oc = (ROOT / "tools" / "outbox" / "config.json").read_bytes()
         print(f"outbox config sha256={sha256_bytes(oc)}: {oc.decode().strip()}")
@@ -660,6 +727,7 @@ def run(cfg, a):
     env = container_env(cfg, a.condition)
     state = {
         "run_id": run_id, "model": a.model, "condition": a.condition, "rep": a.rep, "status": "running",
+        "measurement_complete": False,
         "abort_reason": None, "failure_reasons": [], "invalid": None, "invalid_reasons": [], "warnings": [],
         "started_at": now_iso(), "ended_at": None, "cli_version": None, "session_id": session_id,
         "image": cfg["image"], "image_id": image["id"], "image_labels": image["labels"],
@@ -670,11 +738,12 @@ def run(cfg, a):
             k: cfg["container"][k] for k in ("cpus", "memory", "pids_limit")},
         "outbox_config": None, "outbox_config_sha256": None,
         "messages_sha256": [sha256_bytes(m.encode()) for m in msgs],
+        "messages_sha256_all": messages_digest([sha256_bytes(m.encode()) for m in msgs]),
         "limits": {"turn_timeout": a.turn_timeout, "max_tokens": a.max_tokens, "max_wall": a.max_wall,
                    "max_budget_usd": a.max_budget_usd},
         "turns": [], "boundaries": [], "totals": {"tokens": None, "cost_usd": None, "wall_s": 0.0},
         "audit": [], "unexpected_tools": [], "injections": [], "compact_log": [], "hook_errors": [],
-        "cleanup_errors": [], "secret_scan": None,
+        "collection_data_reads": [], "transcript_unparsed_turns": [], "cleanup_errors": [], "secret_scan": None,
     }
     if a.condition == "outbox":
         oc = (root / "hooks" / "outbox-config.json").read_bytes()
@@ -683,7 +752,7 @@ def run(cfg, a):
     write_json(rdir / "run.json", state)
     created, entries, tampered = [], [], False
     line_ends, prev_size, prev_hash = [], 0, None
-    t_start, tokens_total, cost_total, tokens_known = time.time(), 0, 0.0, True
+    t_start, tokens_total, cost_total, tokens_known, cost_known = time.time(), 0, 0.0, True, True
     try:
         setup_stack(docker, cfg, names, created)
         v = docker.run("run", "--rm", "--name", f"{names['tag']}-version", "--label", LABEL, "--network", "none",
@@ -719,7 +788,7 @@ def run(cfg, a):
                 res = json.loads((tdir / "result.json").read_text(encoding="utf-8"))
             except (ValueError, OSError):
                 res = None
-            n_lines = None
+            n_lines, bad = None, 0
             if tpath:
                 raw = tpath.read_bytes()
                 if prev_hash and sha256_bytes(raw[:prev_size]) != prev_hash:
@@ -730,6 +799,7 @@ def run(cfg, a):
                 n_lines = len(entries)
                 if bad:
                     state["warnings"].append(f"turn {k}: 세션 기록 파싱 실패 줄 {bad}")
+                    state["transcript_unparsed_turns"].append(k)
             else:
                 state["warnings"].append(f"turn {k}: 세션 기록 파일을 찾지 못함")
             line_ends.append(n_lines if n_lines is not None else (line_ends[-1] if line_ends else 0))
@@ -739,7 +809,9 @@ def run(cfg, a):
             else:
                 tokens_total += tok
             cost = res.get("total_cost_usd") if res else None
-            if cost is not None:
+            if cost is None:
+                cost_known = False
+            else:
                 cost_total += cost
             head = git(["-c", f"safe.directory={work}", "rev-parse", "HEAD"], work, check=False).stdout.strip() or None
             cur_settings = (work / ".claude" / "settings.json")
@@ -755,15 +827,22 @@ def run(cfg, a):
                     "num_turns": res.get("num_turns") if res else None,
                     "tokens": tok, "cost_usd": cost, "context_tokens_last": context_tokens_last(res) if res else None,
                     "usage": res.get("usage") if res else None, "model_usage": res.get("modelUsage") if res else None,
-                    "git_head": head, "transcript_lines": n_lines, "claude_dir_files": extra,
+                    "git_head": head, "tracked_diff_sha256": tracked_diff_sha256(work),
+                    "transcript_lines": n_lines, "transcript_bad_lines": bad, "claude_dir_files": extra,
+                    "reread": reread_hits(entries, line_ends[-2] if len(line_ends) > 1 else 0, line_ends[-1],
+                                          session_id),
                     "message_sha256": sha256_bytes(msg.encode())}
+            for f in extra:  # 작업 폴더 .claude/ 아래 settings.json 밖의 파일 = 자기 메모(파일 시스템으로도 확인)
+                if f != "settings.json":
+                    turn["reread"]["memo"].append({"line": None, "tool": None, "match": f".claude/{f}"})
             if res and res.get("session_id") not in (None, session_id):
                 state["warnings"].append(f"turn {k}: 결과의 session_id가 다름 ({res.get('session_id')})")
             state["turns"].append(turn)
             write_json(tdir / "meta.json", turn)
             state["boundaries"] = transcript.locate_boundaries(entries, line_ends, msgs)
             write_json(tdir / "boundaries.json", state["boundaries"])
-            state["totals"] = {"tokens": tokens_total if tokens_known else None, "cost_usd": round(cost_total, 4),
+            state["totals"] = {"tokens": tokens_total if tokens_known else None,
+                               "cost_usd": round(cost_total, 4) if cost_known else None,
                                "wall_s": round(time.time() - t_start, 1)}
             failed = None
             if timed_out:
@@ -785,6 +864,7 @@ def run(cfg, a):
                 break
         else:
             state["status"] = "complete"
+            state["measurement_complete"] = True  # 모든 턴이 끝남(이 뒤의 운영 실패는 failure_reasons에 따로)
     except BaseException as e:  # 실행기 자체 오류·중단도 기록하고 다시 올린다
         state["status"], state["abort_reason"] = "aborted", f"runner_error: {e!r}"
         write_json(rdir / "run.json", state)
@@ -809,7 +889,8 @@ def finalize(docker, cfg, a, state, rdir, root, names, created, entries, tampere
         else:
             state["warnings"].append(f"finalize: 수집 컨테이너 생성 실패 {p.stderr.strip()[:200]}")
     try:
-        hits = {"work": scrub(work, token), "claude-home": scrub(scratch / "claude-home", token),
+        # scratch 전체(~/.claude 사본 + 턴마다 복사한 세션 기록 projects/) — --keep-root면 남으므로 함께 검사
+        hits = {"work": scrub(work, token), "scratch": scrub(scratch, token),
                 "record": scrub(rdir, token, skip_suffixes=(".tar.gz",))}
         state["secret_scan"] = {"hits": hits, "error": None}
     except Exception as e:  # 검사 자체 실패 = 범위를 모름 → 실패
@@ -826,7 +907,10 @@ def finalize(docker, cfg, a, state, rdir, root, names, created, entries, tampere
     state["hook_errors"] = read_jsonl(hd / "hook-errors.jsonl")
     state["audit"] = audit(entries, cfg)
     state["unexpected_tools"] = unexpected_tools(entries, cfg)
-    reasons = invalid_reasons(state["condition"], state["boundaries"], state["audit"], tampered, state["injections"])
+    state["collection_data_reads"] = collection_data_reads(entries)
+    reasons = invalid_reasons(state["condition"], state["boundaries"], state["audit"], tampered, state["injections"],
+                              state["compact_log"], state["hook_errors"], bool(state["transcript_unparsed_turns"]),
+                              state["collection_data_reads"])
     state["invalid_reasons"], state["invalid"] = reasons, bool(reasons)
     try:
         if work.is_dir():

@@ -45,8 +45,7 @@
     "backend-labs-commerce",
     "compaction-experiment",
     "agent-discipline",
-    "{hooks}",
-    "{hookdata}"
+    "{hooks}"
   ],
   "forbidden_tools": ["WebFetch", "WebSearch"],
   "hidden": {
