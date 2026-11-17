@@ -83,5 +83,69 @@ class OutboxTest(unittest.TestCase):
         self.assertEqual((row["event"], row["trigger"], row["compact_summary"]), ("PostCompact", "auto", "요약문"))
 
 
+    def test_real_config_injects_every_message_whole(self):
+        """기본 설정(N·L)이 과제의 사용자 메시지 전체를 자르지 않고 다시 넣는다(이 조건이 재는 것)."""
+        import run_task
+        cfg = json.loads((OUTBOX / "config.json").read_text(encoding="utf-8"))
+        msgs = run_task.build_messages(run_task.load_config())
+        self.assertLessEqual(len(msgs), cfg["recent_messages"])
+        self.assertLessEqual(max(len(m) for m in msgs), cfg["max_chars_per_message"])
+
+
+FAKE_CLAUDE_TOKENS = """#!/usr/bin/env python3
+import json, sys
+text = sys.stdin.read()
+model = sys.argv[sys.argv.index("--model") + 1]
+print(json.dumps({"usage": {"input_tokens": len(text), "iterations": [{"input_tokens": len(text)}]},
+                  "modelUsage": {model: {}}}))
+"""
+
+
+class CountInjectionTokensTest(unittest.TestCase):
+    """주입문을 기록에서 다시 만들어(해시 확인) 가짜 claude로 잰다 — 유료 호출 없음."""
+
+    def setUp(self):
+        import count_injection_tokens as cit
+        import score_run
+        self.cit, self.sr = cit, score_run
+        self.run = Path(tempfile.mkdtemp())
+        data = self.run / "hookdata"
+        cfg = json.loads((OUTBOX / "config.json").read_text(encoding="utf-8"))
+        conf = self.run / "c.json"
+        conf.write_text(json.dumps(cfg), encoding="utf-8")
+        for m in ("첫 메시지 " * 50, "둘째", "셋째"):
+            run_hook("capture.py", [data], json.dumps({"session_id": "s-1", "prompt": m}))
+            run_hook("inject.py", [data, conf], json.dumps({"session_id": "s-1", "source": "compact"}))
+        inj = [json.loads(x) for x in (data / "inject-log.jsonl").read_text(encoding="utf-8").splitlines()]
+        (self.run / "run.json").write_text(json.dumps({
+            "condition": "outbox", "model": "claude-fake-1", "session_id": "s-1", "outbox_config": cfg,
+            "injections": inj}), encoding="utf-8")
+        self.bin = Path(tempfile.mkdtemp()) / "claude"
+        self.bin.write_text(FAKE_CLAUDE_TOKENS, encoding="utf-8")
+        self.bin.chmod(0o755)
+
+    def test_rebuilds_and_measures(self):
+        texts = [t for _, t in self.cit.contexts(self.run)]
+        self.assertEqual(len(texts), 3)
+        self.assertIn("[사용자 메시지 3 ·", texts[2])
+        self.assertIsNone(self.sr.injected_tokens(self.run, 3))  # 재기 전 = 미측정
+        r = self.cit.measure(self.run, "claude-fake-1", 2, tempfile.mkdtemp(), str(self.bin))
+        self.assertTrue(r["complete"])
+        self.assertEqual([x["tokens"] for x in r["injections"]], [len(t) + 2 for t in texts])  # 꼬리 앞 줄바꿈 2자
+        self.assertEqual(self.sr.injected_tokens(self.run, 3), sum(len(t) + 2 for t in texts))
+        self.assertIsNone(self.sr.injected_tokens(self.run, 4))  # 주입 수가 다르면 미측정
+
+    def test_hash_mismatch_stops_before_calls(self):
+        p = self.run / "hookdata" / "outbox" / "s-1.jsonl"
+        p.write_text(p.read_text(encoding="utf-8").replace("둘째", "바뀐 글"), encoding="utf-8")
+        with self.assertRaises(ValueError):
+            self.cit.measure(self.run, "claude-fake-1", 1, tempfile.mkdtemp(), str(self.bin))
+        self.assertFalse((self.run / "injection-tokens.json").exists())
+
+    def test_workdir_inside_repo_refused(self):
+        with self.assertRaises(SystemExit):
+            self.cit.measure(self.run, "claude-fake-1", 1, str(TOOLS), str(self.bin))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,5 @@
 {
   "recent_messages": 10,
-  "max_chars_per_message": 4000,
+  "max_chars_per_message": 8000,
   "rule": "아래는 이 세션에서 사용자가 보낸 최근 메시지 원문입니다. 대화 요약과 다르면 이 원문이 우선합니다."
 }

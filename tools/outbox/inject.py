@@ -5,7 +5,8 @@
 읽는 것: 입력(stdin JSON)의 `session_id`·`source`, capture.py가 쌓은 <데이터 폴더>/outbox/<session_id>.jsonl,
 config.json(recent_messages=N, max_chars_per_message=L, rule). 과제 파일은 읽지 않는다.
 출력: stdout에 {"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": ...}}.
-기록: <데이터 폴더>/inject-log.jsonl 한 줄(설정값·주입 글자 수). 실패 시 hook-errors.jsonl에 남기고
+기록: <데이터 폴더>/inject-log.jsonl 한 줄(설정값·주입 글자 수·주입문 sha256 — 토큰 수는
+count_injection_tokens.py가 사후에 주입문을 다시 만들어 잰다). 실패 시 hook-errors.jsonl에 남기고
 아무것도 주입하지 않은 채 0으로 끝낸다(세션을 죽이지 않음).
 """
 import datetime
@@ -66,7 +67,8 @@ def main():
             f.write(json.dumps({"ts": now(), "session_id": sid, "source": inp.get("source"),
                                 "recent_messages": n, "max_chars_per_message": limit,
                                 "rule_sha256": hashlib.sha256(rule.encode()).hexdigest(),
-                                "seqs": seqs, "clipped_messages": cut, "chars_injected": len(context)},
+                                "seqs": seqs, "clipped_messages": cut, "chars_injected": len(context),
+                                "context_sha256": hashlib.sha256(context.encode()).hexdigest()},
                                ensure_ascii=False) + "\n")
     except Exception:
         data.mkdir(parents=True, exist_ok=True)
