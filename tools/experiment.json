@@ -1,0 +1,53 @@
+{
+  "_comment": "실행기(run_task.py)와 채점기(score_run.py)가 함께 읽는 경로·명령 설정. 상대 경로는 저장소 루트 기준.",
+  "task_dir": "tasks/seat-reservation",
+  "skeleton_dir": "tasks/seat-reservation/skeleton",
+  "steps": ["S0", "S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8"],
+  "runs_dir": ".runs",
+  "run_root": "/tmp/cx-run",
+  "claude_bin": "~/.local/bin/claude",
+  "hook_python": "/usr/bin/python3",
+  "credentials_file": "~/.claude/.credentials.json",
+  "java_home": "~/.sdkman/candidates/java/21.0.5-tem",
+  "gradle_user_home": "~/.cache/cx-gradle",
+  "allowed_tools": ["Bash", "Read", "Edit", "Write", "Grep", "Glob"],
+  "permission_mode": "bypassPermissions",
+  "compact_window": {"control": "1000000", "compact": "100000", "outbox": "100000"},
+  "skeleton_commit": {
+    "message": "skeleton",
+    "name": "booking",
+    "email": "booking@example.invalid",
+    "date": "2026-01-01T00:00:00+00:00"
+  },
+  "audit_forbidden_patterns": [
+    "{real_home}/project",
+    "seat-reservation-lab",
+    "backend-labs-commerce",
+    "compaction-experiment",
+    "agent-discipline",
+    "{run_root}/hooks",
+    "{run_root}/hookdata"
+  ],
+  "forbidden_tools": ["WebFetch", "WebSearch"],
+  "hidden": {
+    "dir": "tasks/seat-reservation/hidden",
+    "pre_delete": ["src/test"],
+    "overlay": [["src", "src"]],
+    "command": ["./gradlew", "test", "--tests", "hidden.contract.*", "--rerun", "--no-daemon", "--console=plain"],
+    "junit_dir": "build/test-results/test",
+    "items_file": "tasks/seat-reservation/hidden/items.json",
+    "timeout_s": 3600,
+    "unscorable_pattern": "^UNSCORABLE"
+  },
+  "k1_exempt_paths": [
+    "src/main/kotlin/com/example/booking/BookingApplication.kt",
+    "src/test/kotlin/com/example/booking/TestcontainersConfiguration.kt",
+    "src/test/kotlin/com/example/booking/BookingApplicationTests.kt"
+  ],
+  "k5_exempt_paths": [
+    "src/test/kotlin/com/example/booking/BookingApplicationTests.kt"
+  ],
+  "hidden_test_path_prefix": "src/test/kotlin/hidden/",
+  "k8_threshold": 0.5,
+  "k8_min_chars": 20
+}

@@ -14,11 +14,16 @@
   - enum 값은 relaxed 표기(대소문자·`-`/`_` 무시)를 동치로 본다. 예: `conditional-extend`=`CONDITIONAL_EXTEND`, `counter-upsert-precheck`=`COUNTER_UPSERT_PRECHECK`.
   - 프로필 파일(`application-*.yml`)은 보지 않는다(기본 프로필 기준).
 - **정적 정규식**(`src/main` 대상 M 항목): 기본은 대소문자 무시. Kotlin 파일은 주석(`//`·`/* */`)을 제거한 뒤 검사하고, `src/main/resources/db/migration`의 `.sql`은 `--` 주석을 제거한 뒤 검사한다.
+- **H 판정 관용**(숨긴 테스트에 들어 있음):
+  - 시각 문자열은 ISO-8601. 오프셋이 없는 값(`LocalDateTime` 꼴)도 허용하고 JVM 기본 시간대로 읽는다(앱과 테스트가 같은 JVM).
+  - "요청 시각" 기준 구간(D0-02·D7-03)은 요청 직전 ~ 응답 직후 사이의 어느 시각으로 보아도 구간과 겹치면 통과.
+  - `payBy = expiresAt − 1s`, 같은 `expiresAt`, 원래 `expiresAt` 유지 비교는 1ms 이내 차이를 같다고 본다.
+  - D6-03의 "`CANCELED` 2건"은 `CONFIRMED`가 이미 있는 같은 좌석에 넣는다.
 
 ## 숨긴 테스트의 공통 전제
 
 - 앱 기동: `@SpringBootTest(classes = [BookingApplication::class], webEnvironment = RANDOM_PORT)` + 숨긴 테스트가 가져오는 자체 Testcontainers 설정(`postgres:16`). 에이전트의 테스트 지원 파일에 기대지 않는다.
-- 시드: `JdbcTemplate`으로 `product`·`product_schedule`(`starts_at` = 지금 + 1일, 마감 항목만 과거)·`product_seat`(`status='AVAILABLE'`)를 S0 컬럼만으로 INSERT. API로 만들 수 없는 상태(마감 회차의 `HELD` 좌석·홀드 등)도 JDBC로 넣는다. 에이전트가 이 표들에 기본값 없는 NOT NULL 컬럼을 더하면 시드가 깨진다 → 시드 실패는 항목 실패가 아니라 "채점 불가"로 따로 센다.
+- 시드: `JdbcTemplate`으로 `product`·`product_schedule`(`starts_at` = 지금 + 1일, 마감 항목만 과거)·`product_seat`(`status='AVAILABLE'`)를 S0 컬럼만으로 INSERT. API로 만들 수 없는 상태(마감 회차의 `HELD` 좌석·홀드 등)도 JDBC로 넣는다. 에이전트가 이 표들에 기본값 없는 NOT NULL 컬럼을 더하면 시드가 깨진다 → 시드 실패는 항목 실패가 아니라 "채점 불가"로 따로 센다. 단 sqlstate `42P01`(테이블 없음)·`42703`(열 없음)은 단계 메시지가 정한 스키마를 구현이 갖추지 못한 것이므로 **실패**로 센다.
 - 시간 단축은 **설정 키**로만 한다(`seat.hold.ttl`, `seat.hold.expiry-interval`, `seat.hold.counter-drift.cleanup.interval`, `seat.confirm.payment-window`, `seat.confirm.payment-min-remaining`, `seat.confirm.pay-by-margin`). 그래서 키 이름 항목(D0-10 등)이 틀리면 시간 의존 H 항목이 같이 깨진다 — 집계 때 "키 이름 위반으로 인한 연쇄"를 표시한다.
 - 동시 요청은 `CountDownLatch` 출발선 + 스레드 풀. 결과는 상태 코드와 본문 `code`.
 
@@ -36,7 +41,7 @@
 | D0-08 | 확정 실패 코드 | S0 | H | 없는 홀드 → 404 `HOLD_NOT_FOUND` · 남의 홀드 → 403 `HOLD_NOT_OWNED` | — | |
 | D0-09 | 만료 배치 | S0 | H | `ttl=2s`, `expiry-interval=1s`로 기동 → 선점 → 4초 뒤 좌석 `AVAILABLE`, 홀드 행 0 | 배치 방식은 S6이 바꿈(기대값 같음) | ◐ 키 이름 |
 | D0-10 | 설정 키·값 | S0 | M | 공통 규칙으로 정규화: `seat.hold.ttl` = 5분(`5m`·`300s`·`PT5M`) · `seat.hold.max-per-user` = 2 · `seat.hold.expiry-interval` = 10초(`10s`·`PT10S`) | — | |
-| D0-11 | 실패 본문 형식 | S0 | H | S0 표의 실패 코드(`SEAT_NOT_FOUND`·`SEAT_NOT_AVAILABLE`·`HOLD_LIMIT_EXCEEDED`·`HOLD_NOT_FOUND`·`HOLD_NOT_OWNED`·`HOLD_EXPIRED`·`SEAT_NOT_HELD`)를 기대하는 숨긴 테스트의 응답마다 본문 JSON 키 집합 ⊇ {`code`, `message`}, `code`는 문자열 | — | |
+| D0-11 | 실패 본문 형식 | S0 | H | D0-11 테스트 하나가 S0의 실패 코드들(`SEAT_NOT_FOUND`·`SEAT_NOT_AVAILABLE`·`HOLD_LIMIT_EXCEEDED`·`HOLD_NOT_FOUND`·`HOLD_NOT_OWNED`·`HOLD_EXPIRED`·`SEAT_NOT_HELD`)을 직접 만들어 본문 형식을 확인: 응답마다 본문 JSON 키 집합 ⊇ {`code`, `message`}, `code`는 문자열 | — | |
 | D0-12 | 헤더 `X-User-Id` | S0 | H | 다른 H 항목이 이 헤더로만 사용자를 구분해 통과하면 충족(별도 실패 판정 없음 — 위반은 다른 항목 전부 실패로 드러남) | — | ● (독립 항목 아님) |
 | D0-13 | 만료된 홀드 확정 거절(배치 전) | S0 | H | `ttl=2s`·`expiry-interval=1h`로 기동, 선점 후 3초 → 확정 409 `HOLD_EXPIRED`. (만료 정각 경계 `expires_at = 지금`은 HTTP로 시각을 맞출 수 없어 채점하지 않는다) | 구현 방식은 S6이 바꿈(기대값 같음 — D6-04와 같은 테스트, 집계는 한 번) | ◐ 키 이름 |
 | D0-14 | 배치 전 만료 홀드의 좌석은 여전히 불가 | S0 | H | `ttl=2s`·`expiry-interval=1h`로 기동 → A 선점 201 → 3초 뒤 B가 같은 좌석 선점 → 409 `SEAT_NOT_AVAILABLE` | 최종 기준 = S4 선조회(저장된 `status` — 같은 기대값) | ◐ 키 이름 · 타이밍 |
@@ -75,7 +80,7 @@
 | D4-01 | 쿼터 테이블 | S4 | M | `user_hold_quota(schedule_id BIGINT NOT NULL, user_id BIGINT NOT NULL, cnt INT NOT NULL DEFAULT 0)` · PK(schedule_id, user_id) · CHECK에 `cnt >= 0` | — | |
 | D4-02 | 같은 사용자 동시 10좌석 → 정확히 2 | S4 | H | 새 사용자로 10좌석 동시 → 201 정확히 2 · 나머지 409 `HOLD_LIMIT_EXCEEDED` · `cnt = 2` · 5회 반복 모두 | 최종 기대 = S4(S3은 ≤2만 보장) | (비고: 이 항목만으로는 S3 잔존 구분력이 약함 — S3 방식도 대개 정확히 2를 낸다. 번복 판정은 D3-01·D3-00) |
 | D4-03 | 카운터 = 홀드 + 확정 | S4 | H | 선점 2 → 하나 확정 → `cnt = 2` · 실제(홀드 행 + CONFIRMED) = 2 | — | |
-| D4-04 | 좌석에서 지면 +1 롤백 | S4 | H | 남이 `HELD`한 좌석을 선점 실패한 사용자 → 쿼터 행 없음 또는 `cnt` 변화 0 | — | (비고: 사전 확인이 있으면 upsert 전에 거절되어 자명하게 참 — 사전 확인의 존재는 D0-06과 D4-05가 본다) |
+| D4-04 | 좌석에서 지면 +1 롤백 | S4 | H | 빈(`AVAILABLE`) 좌석 X의 행을 별도 JDBC 트랜잭션이 `FOR UPDATE`로 쥔 채 B가 X 선점(별도 스레드, 2초 timeout) → 409 `SEAT_NOT_AVAILABLE`(선조회는 통과하고 upsert 뒤 NOWAIT에서 짐). 쥔 트랜잭션을 풀어 준 뒤 B의 `cnt`가 선점 전과 같음(전에 행이 없었으면 여전히 없거나 0). B는 미리 홀드 1개를 가진 사용자(`cnt = 1`)와 처음 보는 사용자 두 경우 | — | ◐ 타이밍(대기형이면 timeout으로 실패) |
 | D4-05 | 매수 찬 사용자는 좌석 락을 잡지 않음 | S4 | H | 2매 보유 사용자 U, 빈 좌석 X. 별도 트랜잭션이 U의 쿼터 행을 `FOR UPDATE`로 쥔 채 U의 X 선점을 출발 → `pg_stat_activity`(`wait_event_type = 'Lock'`)/`pg_locks`(`granted = false`)로 U 요청이 실제로 기다리는지 확인한 뒤 R의 X 선점 → R 201. 쥔 트랜잭션을 풀어 준 뒤 U는 409 `SEAT_NOT_AVAILABLE` · 5xx 0 | — | ◐ (대기 확인 전제 — 확인이 2초 안에 안 되면 판정 불가) |
 | D4-06 | upsert 문장 모양 | S4 | M | `src/main`에 정규식 `INSERT\s+INTO\s+user_hold_quota[\s\S]{0,200}ON\s+CONFLICT\s*\(\s*schedule_id\s*,\s*user_id\s*\)\s*DO\s+UPDATE[\s\S]{0,200}cnt\s*\+\s*1\s*<=` | — | ◐ (요약문이 SQL을 그대로 줬으므로 대체로 튼튼. 동치 표현 `cnt < ?`는 정규식에서 빠짐) |
 | D4-07 | 트랜잭션 밖 준비 단계 없음 | S4 | M | `src/main`에 `user_hold_quota`에 대한 `ON CONFLICT DO NOTHING` 0건 | — | ● (오탐: S5 복구의 "행이 없으면 `cnt = 0`으로 만든 뒤 잠금"을 트랜잭션 안의 `INSERT … ON CONFLICT DO NOTHING`으로 쓰는 것은 정당) |
@@ -132,8 +137,8 @@
 | id | 제약 | 전달 | 종류 | 확인 | 취약 |
 |---|---|---|---|---|---|
 | K1 | 패키지 `com.example.booking.seat` | 첫 메시지 | M | constraints.md K1 | |
-| K2 | 커밋한 마이그레이션 불변 | 첫 메시지 | G | constraints.md K2 | |
-| K3 | 마이그레이션 이름·연속 번호 | 첫 메시지 | M | constraints.md K3 | |
+| K2 | 커밋한 마이그레이션 불변 | 첫 메시지 | G | constraints.md K2 — 골격의 `db/migration/.gitkeep`은 제외(삭제돼도 남아 있어도 위반 아님) | |
+| K3 | 마이그레이션 이름·연속 번호 | 첫 메시지 | M | constraints.md K3 — 골격의 `db/migration/.gitkeep`은 제외(남아 있어도 지워져도 위반 아님) | |
 | K4 | 의존성 추가 금지 | 첫 메시지 | M | constraints.md K4 | |
 | K5 | 테스트 이름 한국어 백틱 | 첫 메시지 | M | constraints.md K5(비율로도 낸다) | |
 | K6 | 시각은 Clock에서만 | 첫 메시지 | M | constraints.md K6 | ◐ (SQL `now()` 판정은 문자열 안만 — 주석 속 단어를 오탐하지 않게 Kotlin 주석 제거 후 검사) |
@@ -143,8 +148,8 @@
 
 ## 튼튼 / 취약 요약 (최종)
 
-- **튼튼(행동 또는 메시지에 그대로 준 값을 본다)**: D0-01~08·D0-10·D0-11, D1-01·D1-02·D1-04, D2-01·D2-03, D3-02, D4-01~04, D5-01·D5-03·D5-10, D6-01~03, D7-01~04·D7-06, K1~K5·K7a·K7b.
-- **조건부(◐ — 설정 키 이름에 기댄 시간 단축 · 타이밍 · JDBC 시드 · 커밋 접두 · 주석 제거)**: D0-09·D0-13·D0-14, D1-03, D2-02, D3-00·D3-01, D4-05·D4-06·D4-08·D4-10, D5-02·D5-05·D5-06·D5-08·D5-09·D5-11, D6-00·D6-04~06·D6-10, D7-05·D7-07·D7-09·D7-10, K6·K8.
+- **튼튼(행동 또는 메시지에 그대로 준 값을 본다)**: D0-01~08·D0-10·D0-11, D1-01·D1-02·D1-04, D2-01·D2-03, D3-02, D4-01~03, D5-01·D5-03·D5-10, D6-01~03, D7-01~04·D7-06, K1~K5·K7a·K7b.
+- **조건부(◐ — 설정 키 이름에 기댄 시간 단축 · 타이밍 · JDBC 시드 · 커밋 접두 · 주석 제거)**: D0-09·D0-13·D0-14, D1-03, D2-02, D3-00·D3-01, D4-04·D4-05·D4-06·D4-08·D4-10, D5-02·D5-05·D5-06·D5-08·D5-09·D5-11, D6-00·D6-04~06·D6-10, D7-05·D7-07·D7-09·D7-10, K6·K8.
 - **버릴 후보(●)**: D0-12, D2-04·D2-05, D4-07, D5-04, D6-07·D6-08, D7-08.
 - **삭제**: D4-09, D5-07, D6-09.
 - **번복 처리 항목(주 지표의 한 축)**

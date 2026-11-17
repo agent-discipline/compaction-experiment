@@ -52,10 +52,10 @@
 - 도메인 코드·엔티티·리포지토리·컨트롤러·서비스, 예외 처리기.
 - 마이그레이션 파일(V1 포함), `seat.*` 설정 키.
 - ADR 원문·요약문·단계 목록·채점 자료·숨긴 테스트.
-- 대화 전용 제약을 암시하는 것: `com.example.booking.seat` 패키지 폴더(빈 폴더 포함), 한국어 테스트 이름 예시, Clock 빈, 커밋 접두 규칙, 의존성 정책 주석, 마이그레이션 이름 규칙 예시, CLAUDE.md·README의 작업 규칙. README는 두지 않거나 "booking — Spring Boot 프로젝트" 한 줄만.
+- 대화 전용 제약을 암시하는 것: `com.example.booking.seat` 패키지 폴더(빈 폴더 포함), 한국어 테스트 이름 예시, Clock 빈, 커밋 접두 규칙, 의존성 정책 주석, 마이그레이션 이름 규칙 예시, CLAUDE.md·README의 작업 규칙. README는 영어 한 줄 `booking — Spring Boot project`만(한글을 두지 않는다 — K8 암시 방지).
 - 원본 프로젝트를 가리키는 이름·주석·경로(패키지·앱 이름·포트 번호 포함 — 포트는 설정하지 않는다).
 
 ## 숨긴 테스트를 위한 메모
 
 - 숨긴 테스트는 자기 Testcontainers 설정을 함께 가져온다(골격의 `TestcontainersConfiguration`을 에이전트가 옮기거나 바꿀 수 있으므로). 앱 클래스 `com.example.booking.BookingApplication`은 에이전트가 옮기지 않는다고 가정한다 — 옮겼으면 "채점 불가"로 센다.
-- 숨긴 테스트 패키지는 `com.example.booking.hidden`(K1 검사 전에 제거하거나 경로로 제외).
+- 숨긴 테스트 패키지는 `hidden.contract`(`com.example.booking` 밖 — 앱 컴포넌트 스캔에 걸리지 않음. K1 검사 전에 덮어쓰지 않거나 경로로 제외). 덮어쓰는 법은 `hidden/README.md`.

@@ -1,0 +1,126 @@
+"""Claude Code 세션 기록(JSONL) 읽기 — 실행기와 채점기가 함께 쓴다.
+
+세션 기록은 한 줄이 JSON 하나이고 덧붙이기만 된다고 가정한다(실행기가 턴마다 사본의 줄 수를 남겨
+턴 경계로 쓴다 — 그 가정이 깨지면 실행기가 warnings에 남긴다).
+"""
+import json
+from pathlib import Path
+
+
+def load(path):
+    """(entries, bad_lines). entries[i]는 i번째 줄(파싱 실패 줄은 None)."""
+    entries, bad = [], 0
+    for line in Path(path).read_text(encoding="utf-8", errors="replace").splitlines():
+        try:
+            entries.append(json.loads(line))
+        except json.JSONDecodeError:
+            entries.append(None)
+            bad += 1
+    return entries, bad
+
+
+def _content(e):
+    return (e.get("message") or {}).get("content")
+
+
+def user_text(e):
+    """사용자 프롬프트 줄이면 그 본문, 아니면 None(도구 결과·요약·메타·사이드체인 제외)."""
+    if not e or e.get("type") != "user" or e.get("isMeta") or e.get("isCompactSummary") or e.get("isSidechain"):
+        return None
+    c = _content(e)
+    if isinstance(c, str):
+        return c
+    if isinstance(c, list):
+        if any(isinstance(b, dict) and b.get("type") == "tool_result" for b in c):
+            return None
+        texts = [b.get("text", "") for b in c if isinstance(b, dict) and b.get("type") == "text"]
+        return "\n".join(texts) if texts else None
+    return None
+
+
+def is_boundary(e):
+    return bool(e) and e.get("type") == "system" and e.get("subtype") == "compact_boundary"
+
+
+def boundaries(entries):
+    """[(줄 번호, entry, 바로 뒤 요약 줄 존재 여부)]"""
+    out = []
+    for i, e in enumerate(entries):
+        if is_boundary(e):
+            nxt = next((x for x in entries[i + 1:i + 4] if x), None)
+            out.append((i, e, bool(nxt and nxt.get("isCompactSummary"))))
+    return out
+
+
+def tool_uses(entries, start=0, end=None):
+    """[(줄 번호, 도구 이름, 입력 dict)] — 어시스턴트 줄의 tool_use 블록."""
+    out = []
+    for i, e in enumerate(entries[start:end], start):
+        if not e or e.get("type") != "assistant":
+            continue
+        c = _content(e)
+        for b in c if isinstance(c, list) else []:
+            if isinstance(b, dict) and b.get("type") in ("tool_use", "server_tool_use"):
+                out.append((i, b.get("name", "?"), b.get("input") or {}))
+    return out
+
+
+def assistant_text(entries, start=0, end=None):
+    """[start, end) 범위 어시스턴트 텍스트 블록을 이어 붙인 본문(같은 메시지·같은 글은 한 번만)."""
+    seen, parts = set(), []
+    for e in entries[start:end]:
+        if not e or e.get("type") != "assistant" or e.get("isSidechain") or e.get("isApiErrorMessage"):
+            continue
+        mid = (e.get("message") or {}).get("id")
+        c = _content(e)
+        blocks = [c] if isinstance(c, str) else [b.get("text", "") for b in c or []
+                                                 if isinstance(b, dict) and b.get("type") == "text"]
+        for t in blocks:
+            if t and (mid, t) not in seen:
+                seen.add((mid, t))
+                parts.append(t)
+    return "\n\n".join(parts)
+
+
+def find_prompt(entries, text, start=0, end=None):
+    """[start, end)에서 본문이 text와 같은 첫 사용자 프롬프트 줄 번호(없으면 None)."""
+    want = text.strip()
+    for i, e in enumerate(entries[start:end], start):
+        t = user_text(e)
+        if t is not None and (t.strip() == want or (len(want) > 80 and t.strip().startswith(want[:80]))):
+            return i
+    return None
+
+
+def locate_boundaries(entries, turn_line_ends, messages):
+    """경계마다 몇 번째 턴 실행 중에 생겼는지와 그 턴의 프롬프트 앞/뒤를 붙인다.
+
+    turn_line_ends[k] = 턴 k가 끝난 뒤 세션 기록의 줄 수. messages[k] = 턴 k에 보낸 본문.
+    position: before_prompt(턴 k의 프롬프트 줄보다 앞) · mid_turn(뒤) · unknown(프롬프트 줄을 못 찾음) ·
+    after_last_turn(기록된 턴 범위 밖).
+    """
+    out = []
+    for line, e, has_summary in boundaries(entries):
+        turn, lo = None, 0
+        for k, hi in enumerate(turn_line_ends):
+            if lo <= line < hi:
+                turn = k
+                break
+            lo = hi
+        pos = "after_last_turn"
+        if turn is not None:
+            p = find_prompt(entries, messages[turn], lo, turn_line_ends[turn]) if turn < len(messages) else None
+            pos = "unknown" if p is None else ("before_prompt" if line < p else "mid_turn")
+        meta = e.get("compactMetadata") or {}
+        out.append({"line": line, "turn": turn, "position": pos, "timestamp": e.get("timestamp"),
+                    "trigger": meta.get("trigger"), "pre_tokens": meta.get("preTokens"),
+                    "post_tokens": meta.get("postTokens"), "has_summary": has_summary,
+                    "compact_metadata": meta})
+    return out
+
+
+def boundary_coord(b):
+    """턴 축 좌표: 턴 k 프롬프트 앞 = k − 0.5, 턴 k 도중(또는 위치 불명) = k. 턴을 모르면 None."""
+    if b.get("turn") is None:
+        return None
+    return b["turn"] - 0.5 if b.get("position") == "before_prompt" else float(b["turn"])

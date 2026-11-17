@@ -1,0 +1,388 @@
+{
+  "source": "tasks/seat-reservation/scoring-items.md (kind H)",
+  "package": "hidden.contract",
+  "match": "JUnit XML <testcase classname=CLASS name=DISPLAY_NAME>. Gradle writes the @DisplayName as the testcase name; it always starts with the item id followed by a space.",
+  "outcome": {
+    "pass": "testcase without <failure>, <error> or <skipped>",
+    "fail": "<failure> or <error> (includes seed failures with sqlstate 42P01/42703: message starts with 'SEED_SCHEMA_MISSING')",
+    "unscorable": "<skipped> whose message starts with 'UNSCORABLE' (other seed failures, message carries sqlstate; D4-05 wait not observed within 2s)"
+  },
+  "contexts": {
+    "hidden.contract.DefaultConfigContractTest": [],
+    "hidden.contract.NoExpiryBatchContractTest": [
+      "seat.hold.ttl=2s",
+      "seat.hold.expiry-interval=1h"
+    ],
+    "hidden.contract.FastExpiryContractTest": [
+      "seat.hold.ttl=2s",
+      "seat.hold.expiry-interval=1s"
+    ],
+    "hidden.contract.FastCleanupContractTest": [
+      "seat.hold.counter-drift.cleanup.interval=1s"
+    ],
+    "hidden.contract.ExtendedHoldContractTest": [
+      "seat.hold.ttl=3s",
+      "seat.hold.expiry-interval=1s",
+      "seat.confirm.payment-window=30s"
+    ],
+    "hidden.contract.ShortPaymentWindowContractTest": [
+      "seat.confirm.payment-window=60s"
+    ],
+    "hidden.contract.LateExtendContractTest": [
+      "seat.hold.ttl=3s",
+      "seat.hold.expiry-interval=1h",
+      "seat.confirm.payment-min-remaining=2s",
+      "seat.confirm.pay-by-margin=1s"
+    ],
+    "hidden.contract.StartupValidationContractTest": [
+      "programmatic start per case (control start with application config, then the invalid properties)"
+    ]
+  },
+  "items": [
+    {
+      "id": "D0-02",
+      "stage": "S0",
+      "fragile": "",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D0_02_holdCreatedBody",
+      "display_name": "D0-02 hold 201 body and default TTL"
+    },
+    {
+      "id": "D0-03",
+      "stage": "S0",
+      "fragile": "",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D0_03_seatHeldByAnother",
+      "display_name": "D0-03 seat held by another user"
+    },
+    {
+      "id": "D0-04",
+      "stage": "S0",
+      "fragile": "",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D0_04_seatNotFound",
+      "display_name": "D0-04 unknown seat and schedule mismatch"
+    },
+    {
+      "id": "D0-05",
+      "stage": "S0",
+      "fragile": "",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D0_05_perUserLimit",
+      "display_name": "D0-05 two seats per user (holds + confirmed)"
+    },
+    {
+      "id": "D0-06",
+      "stage": "S0",
+      "fragile": "",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D0_06_seatBeforeLimit",
+      "display_name": "D0-06 seat check before limit check"
+    },
+    {
+      "id": "D0-07",
+      "stage": "S0",
+      "fragile": "",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D0_07_confirmSuccess",
+      "display_name": "D0-07 confirm success"
+    },
+    {
+      "id": "D0-08",
+      "stage": "S0",
+      "fragile": "",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D0_08_confirmFailures",
+      "display_name": "D0-08 confirm failure codes"
+    },
+    {
+      "id": "D0-09",
+      "stage": "S0",
+      "fragile": "◐",
+      "fragile_note": "키 이름",
+      "class": "hidden.contract.FastExpiryContractTest",
+      "method": "D0_09_expiryBatch",
+      "display_name": "D0-09 expiry batch releases the seat"
+    },
+    {
+      "id": "D0-11",
+      "stage": "S0",
+      "fragile": "",
+      "class": "hidden.contract.NoExpiryBatchContractTest",
+      "method": "D0_11_failureBodyShape",
+      "display_name": "D0-11 failure body has code and message"
+    },
+    {
+      "id": "D0-12",
+      "stage": "S0",
+      "fragile": "●",
+      "fragile_note": "독립 항목 아님",
+      "class": null,
+      "method": null,
+      "display_name": null,
+      "no_test": "scoring-items: 별도 실패 판정 없음 — 다른 H 항목이 X-User-Id로만 사용자를 구분해 통과하면 충족. 채점기가 파생 판정하거나 집계에서 뺀다."
+    },
+    {
+      "id": "D0-13",
+      "stage": "S0",
+      "fragile": "◐",
+      "fragile_note": "키 이름",
+      "class": "hidden.contract.NoExpiryBatchContractTest",
+      "method": "D0_13_expiredHoldConfirm",
+      "display_name": "D0-13 expired hold (before batch) cannot be confirmed"
+    },
+    {
+      "id": "D0-14",
+      "stage": "S0",
+      "fragile": "◐",
+      "fragile_note": "키 이름 · 타이밍",
+      "class": "hidden.contract.NoExpiryBatchContractTest",
+      "method": "D0_14_expiredHoldSeatStillUnavailable",
+      "display_name": "D0-14 seat of an expired hold (before batch) is still unavailable"
+    },
+    {
+      "id": "D2-01",
+      "stage": "S2",
+      "fragile": "",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D2_01_sameSeatConcurrent",
+      "display_name": "D2-01 same seat, 30 concurrent holds"
+    },
+    {
+      "id": "D2-02",
+      "stage": "S2",
+      "fragile": "◐",
+      "fragile_note": "새 사용자로 호출(S4 쿼터 행 락 회피)",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D2_02_noWait",
+      "display_name": "D2-02 hold does not wait on a locked seat row"
+    },
+    {
+      "id": "D2-05",
+      "stage": "S2",
+      "fragile": "●",
+      "fragile_note": "기동 실패 방식이 다양 — 실패 여부만",
+      "class": "hidden.contract.StartupValidationContractTest",
+      "method": "D2_05_unknownHoldStrategy",
+      "display_name": "D2-05 unknown hold strategy fails startup"
+    },
+    {
+      "id": "D4-02",
+      "stage": "S4",
+      "fragile": "",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D4_02_sameUserConcurrent",
+      "display_name": "D4-02 same user, 10 seats concurrently, exactly 2 (x5)"
+    },
+    {
+      "id": "D4-03",
+      "stage": "S4",
+      "fragile": "",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D4_03_counterAfterConfirm",
+      "display_name": "D4-03 counter = holds + confirmed"
+    },
+    {
+      "id": "D4-04",
+      "stage": "S4",
+      "fragile": "◐",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D4_04_seatLossNoIncrement",
+      "display_name": "D4-04 losing on the seat leaves the counter unchanged",
+      "fragile_note": "타이밍(좌석 행 FOR UPDATE 중 선점, 2초 timeout)"
+    },
+    {
+      "id": "D4-05",
+      "stage": "S4",
+      "fragile": "◐",
+      "fragile_note": "대기 확인 전제 — 2초 안에 확인 못 하면 UNSCORABLE",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D4_05_fullUserDoesNotLockSeat",
+      "display_name": "D4-05 user at limit does not take the seat lock"
+    },
+    {
+      "id": "D4-10",
+      "stage": "S4",
+      "fragile": "◐",
+      "fragile_note": "키 이름",
+      "class": "hidden.contract.FastExpiryContractTest",
+      "method": "D4_10_expiryDecrements",
+      "display_name": "D4-10 expiry decrements the counter"
+    },
+    {
+      "id": "D5-01",
+      "stage": "S5",
+      "fragile": "",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D5_01_closedScheduleRejects",
+      "display_name": "D5-01 closed schedule rejects hold"
+    },
+    {
+      "id": "D5-02",
+      "stage": "S5",
+      "fragile": "◐",
+      "fragile_note": "JDBC 시드",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D5_02_closedFirst",
+      "display_name": "D5-02 order: closed before seat before limit"
+    },
+    {
+      "id": "D5-03",
+      "stage": "S5",
+      "fragile": "",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D5_03_confirmAfterClose",
+      "display_name": "D5-03 confirm is allowed after close"
+    },
+    {
+      "id": "D5-05",
+      "stage": "S5",
+      "fragile": "◐",
+      "fragile_note": "키 이름",
+      "class": "hidden.contract.FastExpiryContractTest",
+      "method": "D5_05_missingQuotaRow",
+      "display_name": "D5-05 expiry survives a missing quota row"
+    },
+    {
+      "id": "D5-06",
+      "stage": "S5",
+      "fragile": "◐",
+      "fragile_note": "",
+      "class": "hidden.contract.FastExpiryContractTest",
+      "method": "D5_06_counterTooLow",
+      "display_name": "D5-06 expiry survives a counter lower than the holds"
+    },
+    {
+      "id": "D5-08",
+      "stage": "S5",
+      "fragile": "◐",
+      "fragile_note": "키 이름",
+      "class": "hidden.contract.FastCleanupContractTest",
+      "method": "D5_08_cleanupClosedWithoutHolds",
+      "display_name": "D5-08 cleanup removes quota rows of a closed schedule without holds"
+    },
+    {
+      "id": "D5-09",
+      "stage": "S5",
+      "fragile": "◐",
+      "fragile_note": "",
+      "class": "hidden.contract.FastCleanupContractTest",
+      "method": "D5_09_cleanupKeepsWhileHolds",
+      "display_name": "D5-09 cleanup keeps quota rows while holds remain"
+    },
+    {
+      "id": "D6-02",
+      "stage": "S6",
+      "fragile": "",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D6_02_concurrentConfirm",
+      "display_name": "D6-02 same hold confirmed twice concurrently (x10)"
+    },
+    {
+      "id": "D6-03",
+      "stage": "S6",
+      "fragile": "",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D6_03_partialUniqueIndex",
+      "display_name": "D6-03 partial unique index blocks duplicate CONFIRMED"
+    },
+    {
+      "id": "D6-04",
+      "stage": "S6",
+      "fragile": "◐",
+      "fragile_note": "",
+      "class": "hidden.contract.NoExpiryBatchContractTest",
+      "method": "D0_13_expiredHoldConfirm",
+      "display_name": "D0-13 expired hold (before batch) cannot be confirmed",
+      "alias_of": "D0-13",
+      "count_once": "scoring-items: D0-13과 같은 테스트, 집계는 D0-13 한 번만"
+    },
+    {
+      "id": "D6-05",
+      "stage": "S6",
+      "fragile": "◐",
+      "fragile_note": "",
+      "class": "hidden.contract.FastExpiryContractTest",
+      "method": "D6_05_confirmAfterBatch",
+      "display_name": "D6-05 confirm after the batch removed the hold"
+    },
+    {
+      "id": "D6-10",
+      "stage": "S6",
+      "fragile": "◐",
+      "fragile_note": "JDBC 시드",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D6_10_uniqueViolationMapped",
+      "display_name": "D6-10 unique violation on confirm maps to 409 SEAT_NOT_HELD"
+    },
+    {
+      "id": "D7-03",
+      "stage": "S7",
+      "fragile": "",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D7_03_paymentStartExtends",
+      "display_name": "D7-03 payment-start first call extends"
+    },
+    {
+      "id": "D7-04",
+      "stage": "S7",
+      "fragile": "",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D7_04_paymentStartIdempotent",
+      "display_name": "D7-04 payment-start is idempotent"
+    },
+    {
+      "id": "D7-05",
+      "stage": "S7",
+      "fragile": "◐",
+      "fragile_note": "",
+      "class": "hidden.contract.NoExpiryBatchContractTest",
+      "method": "D7_05_paymentStartFailures",
+      "display_name": "D7-05 payment-start failure codes"
+    },
+    {
+      "id": "D7-06",
+      "stage": "S7",
+      "fragile": "",
+      "class": "hidden.contract.DefaultConfigContractTest",
+      "method": "D7_06_holdCarriesPayBy",
+      "display_name": "D7-06 hold 201 carries payBy"
+    },
+    {
+      "id": "D7-07",
+      "stage": "S7",
+      "fragile": "◐",
+      "fragile_note": "키 이름",
+      "class": "hidden.contract.ExtendedHoldContractTest",
+      "method": "D7_07_extendedHoldSurvives",
+      "display_name": "D7-07 extended hold survives the batch and confirms"
+    },
+    {
+      "id": "D7-08",
+      "stage": "S7",
+      "fragile": "●",
+      "fragile_note": "기동 실패 방식이 다양 — 실패 여부만",
+      "class": "hidden.contract.StartupValidationContractTest",
+      "method": "D7_08_invalidPaymentSettings",
+      "display_name": "D7-08 invalid payment settings fail startup"
+    },
+    {
+      "id": "D7-09",
+      "stage": "S7",
+      "fragile": "◐",
+      "fragile_note": "",
+      "class": "hidden.contract.ShortPaymentWindowContractTest",
+      "method": "D7_09_enoughTimeLeft",
+      "display_name": "D7-09 hold with enough time left is not extended"
+    },
+    {
+      "id": "D7-10",
+      "stage": "S7",
+      "fragile": "◐",
+      "fragile_note": "키 이름 · 타이밍",
+      "class": "hidden.contract.LateExtendContractTest",
+      "method": "D7_10_tooLateToExtend",
+      "display_name": "D7-10 too late to extend"
+    }
+  ]
+}
