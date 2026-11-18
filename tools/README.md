@@ -158,6 +158,8 @@ outbox_boundary_injections[](outbox만)`.
 - `boundaries[]`: `line, turn(그 경계가 생긴 턴 번호), position(before_prompt|mid_turn|unknown|after_last_turn), timestamp,
   trigger, pre_tokens, post_tokens, has_summary, compact_metadata`. 좌표(`transcript.boundary_coord`):
   before_prompt = turn − 0.5, mid_turn = turn, unknown·after_last_turn = 없음(위치 불명 — "전달 뒤 컴팩트" 판정에 쓰지 않고 따로 센다).
+  `has_summary` = 경계 뒤 첫 대화 줄(user·assistant)이 요약(`isCompactSummary`)인지 — 2.1.326은 경계와 요약 사이에
+  `attachment` 줄(session_context·date)을 두므로 대화 줄이 아닌 줄은 건너뛴다(다음 경계까지).
 - `invalid_reasons`: `control_has_compaction` · `no_compaction`(compact/outbox) · `audit:<패턴>`·`audit:tool:<이름>`
   (도구 입력 JSON에 금지 문자열 — `experiment.json.audit_forbidden_patterns`(`{real_home}`·`{hooks}` 치환) — 또는 WebFetch/WebSearch 호출) ·
   `settings_tampered`(턴 뒤 settings.json 해시 변화) · `transcript_unparsed`(세션 기록에 읽지 못한 줄 — 그 줄이 경계였을 수 있음) ·

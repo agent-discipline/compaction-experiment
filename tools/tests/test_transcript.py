@@ -40,6 +40,27 @@ class TranscriptTest(unittest.TestCase):
         self.assertEqual(b[1]["pre_tokens"], 90000)
         self.assertEqual([transcript.boundary_coord(x) for x in b], [0.5, 2.0])
 
+    def test_has_summary_with_real_attachment_lines(self):
+        # 2.1.326 실제 모양(스모크 세션 기록에서 키·순서만 남긴 발췌): 메타 줄 → 경계 → attachment(session_context·date) → 요약 → attachment(file)
+        sid = "00000000-0000-0000-0000-000000000000"
+
+        def att(kind):
+            return {"type": "attachment", "isSidechain": False, "attachment": {"type": kind}, "sessionId": sid}
+
+        rows = [user("M0"), assistant("a0"),
+                {"type": "last-prompt", "lastPrompt": "M0", "sessionId": sid},
+                {"type": "atis-latch", "atis": {}, "sessionId": sid},
+                {"type": "system", "subtype": "compact_boundary", "isSidechain": False, "level": "info",
+                 "content": "Conversation compacted", "timestamp": "2026-11-18T04:59:41.557Z",
+                 "compactMetadata": {"trigger": "auto", "preTokens": 66685}},
+                att("session_context"), att("date"),
+                {"type": "user", "isSidechain": False, "isCompactSummary": True, "isVisibleInTranscriptOnly": True,
+                 "message": {"role": "user", "content": "요약"}},
+                att("file"), assistant("a1"),
+                boundary(), att("session_context"), att("date"), user("M1")]  # 요약 없이 프롬프트가 오면 False
+        entries = self.load(rows)
+        self.assertEqual([h for _, _, h in transcript.boundaries(entries)], [True, False])
+
     def test_boundary_unknown_when_prompt_missing(self):
         entries = self.load([boundary(), assistant("x")])
         b = transcript.locate_boundaries(entries, [2], ["안 보낸 메시지"])

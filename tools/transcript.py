@@ -43,11 +43,18 @@ def is_boundary(e):
 
 
 def boundaries(entries):
-    """[(줄 번호, entry, 바로 뒤 요약 줄 존재 여부)]"""
+    """[(줄 번호, entry, 요약 줄 존재 여부)]. 요약 여부 = 경계 뒤 첫 대화 줄(user·assistant)이 요약(isCompactSummary)인지.
+    2.1.326은 경계와 요약 사이에 `attachment` 줄(session_context·date)을 두므로 대화 줄이 아닌 줄은 건너뛴다(다음 경계까지)."""
     out = []
     for i, e in enumerate(entries):
         if is_boundary(e):
-            nxt = next((x for x in entries[i + 1:i + 4] if x), None)
+            nxt = None
+            for x in entries[i + 1:]:
+                if is_boundary(x):
+                    break
+                if x and x.get("type") in ("user", "assistant"):
+                    nxt = x
+                    break
             out.append((i, e, bool(nxt and nxt.get("isCompactSummary"))))
     return out
 
