@@ -290,6 +290,7 @@ python3 -m unittest discover -s tools/tests -p 'test_*.py'
 
 실행기 테스트는 Docker 없이 돈다: `cfg["docker_bin"]`을 `tests/fake_docker.py`(가짜 docker — create·start·cp·inspect·rm·network·volume·ps를
 흉내, 마운트 대상 경로를 호스트 폴더로 바꿔 명령을 호스트에서 실행)로 바꾸고, 컨테이너 안 `claude`는 `tests/fake_claude.py`(세션 기록 작성,
-settings.json 훅 실제 호출, 두 번째 턴부터 가짜 컴팩트, 토큰 유출·턴 실패·읽지 못하는 줄 흉내)가 된다. docker가 있으면
-`test_db_catalog.DockerCatalogTest`가 `PostgresStack`(실제 `postgres:16`)을 띄운다(`docker info`가 실패하면 건너뜀 — 실제 Docker를 쓰지 않으려면
-실패하는 `docker` 실행 파일을 PATH 앞에 둔다).
+settings.json 훅 실제 호출, 두 번째 턴부터 가짜 컴팩트, 토큰 유출·턴 실패·읽지 못하는 줄 흉내)가 된다. 실제 Docker를 쓰는 테스트는
+`test_db_catalog.DockerCatalogTest`(`PostgresStack` — 실제 `postgres:16`) 하나이고, **`CX_REAL_DOCKER_TESTS=1`일 때만** 돈다(그 밖에는
+`docker info`도 부르지 않고 건너뜀 — 같은 데몬에서 다른 실험이 돌 수 있다). 확인하려면 부르면 기록하고 실패하는 `docker` 실행 파일을
+PATH 앞에 두고 `DOCKER_HOST`를 없는 소켓으로 돌린 채 돌려, 그 기록이 비어 있는지 본다.

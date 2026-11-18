@@ -1,3 +1,4 @@
+import os
 import re
 import subprocess
 import tempfile
@@ -35,6 +36,9 @@ ALTER TABLE seat_hold ADD COLUMN extended_at TIMESTAMPTZ NULL;
 
 
 def docker_ok():
+    """실제 Docker는 CX_REAL_DOCKER_TESTS=1일 때만 — 그 밖에는 `docker`를 부르지도 않는다(다른 실험이 같은 데몬을 쓴다)."""
+    if os.environ.get("CX_REAL_DOCKER_TESTS") != "1":
+        return False
     try:
         return subprocess.run(["docker", "info"], capture_output=True, timeout=20).returncode == 0
     except (OSError, subprocess.TimeoutExpired):
@@ -53,7 +57,7 @@ class CheckTest(unittest.TestCase):
         self.assertEqual([p.name for p in dc.migration_files(d)], ["V1__x.sql", "V2__a.sql", "V10__b.sql"])
 
 
-@unittest.skipUnless(docker_ok(), "docker 없음")
+@unittest.skipUnless(docker_ok(), "실제 Docker 테스트는 CX_REAL_DOCKER_TESTS=1일 때만")
 class DockerCatalogTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
