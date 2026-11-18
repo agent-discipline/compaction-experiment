@@ -620,6 +620,7 @@ def score(cfg, run_dir, work, skip_hidden, skip_db=False, allow_concurrent=False
         counts[r["result"]] = counts.get(r["result"], 0) + 1
     inj = run.get("injections") or []
     chars = [x.get("chars_injected") for x in inj]
+    tokens, tokens_note = injected_tokens(run_dir, inj)
     history = history_check(work, run)
     return {
         # run_id·model·condition·run_sha256 = 채점한 실행의 신원(집계가 run.json과 대조 — 다르면 이 채점을 쓰지 않는다)
@@ -631,7 +632,7 @@ def score(cfg, run_dir, work, skip_hidden, skip_db=False, allow_concurrent=False
             dict(b, coord=transcript.boundary_coord(b)) for b in run.get("boundaries") or []],
         # injected_chars: null = 주입 없음(또는 글자 수 기록이 빠진 주입이 있음). injected_tokens: null = 미측정
         "injections": len(inj), "injected_chars": sum(chars) if chars and None not in chars else None,
-        "injected_tokens": injected_tokens(run_dir, len(inj)), "history": history,
+        "injected_tokens": tokens, "injected_tokens_unavailable": tokens_note, "history": history,
         "totals": run.get("totals"), "turns_done": len(run.get("turns") or []),
         "hidden": hidden_meta, "counts": counts, "items": items, "k8_turns": k8_turns,
         "unmapped_hidden_ids": sorted(set(hidden) - set(table)),
@@ -642,15 +643,26 @@ def score(cfg, run_dir, work, skip_hidden, skip_db=False, allow_concurrent=False
     }
 
 
-def injected_tokens(run_dir, n_injections):
-    """`count_injection_tokens.py`가 남긴 <run>/injection-tokens.json의 합. 없거나 미완료·주입 수 불일치면 None(미측정)."""
+def injected_tokens(run_dir, injections):
+    """`count_injection_tokens.py`가 남긴 <run>/injection-tokens.json의 합. (값 또는 None(미측정), None이면 이유).
+    받는 조건: 완료(complete) · 주입 수가 run.json과 같음 · 주입마다 잰 주입문의 해시(context_sha256)가 run.json의 그 주입 해시와
+    차례대로 같음(해시가 없는 주입이 있으면 받지 않는다) — 다른 실행·옛 기록에서 잰 파일을 이 실행의 값으로 쓰지 않는다."""
     p = Path(run_dir) / "injection-tokens.json"
-    if not n_injections or not p.is_file():
-        return None
+    if not injections:
+        return None, None
+    if not p.is_file():
+        return None, "injection-tokens.json 없음"
     d = json.loads(p.read_text(encoding="utf-8"))
-    if not d.get("complete") or len(d.get("injections") or []) != n_injections:
-        return None
-    return d.get("total_tokens")
+    measured = d.get("injections") or []
+    if not d.get("complete"):
+        return None, "측정 미완료"
+    if len(measured) != len(injections):
+        return None, f"주입 수 불일치(파일 {len(measured)}, run.json {len(injections)})"
+    want = [e.get("context_sha256") for e in injections]
+    got = [x.get("context_sha256") for x in measured]
+    if None in want or got != want:
+        return None, "주입문 해시 불일치(또는 해시 없음)"
+    return d.get("total_tokens"), None
 
 
 def extract_work(run_dir, dest):

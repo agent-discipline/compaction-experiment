@@ -128,12 +128,25 @@ class CountInjectionTokensTest(unittest.TestCase):
         texts = [t for _, t in self.cit.contexts(self.run)]
         self.assertEqual(len(texts), 3)
         self.assertIn("[사용자 메시지 3 ·", texts[2])
-        self.assertIsNone(self.sr.injected_tokens(self.run, 3))  # 재기 전 = 미측정
+        inj = json.loads((self.run / "run.json").read_text(encoding="utf-8"))["injections"]
+        self.assertEqual(self.sr.injected_tokens(self.run, inj), (None, "injection-tokens.json 없음"))  # 재기 전 = 미측정
         r = self.cit.measure(self.run, "claude-fake-1", 2, tempfile.mkdtemp(), str(self.bin))
         self.assertTrue(r["complete"])
         self.assertEqual([x["tokens"] for x in r["injections"]], [len(t) + 2 for t in texts])  # 꼬리 앞 줄바꿈 2자
-        self.assertEqual(self.sr.injected_tokens(self.run, 3), sum(len(t) + 2 for t in texts))
-        self.assertIsNone(self.sr.injected_tokens(self.run, 4))  # 주입 수가 다르면 미측정
+        self.assertEqual(self.sr.injected_tokens(self.run, inj), (sum(len(t) + 2 for t in texts), None))
+        self.assertIsNone(self.sr.injected_tokens(self.run, inj + inj[:1])[0])  # 주입 수가 다르면 미측정
+
+    def test_token_file_from_other_injections_is_not_used(self):
+        """같은 주입 수라도 잰 주입문의 해시가 이 실행의 해시와 다르면(옛 파일·다른 실행) 미측정."""
+        self.cit.measure(self.run, "claude-fake-1", 1, tempfile.mkdtemp(), str(self.bin))
+        inj = json.loads((self.run / "run.json").read_text(encoding="utf-8"))["injections"]
+        other = [dict(e) for e in inj]
+        other[1]["context_sha256"] = "0" * 64
+        value, why = self.sr.injected_tokens(self.run, other)
+        self.assertIsNone(value)
+        self.assertIn("해시", why)
+        no_hash = [{k: v for k, v in e.items() if k != "context_sha256"} for e in inj]
+        self.assertIsNone(self.sr.injected_tokens(self.run, no_hash)[0])
 
     def test_hash_mismatch_stops_before_calls(self):
         p = self.run / "hookdata" / "outbox" / "s-1.jsonl"

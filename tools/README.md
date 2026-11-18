@@ -205,8 +205,10 @@ python3 tools/count_injection_tokens.py --run .runs/<run id> --workdir <저장�
 같은 설정(N·L·`run.json.outbox_config.rule`)으로 다시 이어 붙이고, `context_sha256`이 같을 때만 잰다(다르면 호출 전에 중단).
 잼 = `claude -p`(도구·MCP·사용자 설정 끔, `--setting-sources project`, 빈 작업 폴더)에 주입문 + 고정 꼬리 한 줄을 넣은 첫 요청의
 input + cache_creation + cache_read 토큰의 중앙값 − 꼬리만 넣은 기준값의 중앙값(`prompt-language-experiment/tools/measure_tokens.py`와 같은 방식).
-주입문 본문만 잰다(CLI가 맥락에 넣을 때 두르는 틀은 빠진다). 결과 `<run>/injection-tokens.json`(`complete`, `injections[{seqs, chars, raw, tokens}]`,
-`total_tokens`) — 없거나 미완료면 `score.json.injected_tokens` = null, 집계 표 "미측정". 호스트의 `claude`(그 로그인)로 부른다.
+주입문 본문만 잰다(CLI가 맥락에 넣을 때 두르는 틀은 빠진다). 결과 `<run>/injection-tokens.json`(`complete`, `injections[{seqs, chars, context_sha256, raw, tokens}]`,
+`total_tokens`). 채점기는 완료이고 주입 수가 같고 **주입마다 `context_sha256`이 `run.json.injections`의 해시와 차례대로 같을 때만** 그 합을 받는다 —
+아니면(없음·미완료·수 불일치·해시 불일치나 해시 없음) `score.json.injected_tokens` = null, 이유는 `injected_tokens_unavailable`, 집계 표 "미측정".
+호스트의 `claude`(그 로그인)로 부른다.
 
 ## score_run.py
 
@@ -244,7 +246,7 @@ compactions_unlocated(위치 불명 경계 수)`, `scorer`.
 
 `score.json` 최상위: `run_id, model, condition, rep, run_sha256(채점한 run.json 바이트의 sha256 — 집계가 신원 대조), status, abort_reason, invalid, invalid_reasons, scored_at, compactions,
 boundaries[](+coord — 위치 불명은 null), injections, injected_chars(null = 주입 없음 또는 글자 수 기록이 빠진 주입이 있음),
-injected_tokens(null = 미측정 — injection-tokens.json), history{rewritten_turns[](턴 끝 HEAD가 최종 HEAD의 조상이 아닌 턴 — amend·rebase·reset),
+injected_tokens(null = 미측정 — injection-tokens.json, 해시 대조), injected_tokens_unavailable(미측정 이유), history{rewritten_turns[](턴 끝 HEAD가 최종 HEAD의 조상이 아닌 턴 — amend·rebase·reset),
 missing_turns[](커밋 객체가 없는 턴)}, totals, turns_done, hidden{ran, main_build{exit_code, timed_out}, exit_code, timed_out,
 testcases, log, reason, operator_flag?}, counts{결과: 수}, items{id: …}, k8_turns[{turn, step, prose_chars, hangul, latin, ratio(null=20자 미만),
 compactions_so_far, violation}], unmapped_hidden_ids[], operator_flags[](채점 환경 실패 등 운영자가 보고 다시 채점할 것)`.
