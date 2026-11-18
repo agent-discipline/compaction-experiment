@@ -113,7 +113,11 @@ python3 tools/run_task.py --check-env [--check-gradle]             # 무료: 이
 - 토큰 검사(`scrub`): 끝에서 `run_root/work`, `run_root/scratch` 전체(`~/.claude` 사본 + 턴마다 복사한 세션 기록 `projects/` — `--keep-root`면 남으므로),
   실행 기록 폴더 전체(파일 내용·이름)를 토큰 값으로 검사해 찾으면 `<REDACTED-SECRET>`로 바꾸고
   `SECRET-LEAK.txt`(경로 목록)를 남긴 뒤 실행을 `failed`(`secret_leak`)로 한다. 검사 자체가 실패해도 `failed`(`secret_scan_error`).
-  마지막 `run.json`을 쓴 뒤 기록 폴더를 한 번 더 검사한다. 압축본은 압축 전 폴더를 검사한 뒤 만든다.
+  마지막 `run.json`을 쓴 뒤 기록 폴더를 한 번 더 검사한다.
+- **압축본과 토큰 검사**: `.tar.gz`는 압축된 바이트라 검사 대상에서 빼고, 대신 압축본을 **검사(와 가림)를 마친 폴더에서만** 만든다 —
+  `work.tar.gz` ← `run_root/work`, `claude-home.tar.gz` ← `run_root/scratch/claude-home`(둘 다 검사 범위 안, 검사와 압축 사이에 쓰는 것 없음).
+  이 사실을 `secret_scan.archives_from_scanned`(true)로 남기고, 검사가 실패하면 false(실행은 `secret_scan_error`로 failed — 압축본 내용은 검사되지 않음).
+  한계: 바이트 검사라 git 객체(`.git/objects` — zlib 압축)에 커밋된 토큰은 폴더에서도 압축본에서도 보이지 않는다.
 
 ### 기록 형식 — `<runs_dir>/<run id>/` (run id = `<모델에서 claude- 뺀 것>-<조건>-r<반복>-<YYYYmmddTHHMMSS>`)
 
@@ -140,7 +144,7 @@ run_root, work_dir(/work), skeleton_commit, steps_planned[], compact_window_env,
 outbox_config, outbox_config_sha256, messages_sha256[], messages_sha256_all(메시지별 해시를 이은 것의 해시 — 집계의 입력 일치 확인), limits{},
 turns[], boundaries[], totals{tokens(모르면 null), cost_usd(모르는 턴이 있으면 null), wall_s}, audit[], unexpected_tools[], injections[],
 compact_log[](요약문 빼고 summary_chars), hook_errors[], collection_data_reads[], transcript_unparsed_turns[], cleanup_errors[],
-secret_scan{hits{work, scratch, record}, error, late_hits?}, work_archive, claude_home_archive,
+secret_scan{hits{work, scratch, record}, error, late_hits?, archives_from_scanned}, work_archive, claude_home_archive,
 outbox_boundary_injections[](outbox만)`.
 
 - `turns[k]`: `step, index, started_at(epoch 초), ended_at, started_iso, wall_s, exit_code, timed_out, container, result_parsed, is_error,

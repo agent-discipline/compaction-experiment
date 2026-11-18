@@ -378,6 +378,7 @@ class RunLoopTest(unittest.TestCase):
         self.assertEqual(run["messages_sha256"], [t["message_sha256"] for t in run["turns"]])
         self.assertEqual(run["totals"]["tokens"], 300)
         self.assertEqual(run["secret_scan"]["hits"], {"work": [], "scratch": [], "record": []})
+        self.assertTrue(run["secret_scan"]["archives_from_scanned"])
         self.assertTrue(run["measurement_complete"])
         self.assertEqual(run["totals"]["cost_usd"], 0.03)
         self.assertEqual(run["messages_sha256_all"], rt.messages_digest(run["messages_sha256"]))
@@ -432,6 +433,19 @@ class RunLoopTest(unittest.TestCase):
         with tarfile.open(rdir / "work.tar.gz") as tf:
             self.assertEqual(tf.extractfile("work/leak.txt").read(), b"token=<REDACTED-SECRET>\n")
         self.assertNotIn(TOKEN, (rdir / "run.json").read_text())
+
+    def test_scan_error_marks_archives_unscanned(self):
+        """검사가 실패하면 압축본이 검사한 내용에서 만들어졌다고 기록하지 않는다(실행은 failed)."""
+        orig = rt.scrub
+
+        def boom(base, secret, skip_suffixes=()):
+            if Path(base).name == "work":
+                raise OSError("scan failed")
+            return orig(base, secret, skip_suffixes)
+        with mock.patch.object(rt, "scrub", boom):
+            rc, run, rdir, base = self.run_fake("compact")
+        self.assertEqual((run["status"], run["secret_scan"]["archives_from_scanned"]), ("failed", False))
+        self.assertIn("secret_scan_error", run["failure_reasons"])
 
     def test_unparsed_transcript_line_invalidates(self):
         rc, run, *_ = self.run_fake("compact", FAKE_BAD_LINE_TURN="2")

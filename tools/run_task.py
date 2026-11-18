@@ -915,13 +915,20 @@ def finalize(docker, cfg, a, state, rdir, root, names, created, entries, tampere
                 state["warnings"].append(f"finalize: ~/.claude 사본 실패(rc={cp.returncode}) {cp.stderr.strip()[:200]}")
         else:
             state["warnings"].append(f"finalize: 수집 컨테이너 생성 실패 {p.stderr.strip()[:200]}")
+    # 압축본(.tar.gz)은 바이트 검사로 볼 수 없으므로 검사하지 않는다. 대신 압축본은 **검사(와 가림)를 마친 폴더에서만** 만든다:
+    # work.tar.gz ← work, claude-home.tar.gz ← scratch/claude-home. 검사와 압축 사이에 두 폴더에 쓰는 것은 없다.
+    archives = [(work, rdir / "work.tar.gz", "work", ("build", ".gradle", ".kotlin"), "work_archive"),
+                (scratch / "claude-home", rdir / "claude-home.tar.gz", "claude-home", (), "claude_home_archive")]
     try:
         # scratch 전체(~/.claude 사본 + 턴마다 복사한 세션 기록 projects/) — --keep-root면 남으므로 함께 검사
         hits = {"work": scrub(work, token), "scratch": scrub(scratch, token),
                 "record": scrub(rdir, token, skip_suffixes=(".tar.gz",))}
-        state["secret_scan"] = {"hits": hits, "error": None}
+        scanned = (work, scratch)
+        state["secret_scan"] = {"hits": hits, "error": None, "archives_from_scanned": all(
+            any(src == d or d in src.parents for d in scanned) for src, *_ in archives)}
     except Exception as e:  # 검사 자체 실패 = 범위를 모름 → 실패
-        state["secret_scan"] = {"hits": None, "error": repr(e).replace(token, "<REDACTED-SECRET>")}
+        state["secret_scan"] = {"hits": None, "error": repr(e).replace(token, "<REDACTED-SECRET>"),
+                                "archives_from_scanned": False}
         failures.append("secret_scan_error")
     if state["secret_scan"]["hits"] and any(state["secret_scan"]["hits"].values()):
         failures.append("secret_leak")
@@ -943,12 +950,10 @@ def finalize(docker, cfg, a, state, rdir, root, names, created, entries, tampere
                               state["collection_data_reads"])
     state["invalid_reasons"], state["invalid"] = reasons, bool(reasons)
     try:
-        if work.is_dir():
-            archive_dir(work, rdir / "work.tar.gz", "work")
-            state["work_archive"] = "work.tar.gz"
-        if (scratch / "claude-home").is_dir():
-            archive_dir(scratch / "claude-home", rdir / "claude-home.tar.gz", "claude-home", skip=())
-            state["claude_home_archive"] = "claude-home.tar.gz"
+        for src, dest, arcname, skip, key in archives:
+            if src.is_dir():
+                archive_dir(src, dest, arcname, skip=skip)
+                state[key] = dest.name
     except Exception as e:
         state["warnings"].append(f"finalize: 보관 실패 {e!r}")
         failures.append("archive_failed")
