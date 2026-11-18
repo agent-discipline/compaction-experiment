@@ -204,6 +204,52 @@ class SummaryTest(unittest.TestCase):
         self.assertNotIn("A", self.res["per_item"])
         self.assertTrue(self.res["per_item"]["D"]["drop_candidate"])
 
+    def test_two_models_reps_constraints_and_per_run_table(self):
+        """한 실행 폴더에 두 모델(반복 여럿 + 파일럿 1개씩): 모델마다 따로 표, 실행별 위반율 평균, 제약별(K) 반복별 결과,
+        실행별 컴팩트·주입·토큰·K8 표. 모델끼리 실행 상한(limits)이 달라도 입력 불일치가 아니다(모델 안에서만 대조)."""
+        b = Path(tempfile.mkdtemp())
+        k8 = lambda res, bh, bl, ah, al: item(res, 1, violating_turns=[3] if res == "fail" else [],
+                                              turn_level={"result": "pass", "violating_turns": []},
+                                              by_first_compaction={"before": {"hangul": bh, "latin": bl, "ratio": bh / (bh + bl)},
+                                                                   "after": {"hangul": ah, "latin": al,
+                                                                             "ratio": ah / (ah + al) if ah + al else None}})
+        dirs = []
+        for rep in (1, 2, 3):
+            dirs.append(make_run(b, f"h-control-r{rep}", "control", {"K1": item("pass"), "K8": item("pass"),
+                                                                     "I0": item("fail" if rep == 1 else "pass")},
+                                 model="haiku", rep=rep, limits={"max_tokens": 1}))
+            dirs.append(make_run(b, f"h-compact-r{rep}", "compact",
+                                 {"K1": item("pass", 1), "K8": k8("fail" if rep < 3 else "pass", 90, 10, 10, 90),
+                                  "I0": item("pass", 1)},
+                                 model="haiku", rep=rep, limits={"max_tokens": 1}, injections=[],
+                                 boundaries=[{}, {}]))
+        dirs.append(make_run(b, "s-control-r1", "control", {"K1": item("pass"), "K8": item("pass")}, model="sonnet",
+                             rep=1, limits={"max_tokens": 2}))
+        dirs.append(make_run(b, "s-outbox-r1", "outbox", {"K1": item("pass", 1), "K8": k8("pass", 9, 1, 9, 1)},
+                             model="sonnet", rep=1, limits={"max_tokens": 2}, injections=[{}, {}, {}],
+                             boundaries=[{}, {}, {}], outbox_config_sha256="cfg"))
+        res = summarize.summarize(summarize.load(dirs))
+        self.assertEqual(res["excluded"], [])                                          # 모델별 대조 — 불일치 없음
+        hc = next(r for r in res["rows"] if (r["model"], r["condition"]) == ("haiku", "control"))
+        self.assertEqual(len(hc["run_violation_rates"]), 3)
+        self.assertEqual(res["k_items"]["haiku"]["compact"]["K8"], [(1, "fail"), (2, "fail"), (3, "pass")])
+        runs = {x["run_id"]: x for x in res["runs"]}
+        self.assertEqual((runs["s-outbox-r1"]["compactions"], runs["s-outbox-r1"]["injections"],
+                          runs["s-outbox-r1"]["tokens"]), (3, 3, 10))
+        self.assertEqual(runs["h-compact-r1"]["k8"], "fail")
+        md = summarize.markdown(res)
+        self.assertIn("## haiku", md)
+        self.assertIn("## sonnet", md)
+        haiku, sonnet = md.split("## sonnet")
+        self.assertNotIn("s-outbox-r1", haiku)
+        self.assertNotIn("h-compact-r1", sonnet)
+        self.assertIn("| K8 | 2/3 [r1F r2F r3P] | 0/3 [r1P r2P r3P] |", haiku)
+        self.assertIn("| K8 첫 컴팩트 앞→뒤 한글 비율(한글/라틴 합) | 0.900 (270/30) → 0.100 (30/270) |", haiku)
+        self.assertIn("평균 11.1% (33.3%, 0.0%, 0.0%)", haiku)                                           # 반복 여럿이면 실행별 위반율 평균
+        self.assertIn("| s-outbox-r1 | outbox | 1 | 예 | 3 | 3 | 미측정 | 10 | pass (0) | pass (0) | 0.900 (9/1) | 0.900 (9/1) |",
+                      sonnet)
+        self.assertIn("| h-compact-r1 | compact | 1 | 예 | 2 | 0 | — | 10 | fail (1) | pass (0) |", haiku)
+
     def test_markdown_and_cli(self):
         md = summarize.markdown(self.res)
         self.assertIn("| m | compact | 5 | 4 | 1 | 1 | 0 | 1 | 1 | 1 | 0 | 0 | 0 | 1 | 1 |", md)

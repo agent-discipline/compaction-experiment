@@ -31,6 +31,7 @@ COMMON_INPUTS = ("messages_sha256_all", "image_id", "skeleton_commit", "cli_vers
                  "container_env_common", "auto_memory")
 CONDITION_INPUTS = ("settings_sha256", "compact_window_env", "outbox_config_sha256")
 REREAD_KINDS = ("session_log", "outbox_data", "root_search")
+K_ITEMS = ("K1", "K2", "K3", "K4", "K5", "K6", "K7a", "K7b", "K8")
 
 
 def rate(f, p):
@@ -88,7 +89,8 @@ def input_value(run, key):
 
 
 def input_mismatches(recs):
-    """{run_id: [어긋난 키]}"""
+    """{run_id: [어긋난 키]} — 모델마다 따로 대조한다(비교는 같은 모델 안에서만 하고, 모델끼리는 나란히 낼 뿐이다.
+    예: Sonnet 파일럿과 Haiku 본 실행의 실행 상한(limits)이 달라도 서로를 입력 불일치로 만들지 않는다)."""
     bad = {}
 
     def check(group, key):
@@ -99,11 +101,13 @@ def input_mismatches(recs):
             if v != ref:
                 bad.setdefault(r["run"]["run_id"], []).append(key)
 
-    for key in COMMON_INPUTS:
-        check(recs, key)
-    for cond in sorted({r["run"]["condition"] for r in recs}):
-        for key in CONDITION_INPUTS:
-            check([r for r in recs if r["run"]["condition"] == cond], key)
+    for model in sorted({r["run"]["model"] for r in recs}):
+        mine = [r for r in recs if r["run"]["model"] == model]
+        for key in COMMON_INPUTS:
+            check(mine, key)
+        for cond in sorted({r["run"]["condition"] for r in mine}):
+            for key in CONDITION_INPUTS:
+                check([r for r in mine if r["run"]["condition"] == cond], key)
     return bad
 
 
@@ -207,11 +211,41 @@ def summarize(recs):
         })
     pairs, primary = paired(recs)
     return {"rows": rows, "per_item": per_item, "pairs": pairs, "primary": primary,
-            "excluded": [{"run_id": r["run"]["run_id"], "unscored": r["score"] is None, "score_mismatch": r["score_mismatch"],
+            "runs": [run_record(r) for r in sorted(recs, key=lambda r: (r["run"]["model"], r["run"]["condition"],
+                                                                      r["run"].get("rep") or 0, r["run"]["run_id"]))],
+            "k_items": k_items(recs),
+            "excluded": [{"run_id": r["run"]["run_id"], "model": r["run"]["model"], "unscored": r["score"] is None,
+                          "score_mismatch": r["score_mismatch"],
                           "measurement_complete": r["run"]["measurement_complete"],
                           "invalid_reasons": r["run"].get("invalid_reasons") or [], "input_mismatch": r["mismatch"],
                           "failure_reasons": r["run"].get("failure_reasons") or []}
                          for r in recs if not r["included"] or r["run"].get("failure_reasons")]}
+
+
+def run_record(r):
+    """실행별 표 한 줄 — 컴팩트·주입 수·토큰과 K8(전체·턴 단위·첫 컴팩트 앞/뒤 본문 합). 채점이 이 실행의 것이 아니면 채점 값은 None."""
+    run = r["run"]
+    s = r["score"] if r["score"] and not r["score_mismatch"] else None
+    k8 = ((s or {}).get("items") or {}).get("K8") or {}
+    return {"model": run["model"], "condition": run["condition"], "rep": run.get("rep"), "run_id": run["run_id"],
+            "included": r["included"], "compactions": len(run.get("boundaries") or []),
+            "injections": len(run.get("injections") or []),
+            "injected_tokens": (s or {}).get("injected_tokens"), "tokens": (run.get("totals") or {}).get("tokens"),
+            "cost_usd": (run.get("totals") or {}).get("cost_usd"),
+            "k8": k8.get("result"), "k8_violating_turns": k8.get("violating_turns"),
+            "k8_turn_level": (k8.get("turn_level") or {}).get("result"),
+            "k8_turn_level_violating_turns": (k8.get("turn_level") or {}).get("violating_turns"),
+            "k8_by_first_compaction": k8.get("by_first_compaction")}
+
+
+def k_items(recs):
+    """제약별(K1~K8) 결과 — {모델: {조건: {항목: [(반복, 결과)]}}} (집계 대상 실행만, 반복 순)."""
+    out = {}
+    for r in sorted((r for r in recs if r["included"]), key=lambda r: (r["run"].get("rep") or 0, r["run"]["run_id"])):
+        cell = out.setdefault(r["run"]["model"], {}).setdefault(r["run"]["condition"], {})
+        for i in K_ITEMS:
+            cell.setdefault(i, []).append((r["run"].get("rep"), (r["score"]["items"].get(i) or {}).get("result")))
+    return out
 
 
 def judged_items(score, items):
@@ -277,7 +311,42 @@ def pp(x):
     return "—" if x is None else f"{x * 100:+.1f}%p"
 
 
+RESULT_MARK = {"pass": "P", "fail": "F"}
+
+
+def k8_ratio(part):
+    if not part:
+        return "—"
+    r = part.get("ratio")
+    return f"{'—' if r is None else f'{r:.3f}'} ({part.get('hangul', 0)}/{part.get('latin', 0)})"
+
+
+def pooled_k8(runs, key):
+    h = sum(((x["k8_by_first_compaction"] or {}).get(key) or {}).get("hangul", 0) for x in runs)
+    l = sum(((x["k8_by_first_compaction"] or {}).get(key) or {}).get("latin", 0) for x in runs)
+    return {"hangul": h, "latin": l, "ratio": round(h / (h + l), 4) if h + l else None}
+
+
 def markdown(res):
+    """모델마다 따로 표를 낸다(한 실행 폴더에 모델이 여럿이어도 섞지 않는다)."""
+    models = sorted({r["model"] for r in res["rows"]})
+    if len(models) <= 1:
+        return markdown_model(res)
+    parts = []
+    for m in models:
+        sub = {**res, "rows": [r for r in res["rows"] if r["model"] == m],
+               "primary": [x for x in res["primary"] if x["model"] == m],
+               "pairs": [x for x in res["pairs"] if x["model"] == m],
+               "runs": [x for x in res.get("runs", []) if x["model"] == m],
+               "k_items": {m: res.get("k_items", {}).get(m, {})},
+               "excluded": [x for x in res["excluded"] if x.get("model") == m],
+               "per_item": {i: {**v, "cells": {k: b for k, b in v["cells"].items() if k[0] == m}}
+                            for i, v in res["per_item"].items() if any(k[0] == m for k in v["cells"])}}
+        parts.append(f"## {m}\n\n" + markdown_model(sub))
+    return "\n\n".join(parts)
+
+
+def markdown_model(res):
     rows, out = res["rows"], []
     out += ["### 실행 상태", "",
             "| 모델 | 조건 | 실행 | 측정 완료 | 중단 | 미채점 | 채점 불일치 | 무효 | 입력 불일치 | 집계 대상 | 운영 문제 | 토큰 검출 | "
@@ -305,7 +374,7 @@ def markdown(res):
         inj = r["condition"] == "outbox"
         out.append(f"| {r['model']} | {r['condition']} | {fmt(r['violation_rate'], True)} ({r['judged']}) | "
                    f"{fmt(r['drop_candidate_rate'], True)} ({r['drop_candidate_judged']}) | "
-                   f"{', '.join(fmt(x, True) for x in r['run_violation_rates']) or '—'} | "
+                   f"{run_rates(r['run_violation_rates'])} | "
                    f"{', '.join(f'{k} {v}' for k, v in sorted(r['not_judged'].items())) or '—'} | "
                    f"{fmt(r['mean_compactions'])} | {r['unlocated_boundaries']} | {r['prompt_adjacent_boundaries']} | "
                    f"{fmt(r['mean_injected_chars'], none='미측정' if inj else '—')} | "
@@ -326,6 +395,7 @@ def markdown(res):
         out.append(f"| {x['run_id']} | {x['items']} | {x['unknown_items']} | {x['judged']} | {cmp_}{nz} | "
                    f"{fmt(x['rate'], True)} | ({x['controls']}) {fmt(x['control_rate_mean'], True)} "
                    f"[{pct_span(x['control_rate_span'])}] | {pp(x['diff'])} |")
+    out += k_tables(res)
     per_item = res["per_item"]
     cols = sorted({k for v in per_item.values() for k in v["cells"]})
     out += ["", "### 항목별 — 위반 수/판정 수, 전달 뒤 컴팩트 있음(뒤)·없음·위치 불명(불명)", "",
@@ -340,6 +410,50 @@ def markdown(res):
         out.append(f"| {item}{' ●' if per_item[item]['drop_candidate'] else ''} | " + " | ".join(cells) + " |")
     out += ["", "● = 버릴 후보(scoring-items.md 취약 열) — 주 지표·위반율에서 빼고 따로 낸다. 별칭 항목은 세지 않는다."]
     return "\n".join(out)
+
+
+def run_rates(xs):
+    """실행별 위반율 — 실행이 둘 이상이면 평균을 앞에."""
+    vals = ", ".join(fmt(x, True) for x in xs) or "—"
+    return f"평균 {fmt(mean(xs), True)} ({vals})" if len(xs) > 1 else vals
+
+
+def k_tables(res):
+    out = ["", "### 제약별(K1~K8) — 위반 실행 수/판정 실행 수 [반복별 P=pass F=fail ·=판정 불가], 집계 대상 실행", ""]
+    for model, conds in sorted(res.get("k_items", {}).items()):
+        cs = sorted(conds)
+        if not cs:
+            continue
+        out += [f"| 항목 ({model}) | " + " | ".join(cs) + " |", "|---|" + "---|" * len(cs)]
+        for i in K_ITEMS:
+            cells = []
+            for c in cs:
+                xs = conds[c].get(i, [])
+                f = sum(x == "fail" for _, x in xs)
+                n = sum(x in ("pass", "fail") for _, x in xs)
+                marks = " ".join(f"r{rep}{RESULT_MARK.get(x, '·')}" for rep, x in xs)
+                cells.append(f"{f}/{n} [{marks}]")
+            out.append(f"| {i} | " + " | ".join(cells) + " |")
+        inc = [x for x in res.get("runs", []) if x["included"] and x["model"] == model]
+        out.append("| K8 첫 컴팩트 앞→뒤 한글 비율(한글/라틴 합) | " + " | ".join(
+            f"{k8_ratio(pooled_k8([x for x in inc if x['condition'] == c], 'before'))} → "
+            f"{k8_ratio(pooled_k8([x for x in inc if x['condition'] == c], 'after'))}" for c in cs) + " |")
+        out.append("")
+    runs = res.get("runs", [])
+    if runs:
+        out += ["### 실행별 — 컴팩트·주입·토큰, K8(전체 · 턴 단위 · 첫 컴팩트 앞/뒤 한글 비율(한글/라틴))", "",
+                "| 실행 | 조건 | 반복 | 집계 대상 | 컴팩트 | 주입 | 주입 토큰 | 토큰 | K8 (위반 턴) | K8 턴 단위 (위반 턴) | "
+                "K8 첫 컴팩트 앞 | K8 첫 컴팩트 뒤 |", "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+        for x in runs:
+            b = x["k8_by_first_compaction"] or {}
+            inj = x["condition"] == "outbox"
+            out.append(f"| {x['run_id']} | {x['condition']} | {x['rep']} | {'예' if x['included'] else '아니오'} | "
+                       f"{x['compactions']} | {x['injections']} | "
+                       f"{fmt(x['injected_tokens'], none='미측정' if inj else '—')} | {fmt(x['tokens'], none='미측정')} | "
+                       f"{x['k8'] or '—'} ({len(x['k8_violating_turns'] or [])}) | "
+                       f"{x['k8_turn_level'] or '—'} ({len(x['k8_turn_level_violating_turns'] or [])}) | "
+                       f"{k8_ratio(b.get('before'))} | {k8_ratio(b.get('after'))} |")
+    return out
 
 
 def to_json(res):
