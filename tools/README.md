@@ -263,7 +263,8 @@ boundaries[](+coord — 위치 불명은 null), injections, injected_chars(null 
 injected_tokens(null = 미측정 — injection-tokens.json, 해시 대조), injected_tokens_unavailable(미측정 이유), history{rewritten_turns[](턴 끝 HEAD가 최종 HEAD의 조상이 아닌 턴 — amend·rebase·reset),
 missing_turns[](커밋 객체가 없는 턴)}, totals, turns_done, hidden{ran, main_build{exit_code, timed_out}, exit_code, timed_out,
 testcases, log, reason, operator_flag?}, counts{결과: 수}, items{id: …}, k8_turns[{turn, step, prose_chars, hangul, latin, ratio(null=20자 미만),
-compactions_so_far, violation}], unmapped_hidden_ids[], operator_flags[](채점 환경 실패 등 운영자가 보고 다시 채점할 것)`.
+compactions_so_far, segments[{start_line, end_line, after_boundary, prose_chars, hangul, latin, ratio, violation}], turn_violation,
+segment_violation, violation}], unmapped_hidden_ids[], operator_flags[](채점 환경 실패 등 운영자가 보고 다시 채점할 것)`.
 
 K 항목 세부: K1 = `src/main`·`src/test`의 `kotlin`·`java` 아래 `.kt`·`.java`, 예외 = `k1_exempt_paths`·`hidden_test_path_prefix` ·
 K2 = `git log --name-status -M`에서 `.sql`의 A 이외 상태 + `git diff HEAD` + 골격 커밋·턴 끝 HEAD 사이의 `git diff --name-status -M`(이력을 고쳐 써도 보이게) ·
@@ -274,7 +275,7 @@ K6 = 메인 코드(`src/main/kotlin`·`java`)의 **인자 없는** `Instant|Loca
 (`@Bean` 앞 400자 안의 것 1곳만 허용) + 문자열 리터럴 속 SQL `now()`·`CURRENT_TIMESTAMP`·`clock_/statement_/transaction_timestamp(`·`LOCALTIMESTAMP` ·
 K7b 판정은 접두 형식만(번호 불일치 `number_mismatch`는 따로 적는 수치) · K7a/b = 골격 커밋 이후 커밋을 커밋 시각(`%ct`)으로 턴 창 `[턴 k 시작, 턴 k+1 시작)`에 배정(마지막 턴은 끝 없음). K7a는 S0~S7 턴마다 커밋을 요구하고,
 S8은 그 턴에 추적 파일이 바뀐 경우(HEAD가 움직였거나 `tracked_diff_sha256`이 앞 턴 끝과 다름 — 기록이 없으면 요구)에만 요구한다 ·
-K8 = 기준 `k8_threshold`(0.5), 본문 `k8_min_chars`(20)자 미만 턴 제외(코드 블록·인라인 코드·인용·URL·경로를 뺀 뒤 공백을 뺀 글자 수). 경로는 토큰 전체를 뺀다(`language.PATH` — 확장자로 끝나는 `…/이름.ext`,
+K8 = 기준 `k8_threshold`(0.5), 본문 `k8_min_chars`(20)자 미만 턴 제외(코드 블록·인라인 코드·인용·URL·경로를 뺀 뒤 공백을 뺀 글자 수). 턴 안에 경계가 있으면 그 턴 범위를 세션 기록의 경계 줄에서 잘라 구간마다 같은 제외·같은 최소 글자 수로 비율을 낸다(`segments` — 경계가 없으면 구간 1개 = 턴 전체, `after_boundary` = 그 턴 안의 경계 뒤 구간). 턴 위반 `violation` = `turn_violation`(턴 비율 < 기준) 또는 `segment_violation`(판정되는 구간 하나라도 < 기준). K8 결과·`violating_turns`는 `violation` 기준이고, 턴 비율만의 결과는 `items.K8.turn_level{result, violating_turns, judged_turns, rate}`. 경로는 토큰 전체를 뺀다(`language.PATH` — 확장자로 끝나는 `…/이름.ext`,
 `/`·`./`·`~/` 뒤 ASCII 폴더, ASCII 폴더 둘 이상으로 시작, 확장자 붙은 파일 이름, ASCII만의 `a/b`; 한글 이름도 함께 빠진다). 한글만의 `선점/확정`은 산문으로 남긴다.
 
 ## summarize.py

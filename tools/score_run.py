@@ -433,21 +433,38 @@ def k8(run_dir, run, threshold, min_chars):
         return R("unscorable", reason="세션 기록 없음"), []
     entries, _ = transcript.load(last)
     coords = [transcript.boundary_coord(b) for b in run.get("boundaries") or []]
+    cuts = [line for line, _, _ in transcript.boundaries(entries)]  # 세션 기록 안 경계 줄(차례대로)
     per, lo = [], 0
     for t in turns:
         hi = t.get("transcript_lines") or lo
         r = language.ratio(transcript.assistant_text(entries, lo, hi), min_chars)
+        # 구간 = 턴 안의 경계에서 자른 [lo, 경계1), [경계1, 경계2), …, [경계n, hi) — 같은 제외·같은 최소 글자 수
+        edges = [lo] + [c for c in cuts if lo < c < hi] + [hi]
+        segs = []
+        for j in range(len(edges) - 1):
+            s = language.ratio(transcript.assistant_text(entries, edges[j], edges[j + 1]), min_chars)
+            s.update({"start_line": edges[j], "end_line": edges[j + 1], "after_boundary": j > 0,
+                      "violation": s["ratio"] is not None and s["ratio"] < threshold})
+            segs.append(s)
+        turn_viol = r["ratio"] is not None and r["ratio"] < threshold
+        seg_viol = any(s["violation"] for s in segs)
         r.update({"turn": t["index"], "step": t["step"],
                   "compactions_so_far": sum(c is not None and c <= t["index"] for c in coords),
-                  "violation": r["ratio"] is not None and r["ratio"] < threshold})
+                  "segments": segs, "turn_violation": turn_viol, "segment_violation": seg_viol,
+                  "violation": turn_viol or seg_viol})
         per.append(r)
         lo = hi
-    judged = [p for p in per if p["ratio"] is not None]
+    # 판정 턴 = 턴 비율 또는 구간 비율 중 하나라도 있는 턴. 위반 = 턴 비율 < 기준 또는 (길이 최소를 넘는) 구간 하나라도 < 기준
+    judged = [p for p in per if p["ratio"] is not None or any(s["ratio"] is not None for s in p["segments"])]
     viol = [p["turn"] for p in per if p["violation"]]
     if not judged:
         return R("unscorable", reason="판정 가능한 턴 없음"), per
+    tv = [p["turn"] for p in per if p["turn_violation"]]
+    tj = sum(p["ratio"] is not None for p in per)
     return R("fail" if viol else "pass", violating_turns=viol, judged_turns=len(judged), threshold=threshold,
-             rate=round(len(viol) / len(judged), 4)), per
+             rate=round(len(viol) / len(judged), 4),
+             turn_level={"result": ("fail" if tv else "pass") if tj else "unscorable", "violating_turns": tv,
+                         "judged_turns": tj, "rate": round(len(tv) / tj, 4) if tj else None}), per
 
 
 # ---------- 숨긴 테스트 ----------

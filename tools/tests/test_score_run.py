@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -227,6 +228,38 @@ class ScoreRunTest(unittest.TestCase):
         turns = self.s["k8_turns"]
         self.assertIsNone(turns[4]["ratio"])          # 20자 미만
         self.assertEqual(turns[2]["compactions_so_far"], 1)
+
+    def test_k8_segments_split_at_mid_turn_boundary(self):
+        import transcript
+        d = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        ko = "선점 경로의 조회를 인덱스로 바꾸고 테스트를 모두 다시 돌려서 통과하는 것을 확인했습니다. 다음 단계로 넘어가겠습니다."
+        rows = [user("M0"), assistant(ko, mid="a0"),
+                {"type": "system", "subtype": "compact_boundary", "compactMetadata": {"trigger": "auto"}},
+                {"type": "attachment", "attachment": {"type": "date"}},
+                {"type": "user", "isCompactSummary": True, "message": {"content": "요약"}},
+                assistant("Now adding the migration file for the pool.", mid="a1"),      # 경계 뒤 영어(20자 넘음)
+                user("M1"), assistant(ko, mid="a2"),
+                {"type": "system", "subtype": "compact_boundary", "compactMetadata": {"trigger": "auto"}},
+                {"type": "user", "isCompactSummary": True, "message": {"content": "요약"}},
+                assistant("Done, ok.", mid="a3")]                                       # 경계 뒤 영어지만 20자 미만
+        (d / "turns" / "01").mkdir(parents=True)
+        write_jsonl(d / "turns" / "01" / "transcript.jsonl", rows)
+        entries = transcript.load(d / "turns" / "01" / "transcript.jsonl")[0]
+        run = {"boundaries": transcript.locate_boundaries(entries, [6, 11], ["M0", "M1"]),
+               "turns": [{"index": 0, "step": "S0", "transcript_lines": 6}, {"index": 1, "step": "S1", "transcript_lines": 11}]}
+        r, per = sr.k8(d, run, 0.5, 20)
+        t0, t1 = per
+        self.assertGreaterEqual(t0["ratio"], 0.5)                                     # 턴 전체로는 통과
+        self.assertEqual([(s["start_line"], s["end_line"], s["after_boundary"]) for s in t0["segments"]],
+                         [(0, 2, False), (2, 6, True)])
+        self.assertEqual(t0["segments"][0]["ratio"], 1.0)
+        self.assertLess(t0["segments"][1]["ratio"], 0.5)
+        self.assertEqual((t0["turn_violation"], t0["segment_violation"], t0["violation"]), (False, True, True))
+        self.assertIsNone(t1["segments"][1]["ratio"])                                  # 20자 미만 구간은 판정 제외
+        self.assertEqual((t1["turn_violation"], t1["segment_violation"], t1["violation"]), (False, False, False))
+        self.assertEqual((r["result"], r["violating_turns"], r["judged_turns"]), ("fail", [0], 2))
+        self.assertEqual(r["turn_level"], {"result": "pass", "violating_turns": [], "judged_turns": 2, "rate": 0.0})
 
     def test_delivery_distance(self):
         self.assertEqual(self.s["compactions"], 1)
