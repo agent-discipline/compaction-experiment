@@ -315,8 +315,14 @@ python3 tools/summarize.py [실행 폴더 | run.json | score.json …] [--runs-d
 ## 테스트
 
 ```
-python3 -m unittest discover -s tools/tests -p 'test_*.py'
+python3 -m unittest discover -s tools/tests -p 'test_*.py'                                  # 지원하는 형식(저장소 루트에서)
+(cd tools/tests && python3 -m unittest test_transcript test_score_run.ScoreRunTest)        # 일부만: tools/tests 안에서 모듈 이름으로
 ```
+
+`python3 -m unittest tools.tests.test_x`(저장소 루트에서 점 경로 모듈 형식)는 **안 된다** — 테스트 파일이 같은 폴더의 `helpers`를
+최상위 모듈로 가져오고(`from helpers import …`, 그 안에서 `tools/`를 import 경로에 넣음), `tools/`·`tools/tests/`에 `__init__.py`가
+없어서 점 경로로 불러오면 `tools/tests`가 import 경로에 들지 않아 `ModuleNotFoundError: helpers`가 난다. `discover -s tools/tests`는
+그 폴더를 import 경로 맨 앞에 넣으므로 된다(폴더 안에서 모듈 이름으로 부르는 것도 같은 이유로 된다).
 
 실행기 테스트는 Docker 없이 돈다: `cfg["docker_bin"]`을 `tests/fake_docker.py`(가짜 docker — create·start·cp·inspect·rm·network·volume·ps를
 흉내, 마운트 대상 경로를 호스트 폴더로 바꿔 명령을 호스트에서 실행)로 바꾸고, 컨테이너 안 `claude`는 `tests/fake_claude.py`(세션 기록 작성,
