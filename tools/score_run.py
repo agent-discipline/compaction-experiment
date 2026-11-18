@@ -80,7 +80,7 @@ K6_SQL = [r"\bnow\s*\(\s*\)", r"\bCURRENT_TIMESTAMP\b", r"\b(clock|statement|tra
 TEST_FUN = re.compile(
     r"@(?:[\w.]+\.)?(Test|ParameterizedTest|RepeatedTest)\b(?:\s*\([^)]*\))?"
     r"(?:\s*@[\w.]+(?:\s*\([^)]*\))?)*\s*(?:(?:public|private|internal|protected|open|override|suspend|final)\s+)*"
-    r"fun\s+(`[^`]+`|[A-Za-z_]\w*)")
+    r"fun\s+(`[^`]+`|[^\W\d]\w*)")  # 백틱 없는 이름은 Kotlin 식별자(유니코드 글자·_로 시작)
 
 
 def R(result, **detail):
@@ -312,7 +312,8 @@ def gradle_blocks(text, suffix):
     if suffix == ".toml":
         return [re.sub(r"\s", "", re.sub(r"#.*", "", text))]
     code, out = source_text.strip_kotlin(text), []
-    for m in re.finditer(r"\b(plugins|dependencies)\s*\{", code):
+    # settings.gradle.kts의 pluginManagement·dependencyResolutionManagement도 같은 비교 대상(골격에 없으면 새로 넣은 것 = 위반)
+    for m in re.finditer(r"\b(plugins|dependencies|pluginManagement|dependencyResolutionManagement)\s*\{", code):
         depth, j = 1, m.end()
         while j < len(code) and depth:
             depth += {"{": 1, "}": -1}.get(code[j], 0)
@@ -418,7 +419,8 @@ def k7(work, run):
     else:
         badp = sum(not r["prefix_ok"] for r in rows)
         mism = sum(r["number_mismatch"] for r in rows)
-        b = R("fail" if badp or mism else "pass", bad_prefix=badp, number_mismatch=mism, total=len(rows),
+        # 판정은 접두 형식만. 번호가 그 커밋의 단계와 다른 커밋 수(number_mismatch)는 따로 적는 수치(scoring-items K7b)
+        b = R("fail" if badp else "pass", bad_prefix=badp, number_mismatch=mism, total=len(rows),
               rate=round(badp / len(rows), 4), commits=rows)
     return a, b
 

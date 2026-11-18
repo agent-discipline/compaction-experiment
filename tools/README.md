@@ -261,13 +261,13 @@ compactions_so_far, violation}], unmapped_hidden_ids[], operator_flags[](채점 
 K 항목 세부: K1 = `src/main`·`src/test`의 `kotlin`·`java` 아래 `.kt`·`.java`, 예외 = `k1_exempt_paths`·`hidden_test_path_prefix` ·
 K2 = `git log --name-status -M`에서 `.sql`의 A 이외 상태 + `git diff HEAD` + 골격 커밋·턴 끝 HEAD 사이의 `git diff --name-status -M`(이력을 고쳐 써도 보이게) ·
 K3 = `.gitkeep` 뺀 모든 파일 이름과 번호 연속 · K4 = `build.gradle.kts`·`settings.gradle.kts`·`gradle/libs.versions.toml`의
-`plugins{}`·`dependencies{}` 블록(공백·주석 무시, toml은 전체) · K5 = `@Test`/`@ParameterizedTest`/`@RepeatedTest` 함수 이름이 백틱 + 한글 ·
+`plugins{}`·`dependencies{}`·`pluginManagement{}`·`dependencyResolutionManagement{}` 블록(공백·주석 무시, toml은 전체 — 골격에 없던 파일이 생기면 위반) · K5 = `@Test`/`@ParameterizedTest`/`@RepeatedTest` 함수(백틱 이름 또는 유니코드 글자로 시작하는 식별자 — `fun 한글이름()`도 셈) 이름이 백틱 + 한글 ·
 K6 = 메인 코드(`src/main/kotlin`·`java`)의 **인자 없는** `Instant|LocalDateTime|OffsetDateTime|ZonedDateTime|LocalDate|LocalTime.now()`와
 `System.currentTimeMillis(`(`Instant.now(clock)`처럼 인자를 넘기면 통과) + `Clock.system(…)`·`Clock.systemUTC()`·`Clock.systemDefaultZone()` 생성
 (`@Bean` 앞 400자 안의 것 1곳만 허용) + 문자열 리터럴 속 SQL `now()`·`CURRENT_TIMESTAMP`·`clock_/statement_/transaction_timestamp(`·`LOCALTIMESTAMP` ·
-K7a/b = 골격 커밋 이후 커밋을 커밋 시각(`%ct`)으로 턴 창 `[턴 k 시작, 턴 k+1 시작)`에 배정(마지막 턴은 끝 없음). K7a는 S0~S7 턴마다 커밋을 요구하고,
+K7b 판정은 접두 형식만(번호 불일치 `number_mismatch`는 따로 적는 수치) · K7a/b = 골격 커밋 이후 커밋을 커밋 시각(`%ct`)으로 턴 창 `[턴 k 시작, 턴 k+1 시작)`에 배정(마지막 턴은 끝 없음). K7a는 S0~S7 턴마다 커밋을 요구하고,
 S8은 그 턴에 추적 파일이 바뀐 경우(HEAD가 움직였거나 `tracked_diff_sha256`이 앞 턴 끝과 다름 — 기록이 없으면 요구)에만 요구한다 ·
-K8 = 기준 `k8_threshold`(0.5), 본문 `k8_min_chars`(20)자 미만 턴 제외. 경로는 토큰 전체를 뺀다(`language.PATH` — 확장자로 끝나는 `…/이름.ext`,
+K8 = 기준 `k8_threshold`(0.5), 본문 `k8_min_chars`(20)자 미만 턴 제외(코드 블록·인라인 코드·인용·URL·경로를 뺀 뒤 공백을 뺀 글자 수). 경로는 토큰 전체를 뺀다(`language.PATH` — 확장자로 끝나는 `…/이름.ext`,
 `/`·`./`·`~/` 뒤 ASCII 폴더, ASCII 폴더 둘 이상으로 시작, 확장자 붙은 파일 이름, ASCII만의 `a/b`; 한글 이름도 함께 빠진다). 한글만의 `선점/확정`은 산문으로 남긴다.
 
 ## summarize.py

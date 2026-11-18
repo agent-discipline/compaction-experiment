@@ -121,7 +121,7 @@
       "class": null,
       "method": null,
       "display_name": null,
-      "no_test": "scoring-items: 별도 실패 판정 없음 — 다른 H 항목이 X-User-Id로만 사용자를 구분해 통과하면 충족. 채점기가 파생 판정하거나 집계에서 뺀다."
+      "no_test": "scoring-items: 별도 실패 판정 없음 — 다른 H 항목이 X-User-Id로만 사용자를 구분해 통과하면 충족. 채점기는 unscorable(reason no_test)로 남긴다(위반율 분모 밖)."
     },
     {
       "id": "D0-13",

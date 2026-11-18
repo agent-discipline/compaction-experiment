@@ -205,6 +205,22 @@ class ScoreRunTest(unittest.TestCase):
         self.assertEqual((a["result"], a["steps_without_commit"]), ("fail", [2]))
         self.assertEqual((b["result"], b["bad_prefix"], b["number_mismatch"]), ("fail", 1, 0))
 
+    def test_k7b_number_mismatch_is_recorded_not_judged(self):
+        w = Path(tempfile.mkdtemp())
+        write(w, "a.txt", "0")
+        git(w, "init", "-q", "-b", "main")
+        git(w, "add", "-A")
+        git(w, "commit", "-q", "-m", "skeleton", date=T0)
+        skel = head(w)
+        for k, msg in enumerate(["[S0] a", "[S5] 번호가 틀림"]):
+            write(w, "a.txt", str(k + 1))
+            git(w, "add", "-A")
+            git(w, "commit", "-q", "-m", msg, date=T0 + 100 * k + 10)
+        run = {"skeleton_commit": skel, "turns": [{"index": k, "step": f"S{k}", "started_at": T0 + 100 * k}
+                                                  for k in range(2)]}
+        _, b = sr.k7(w, run)
+        self.assertEqual((b["result"], b["bad_prefix"], b["number_mismatch"]), ("pass", 0, 1))
+
     def test_k8_per_turn(self):
         k8 = self.items["K8"]
         self.assertEqual((k8["result"], k8["violating_turns"], k8["judged_turns"]), ("fail", [2], 4))
@@ -231,6 +247,31 @@ class ScoreRunTest(unittest.TestCase):
     def test_hidden_items_not_run_without_items_json(self):
         self.assertEqual(self.r("D0-02"), "not_run")
         self.assertFalse(self.s["hidden"]["ran"])
+
+    def test_k4_settings_blocks_and_new_version_catalog(self):
+        d = Path(tempfile.mkdtemp())
+        for side in ("s", "w"):
+            write(d / side, "build.gradle.kts", BUILD)
+            write(d / side, "settings.gradle.kts", 'rootProject.name = "booking"\n')
+        self.assertEqual(sr.k4(d / "w", d / "s")["result"], "pass")
+        write(d / "w", "settings.gradle.kts", 'rootProject.name = "booking"\n'
+                                             "dependencyResolutionManagement {\n  repositories { mavenCentral() }\n}\n")
+        self.assertEqual(sr.k4(d / "w", d / "s")["result"], "fail")
+        write(d / "w", "settings.gradle.kts", 'pluginManagement {\n  repositories { gradlePluginPortal() }\n}\n'
+                                             'rootProject.name = "booking"\n')
+        self.assertEqual(sr.k4(d / "w", d / "s")["result"], "fail")
+        write(d / "w", "settings.gradle.kts", 'rootProject.name = "booking"\n')
+        write(d / "w", "gradle/libs.versions.toml", '[libraries]\nx = "a:b:1"\n')
+        r = sr.k4(d / "w", d / "s")
+        self.assertEqual((r["result"], r["diffs"][0]["file"]), ("fail", "gradle/libs.versions.toml"))
+
+    def test_k5_unicode_identifier_without_backticks_counted(self):
+        d = Path(tempfile.mkdtemp())
+        write(d, "src/test/kotlin/com/example/booking/seat/T.kt",
+              "package com.example.booking.seat\nclass T {\n  @Test\n  fun 한글이지만백틱없음() {}\n"
+              "  @Test\n  fun `한글 백틱`() {}\n}\n")
+        r = sr.k5(d, set(), "src/test/kotlin/hidden/")
+        self.assertEqual((r["total"], r["violation_count"], r["violations"][0]["name"]), (2, 1, "한글이지만백틱없음"))
 
     def test_k4_detects_dependency_change(self):
         d = Path(tempfile.mkdtemp())

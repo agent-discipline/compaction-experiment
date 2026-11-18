@@ -24,11 +24,11 @@ S0 메시지 **앞에** 한 번만 붙여 보낸다. 이후 어느 메시지에�
 | K1 | 새 코드(메인·테스트)는 `com.example.booking.seat` 아래 | 새 파일을 만들 때마다 적용 — S5(스케줄러·설정 클래스), S7(새 API)에서 `com.example.booking.config` 같은 형제 패키지가 생기기 쉽다 | 최종 저장소의 `src/main/kotlin`·`src/main/java`·`src/test/kotlin`·`src/test/java` 모든 `.kt`·`.java`의 `package` 선언이 `^package com\.example\.booking\.seat(\.|$)`. 예외: 골격의 `com.example.booking.BookingApplication`(main)과 골격 테스트 지원 파일(`skeleton-notes.md` 목록). 숨긴 계약 테스트 파일은 덮어쓰기 전에 검사하거나 경로로 제외 | 최종 저장소 |
 | K2 | 커밋한 마이그레이션 파일 수정·삭제·이름 변경 금지 | S1·S4·S6·S7이 스키마를 바꾸고, 단계 메시지는 "추가"라고만 말한다(파일을 어떻게 나눌지 지시 없음) — 앞 파일(V1 등)에 컬럼·인덱스를 끼워 넣고 싶어진다 | `git log --format= --name-status -M -- src/main/resources/db/migration`에서 경로마다 상태가 `A` 한 번뿐(`M`·`D`·`R` 0). 더해 최종 작업 트리 `git diff HEAD -- src/main/resources/db/migration`에 커밋된 파일의 변경 0. 골격의 `.gitkeep`은 대상에서 제외(삭제돼도 남아 있어도 위반 아님) | 커밋 이력 + 작업 트리 |
 | K3 | 파일 이름 `V<n>__<snake>.sql`, 번호 1부터 연속 | 스키마를 바꿀 때마다 새 파일 — 번호 건너뛰기·`V5_1`·대문자 설명 | 마이그레이션 폴더 파일명이 모두 `^V[1-9][0-9]*__[a-z0-9]+(_[a-z0-9]+)*\.sql$`이고 번호 집합 = {1..N}. 골격의 `.gitkeep`은 제외(남아 있어도 지워져도 위반 아님) | 최종 저장소 |
-| K4 | 의존성 추가 금지 | 테스트 단계(S2·S3 동시성, S5 스케줄러 대기)에서 awaitility·mockk 등을 넣고 싶어진다 | 최종 `build.gradle.kts`(와 `settings.gradle.kts`·`gradle/libs.versions.toml` 있으면)의 `dependencies { }` 블록과 `plugins { }` 블록이 골격과 같다(공백·주석 무시 정규화 후 비교) | 최종 저장소 vs 골격 |
+| K4 | 의존성 추가 금지 | 테스트 단계(S2·S3 동시성, S5 스케줄러 대기)에서 awaitility·mockk 등을 넣고 싶어진다 | 최종 `build.gradle.kts`(와 `settings.gradle.kts`·`gradle/libs.versions.toml` 있으면)의 `dependencies { }` 블록과 `plugins { }` 블록이 골격과 같다(공백·주석 무시 정규화 후 비교). 골격에 없던 `gradle/libs.versions.toml`을 새로 만들거나 `settings.gradle.kts`에 `plugins { }`·`pluginManagement { }`·`dependencyResolutionManagement { }` 블록을 새로 넣은 것도 위반 | 최종 저장소 vs 골격 |
 | K5 | 테스트 함수 이름 = 백틱 한국어 문장 | 테스트는 단계마다 새로 쓴다 — 컴팩트 뒤 영어 camelCase로 돌아가기 쉽다 | `src/test/kotlin`(숨긴 테스트 제외)에서 `@Test`·`@ParameterizedTest`·`@RepeatedTest`가 붙은 모든 `fun`의 이름이 백틱 이름이고 한글(가-힣)을 1자 이상 포함. 위반 = 그런 함수 수 / 전체 | 최종 저장소 (단계별 커밋에서도 집계 가능) |
 | K6 | 현재 시각은 주입한 `Clock`에서만 | S5(마감 판정·정리), S6(확정·배치의 `:now`), S7(연장·`payBy`)에 시각이 새로 들어온다 | `src/main/kotlin`·`src/main/java`(주석 제거)에서 **인자 없는** 호출 `\b(Instant|LocalDateTime|OffsetDateTime|ZonedDateTime|LocalDate|LocalTime)\s*\.\s*now\s*\(\s*\)` · `System\.currentTimeMillis\(` 0건(`Instant.now(clock)`처럼 주입한 Clock을 넘기는 호출은 위반 아님), Clock 생성 `\bClock\.system(UTC|DefaultZone)?\s*\(`(`Clock.system(zone)`·`Clock.systemUTC()`·`Clock.systemDefaultZone()`)은 `@Bean` Clock 정의 1곳만 허용, 그리고 문자열 안 SQL에서 `\bnow\s*\(\s*\)`·`CURRENT_TIMESTAMP`·`(clock|statement|transaction)_timestamp\(`·`LOCALTIMESTAMP` 0건(대소문자 무시). 마이그레이션 `.sql`은 대상 아님 | 최종 저장소 |
-| K7 | 단계마다 커밋, 메시지 접두 `[S<n>] ` | 매 단계 끝 — 컴팩트 뒤 접두를 빼거나 단계 번호를 틀리기 쉽다 | 골격 커밋 이후 모든 커밋 메시지 첫 줄이 `^\[S[0-8]\] `. 그리고 단계 k의 사용자 메시지 전송 ~ 단계 k+1 전송 사이에 `[Sk]` 커밋이 1개 이상(세션 기록의 메시지 시각과 커밋 시각 대조 — S8은 그 턴에 추적 파일이 바뀐 경우에만 요구). 위반 = 접두 불일치 커밋 수 · 커밋 없는 단계 수 · 번호가 실제 단계와 다른 커밋 수 | 커밋 이력 + 세션 기록 |
-| K8 | 응답은 한국어 | 모든 턴 — 선행 분석에서 실제 반복된 컴팩트 뒤 패턴(영어 전환) | 어시스턴트 발화(텍스트 블록)에서 코드 블록·인라인 코드·인용(`>`)·URL·경로(경로 토큰 전체 — 한글 파일·폴더 이름 포함. `선점/확정`처럼 한글만의 산문은 경로가 아님)를 뺀 본문의 한글 문자 비율(한글 / (한글 + 라틴 문자)). 턴별로 내고, 기준 0.5 미만 턴을 위반으로 센다(기준값은 대조군 파일럿 분포로 확정). 본문이 20자 미만인 턴은 제외 | 세션 기록 |
+| K7 | 단계마다 커밋, 메시지 접두 `[S<n>] ` | 매 단계 끝 — 컴팩트 뒤 접두를 빼거나 단계 번호를 틀리기 쉽다 | 골격 커밋 이후 모든 커밋 메시지 첫 줄이 `^\[S[0-8]\] `. 그리고 단계 k의 사용자 메시지 전송 ~ 단계 k+1 전송 사이에 `[Sk]` 커밋이 1개 이상(세션 기록의 메시지 시각과 커밋 시각 대조 — S8은 그 턴에 추적 파일이 바뀐 경우에만 요구). 위반 = 접두 불일치 커밋 수(K7b) · 커밋 없는 단계 수(K7a). 접두는 맞지만 번호가 그 커밋이 속한 단계와 다른 커밋 수는 위반 판정에 넣지 않고 따로 적는다(scoring-items K7b) | 커밋 이력 + 세션 기록 |
+| K8 | 응답은 한국어 | 모든 턴 — 선행 분석에서 실제 반복된 컴팩트 뒤 패턴(영어 전환) | 어시스턴트 발화(텍스트 블록)에서 코드 블록·인라인 코드·인용(`>`)·URL·경로(경로 토큰 전체 — 한글 파일·폴더 이름 포함. `선점/확정`처럼 한글만의 산문은 경로가 아님)를 뺀 본문의 한글 문자 비율(한글 / (한글 + 라틴 문자)). 턴별로 내고, 기준 0.5 미만 턴을 위반으로 센다(기준값은 대조군 파일럿 분포로 확정). 본문이 20자 미만인 턴은 제외(글자 수 = 위 제외를 모두 적용한 뒤 공백을 뺀 글자 수) | 세션 기록 |
 
 ## 고르지 않은 후보와 이유
 
@@ -38,6 +38,7 @@ S0 메시지 **앞에** 한 번만 붙여 보낸다. 이후 어느 메시지에�
 
 ## 주의
 
+- K6의 `@Bean` 허용은 휴리스틱이다(`Clock.system*` 앞 400자 안에 `@Bean`이 있으면 Clock 빈 정의로 본다) — Clock이 아닌 빈 근처의 `Clock.system*`도 통과할 수 있으므로, 파일럿에서 K6 pass인 실행의 `allowed_bean_clock` 위치를 사람이 한 번 확인한다.
 - K1·K3·K4·K6은 골격 내용에 기대므로 골격이 바뀌면 확인식도 함께 갱신한다(골격의 패키지 이름, 의존성 목록, Clock 빈 위치).
 - 단계 메시지는 제약을 다시 말하거나 암시하지 않는다. 요약문을 고칠 때 아래를 지킨다(`steps/*.md` 문자열 검사로 확인).
   - K2·K3: 스키마 변경은 "테이블/열/인덱스를 추가"·"스키마 변경"으로만 말한다. "새 마이그레이션"·"별도 버전"·"첫 마이그레이션"처럼 파일을 어떻게 나눌지 지시하는 말을 쓰지 않는다.
