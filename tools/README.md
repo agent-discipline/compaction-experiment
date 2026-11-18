@@ -29,7 +29,7 @@ Python 3.11+ 표준 라이브러리만 쓴다. 경로·명령 설정은 `tools/e
 
 1. 이미지 빌드(아래) → `run_task.py --check-env`(무료)
 2. 실행마다 `run_task.py --model … --condition … --rep …` → `.runs/<run id>/`
-3. outbox 실행이면 `count_injection_tokens.py --run .runs/<run id> --workdir <저장소 밖 빈 폴더>`(유료 — 실험용 토큰) → `injection-tokens.json`
+3. outbox 실행이면 `count_injection_tokens.py --run .runs/<run id> --workdir <저장소 밖 빈 폴더> --model claude-haiku-5-5`(유료 — 실험용 토큰. 모델은 아래) → `injection-tokens.json`
 4. `score_run.py --run .runs/<run id>` → `score.json`. 3보다 먼저 채점했으면 3 뒤에 **다시 채점**한다(채점할 때 `injection-tokens.json`을 읽는다)
 5. `summarize.py [--runs-dir .runs]` — 채점 뒤 `run.json`이 바뀌었거나 옛 채점이면 "채점 불일치"로 빠지므로 다시 채점
 
@@ -244,6 +244,8 @@ input + cache_creation + cache_read 토큰의 중앙값 − 꼬리만 넣은 기
 인증(2026-11-18 결정 — 실험용 토큰): 실행기와 **같은 토큰 파일**(`token_env_file`, 형식 확인도 실행기의 `read_token`과 같음 — 저장소 밖·권한 600·한 줄)의
 값을 메모리에만 읽어 **자식 `claude` 프로세스의 환경 변수로만** 넘긴다(출력·기록하지 않고, 호출 오류 메시지에서도 가린다). 호스트 로그인은 쓰지 않는다:
 자식의 `CLAUDE_CONFIG_DIR`은 빈 임시 폴더(끝나면 지움)이고 호스트의 `ANTHROPIC_API_KEY`·`ANTHROPIC_AUTH_TOKEN`은 넘기지 않는다.
+모델(2026-11-18 결정): 토큰 수가 모델 간 같다고 보고(prompt-language-experiment에서 확인) Haiku 5.5로 잰다 — `--model`을 주지 않으면 실행의 모델로 재므로
+`--model claude-haiku-5-5`를 준다(Sonnet 파일럿 outbox도 Haiku로 잼). 잰 모델은 결과의 `model`에 남는다.
 `claude`는 호스트에 설치된 CLI(`--claude-bin`)이고 그 버전을 결과에 남긴다(에이전트 이미지의 2.1.326과 다를 수 있다 — 주입문 토큰 수는 모델의 토크나이저에 따른다).
 
 ## score_run.py
