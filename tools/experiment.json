@@ -70,5 +70,6 @@
   ],
   "hidden_test_path_prefix": "src/test/kotlin/hidden/",
   "k8_threshold": 0.5,
-  "k8_min_chars": 20
+  "k8_min_chars": 20,
+  "k8_segment_min_chars": 200
 }

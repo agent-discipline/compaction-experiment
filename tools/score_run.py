@@ -425,7 +425,14 @@ def k7(work, run):
     return a, b
 
 
-def k8(run_dir, run, threshold, min_chars):
+def ratio_of(h, l):
+    return round(h / (h + l), 4) if h + l else None
+
+
+def k8(run_dir, run, threshold, min_chars, segment_min_chars=None):
+    """턴 규칙(본문 min_chars 이상 턴의 비율 < 기준)과 구간 규칙(경계에서 자른 구간 중 본문 segment_min_chars 이상인 구간의
+    비율 < 기준). 그보다 짧은 구간도 비율(min_chars 이상이면)은 남기지만 위반으로 세지 않는다(`judged` false)."""
+    seg_min = min_chars if segment_min_chars is None else segment_min_chars
     turns = run.get("turns") or []
     last = next((Path(run_dir) / "turns" / f"{t['index']:02d}" / "transcript.jsonl" for t in reversed(turns)
                  if (Path(run_dir) / "turns" / f"{t['index']:02d}" / "transcript.jsonl").is_file()), None)
@@ -434,17 +441,20 @@ def k8(run_dir, run, threshold, min_chars):
     entries, _ = transcript.load(last)
     coords = [transcript.boundary_coord(b) for b in run.get("boundaries") or []]
     cuts = [line for line, _, _ in transcript.boundaries(entries)]  # 세션 기록 안 경계 줄(차례대로)
+    first_cut = cuts[0] if cuts else None  # 실행 전체의 첫 컴팩트 경계 줄
     per, lo = [], 0
     for t in turns:
         hi = t.get("transcript_lines") or lo
         r = language.ratio(transcript.assistant_text(entries, lo, hi), min_chars)
-        # 구간 = 턴 안의 경계에서 자른 [lo, 경계1), [경계1, 경계2), …, [경계n, hi) — 같은 제외·같은 최소 글자 수
+        # 구간 = 턴 안의 경계에서 자른 [lo, 경계1), [경계1, 경계2), …, [경계n, hi) — 같은 제외. 경계가 없는 턴은 구간 1개
         edges = [lo] + [c for c in cuts if lo < c < hi] + [hi]
         segs = []
         for j in range(len(edges) - 1):
             s = language.ratio(transcript.assistant_text(entries, edges[j], edges[j + 1]), min_chars)
-            s.update({"start_line": edges[j], "end_line": edges[j + 1], "after_boundary": j > 0,
-                      "violation": s["ratio"] is not None and s["ratio"] < threshold})
+            judged = s["ratio"] is not None and s["prose_chars"] >= seg_min
+            s.update({"start_line": edges[j], "end_line": edges[j + 1], "after_boundary_in_turn": j > 0,
+                      "after_first_compaction": first_cut is not None and edges[j] >= first_cut,
+                      "judged": judged, "violation": judged and s["ratio"] < threshold})
             segs.append(s)
         turn_viol = r["ratio"] is not None and r["ratio"] < threshold
         seg_viol = any(s["violation"] for s in segs)
@@ -454,17 +464,26 @@ def k8(run_dir, run, threshold, min_chars):
                   "violation": turn_viol or seg_viol})
         per.append(r)
         lo = hi
-    # 판정 턴 = 턴 비율 또는 구간 비율 중 하나라도 있는 턴. 위반 = 턴 비율 < 기준 또는 (길이 최소를 넘는) 구간 하나라도 < 기준
-    judged = [p for p in per if p["ratio"] is not None or any(s["ratio"] is not None for s in p["segments"])]
+    # 실행 전체의 첫 컴팩트 앞/뒤 본문 합(모든 구간 — 길이 최소 없음). 한글·라틴 수를 남겨 비율을 다시 낼 수 있게
+    split = {}
+    for key, flag in (("before", False), ("after", True)):
+        ss = [s for p in per for s in p["segments"] if s["after_first_compaction"] is flag]
+        h, l = sum(s["hangul"] for s in ss), sum(s["latin"] for s in ss)
+        split[key] = {"segments": len(ss), "prose_chars": sum(s["prose_chars"] for s in ss), "hangul": h, "latin": l,
+                      "ratio": ratio_of(h, l)}
+    split["first_compaction_line"] = first_cut
+    # 판정 턴 = 턴 비율이 있거나 판정되는 구간이 있는 턴. 위반 = 턴 비율 < 기준 또는 판정되는 구간 하나라도 < 기준
+    judged = [p for p in per if p["ratio"] is not None or any(s["judged"] for s in p["segments"])]
     viol = [p["turn"] for p in per if p["violation"]]
     if not judged:
-        return R("unscorable", reason="판정 가능한 턴 없음"), per
+        return R("unscorable", reason="판정 가능한 턴 없음", by_first_compaction=split), per
     tv = [p["turn"] for p in per if p["turn_violation"]]
     tj = sum(p["ratio"] is not None for p in per)
     return R("fail" if viol else "pass", violating_turns=viol, judged_turns=len(judged), threshold=threshold,
-             rate=round(len(viol) / len(judged), 4),
+             segment_min_chars=seg_min, rate=round(len(viol) / len(judged), 4),
              turn_level={"result": ("fail" if tv else "pass") if tj else "unscorable", "violating_turns": tv,
-                         "judged_turns": tj, "rate": round(len(tv) / tj, 4) if tj else None}), per
+                         "judged_turns": tj, "rate": round(len(tv) / tj, 4) if tj else None},
+             by_first_compaction=split), per
 
 
 # ---------- 숨긴 테스트 ----------
@@ -594,7 +613,8 @@ def score(cfg, run_dir, work, skip_hidden, skip_db=False, allow_concurrent=False
     static["K5"] = k5(work, set(cfg["k5_exempt_paths"]), hp)
     static["K6"] = k6(work)
     static["K7a"], static["K7b"] = k7(work, run)
-    static["K8"], k8_turns = k8(run_dir, run, cfg["k8_threshold"], cfg["k8_min_chars"])
+    static["K8"], k8_turns = k8(run_dir, run, cfg["k8_threshold"], cfg["k8_min_chars"],
+                                cfg.get("k8_segment_min_chars"))
     db_items = ("D0-01", "D1-01", "D1-02", "D1-04", "D4-01", "D6-01", "D7-02")
     docker, stack, stack_error, env_info = open_stack(cfg, not (skip_db and skip_hidden), allow_concurrent)
     try:

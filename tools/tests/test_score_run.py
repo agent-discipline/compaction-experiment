@@ -251,8 +251,10 @@ class ScoreRunTest(unittest.TestCase):
         r, per = sr.k8(d, run, 0.5, 20)
         t0, t1 = per
         self.assertGreaterEqual(t0["ratio"], 0.5)                                     # 턴 전체로는 통과
-        self.assertEqual([(s["start_line"], s["end_line"], s["after_boundary"]) for s in t0["segments"]],
-                         [(0, 2, False), (2, 6, True)])
+        self.assertEqual([(s["start_line"], s["end_line"], s["after_boundary_in_turn"], s["after_first_compaction"])
+                          for s in t0["segments"]], [(0, 2, False, False), (2, 6, True, True)])
+        self.assertEqual([(s["after_boundary_in_turn"], s["after_first_compaction"]) for s in t1["segments"]],
+                         [(False, True), (True, True)])                               # 다음 턴 경계 앞 구간도 첫 컴팩트 뒤
         self.assertEqual(t0["segments"][0]["ratio"], 1.0)
         self.assertLess(t0["segments"][1]["ratio"], 0.5)
         self.assertEqual((t0["turn_violation"], t0["segment_violation"], t0["violation"]), (False, True, True))
@@ -260,6 +262,66 @@ class ScoreRunTest(unittest.TestCase):
         self.assertEqual((t1["turn_violation"], t1["segment_violation"], t1["violation"]), (False, False, False))
         self.assertEqual((r["result"], r["violating_turns"], r["judged_turns"]), ("fail", [0], 2))
         self.assertEqual(r["turn_level"], {"result": "pass", "violating_turns": [], "judged_turns": 2, "rate": 0.0})
+
+    def test_k8_segment_rule_minimum_and_first_compaction_split(self):
+        """구간 규칙은 본문 200자 이상 구간만 위반으로 센다(짧은 구간은 비율만). 경계가 없는 다음 턴(구간 1개)도
+        실행 전체 첫 컴팩트 뒤로 표시되고, 앞/뒤 본문 합(한글·라틴 수)이 K8 항목에 남는다."""
+        import transcript
+        d = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        ko = "선점 경로의 조회를 인덱스로 바꾸고 테스트를 모두 다시 돌려서 통과하는 것을 확인했습니다. " * 3
+        short_en = "Now adding the migration file for the pool and running the tests again."   # 200자 미만
+        long_en = "I updated the confirmation flow and verified that every test passes with the new window. " * 3
+        rows = [user("M0"), assistant(ko + ko, mid="a0"),
+                {"type": "system", "subtype": "compact_boundary", "compactMetadata": {"trigger": "auto"}},
+                {"type": "user", "isCompactSummary": True, "message": {"content": "요약"}},
+                assistant(short_en, mid="a1"),
+                user("M1"), assistant(ko, mid="a2")]                                      # 경계 없는 턴 = 구간 1개
+        (d / "turns" / "01").mkdir(parents=True)
+        write_jsonl(d / "turns" / "01" / "transcript.jsonl", rows)
+        entries = transcript.load(d / "turns" / "01" / "transcript.jsonl")[0]
+        run = {"boundaries": transcript.locate_boundaries(entries, [5, 7], ["M0", "M1"]),
+               "turns": [{"index": 0, "step": "S0", "transcript_lines": 5}, {"index": 1, "step": "S1", "transcript_lines": 7}]}
+        r, (t0, t1) = sr.k8(d, run, 0.5, 20, 200)
+        s_short = t0["segments"][1]
+        self.assertLess(s_short["prose_chars"], 200)
+        self.assertLess(s_short["ratio"], 0.5)                                         # 비율은 남김
+        self.assertEqual((s_short["judged"], s_short["violation"]), (False, False))   # 위반은 아님
+        self.assertEqual((t0["segment_violation"], t0["violation"]), (False, False))
+        self.assertEqual(len(t1["segments"]), 1)
+        self.assertEqual((t1["segments"][0]["after_boundary_in_turn"], t1["segments"][0]["after_first_compaction"]),
+                         (False, True))
+        self.assertEqual((r["result"], r["turn_level"]["result"]), ("pass", "pass"))
+        split = r["by_first_compaction"]
+        self.assertEqual(split["first_compaction_line"], 2)
+        segs = t0["segments"] + t1["segments"]
+        for key, flag in (("before", False), ("after", True)):
+            ss = [s for s in segs if s["after_first_compaction"] is flag]
+            self.assertEqual((split[key]["hangul"], split[key]["latin"]),
+                             (sum(s["hangul"] for s in ss), sum(s["latin"] for s in ss)))
+        self.assertEqual(split["before"]["ratio"], 1.0)
+        self.assertLess(split["after"]["ratio"], split["before"]["ratio"])
+        # 200자를 넘는 영어 구간은 위반: 경계 뒤 구간을 길게
+        rows[4] = assistant(long_en, mid="a1")
+        write_jsonl(d / "turns" / "01" / "transcript.jsonl", rows)
+        r2, (u0, _) = sr.k8(d, run, 0.5, 20, 200)
+        self.assertEqual((u0["segments"][1]["judged"], u0["segment_violation"], u0["turn_violation"]), (True, True, False))
+        self.assertEqual((r2["result"], r2["violating_turns"], r2["turn_level"]["result"]), ("fail", [0], "pass"))
+
+    def test_k8_no_compaction_all_before(self):
+        r, per = sr.k8(*self._k8_plain_run(), 0.5, 20, 200)
+        self.assertIsNone(r["by_first_compaction"]["first_compaction_line"])
+        self.assertEqual(r["by_first_compaction"]["after"]["segments"], 0)
+        self.assertIsNone(r["by_first_compaction"]["after"]["ratio"])
+        self.assertTrue(all(not s["after_first_compaction"] for p in per for s in p["segments"]))
+
+    def _k8_plain_run(self):
+        d = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        (d / "turns" / "00").mkdir(parents=True)
+        write_jsonl(d / "turns" / "00" / "transcript.jsonl",
+                    [user("M0"), assistant("구현을 마쳤고 테스트가 모두 통과했습니다. 다음 단계로 넘어가겠습니다.", mid="a0")])
+        return d, {"boundaries": [], "turns": [{"index": 0, "step": "S0", "transcript_lines": 2}]}
 
     def test_delivery_distance(self):
         self.assertEqual(self.s["compactions"], 1)
