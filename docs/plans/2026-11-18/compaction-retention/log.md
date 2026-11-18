@@ -32,6 +32,8 @@
 | 11-18 14:1x | 사용자 결정 — 자동 메모리: **세 조건 모두 끔** | 결과에 "자동 메모리 꺼짐" 전제를 적는다 |
 | 11-18 14:43~14:55 | 수정 워커(Opus×1, 196k 토큰, task `E-smoke-fix`) — 브랜치 `smoke-fix` 커밋 5개 | 자동 메모리 끔(`autoMemoryEnabled: false` + `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`, 문서 code.claude.com/docs/en/memory·env-vars, 이미지의 CLI에서 확인, 가짜 API 서버로 첫 요청의 시스템 프롬프트에서 메모리 절이 사라짐을 무과금 실측) + 메모리 파일이 생기면 무효(`auto_memory_files`) · K8 구간 판정(경계로 나눈 구간 중 하나라도 기준 미만이면 위반, 턴 단위 값은 `turn_level`로 병기 — 메인 결정) · `has_summary` 수정 · `mid_turn_phase` 기록 · README 테스트 명령. 미확인: OAuth 인증·재개·컴팩트 뒤 요청에서의 메모리 절(유료 스모크로 확인) |
 | 11-18 14:58 | 메인: shim 스크립트로 재실행 207 OK(건너뜀 1, Docker 호출 0) → main에 ff 병합 · Haiku 스모크 기록 3개를 `.runs-smoke/`로 옮김(집계에 섞이지 않게) | 다음: 메모리 꺼짐 확인 스모크(Haiku) → Sonnet 파일럿(세 조건 ×1) → 규모 승인 보고 |
+| 11-18 14:59~17:47 | Fable 진행자(누적 261k 토큰, task `C-pilot`) — 메모리 꺼짐 확인 스모크(Haiku control) + **Sonnet 파일럿**(S0~S8, 세 조건 ×1). 16:11~17:04는 need-harness-lab의 부하 판정을 위해 정지 | 메모리 확인: 시스템 프롬프트에 메모리 절 0건(재개 턴 포함), 메모리 폴더·메모 없음. 파일럿: 세 실행 모두 complete·무효 아님. 경계 control 0 / compact 4 / outbox 6(전부 턴 도중, 66~75천 토큰), 주입 6건 경계별 대응 일치. **K1~K7·숨긴 테스트 39개가 세 조건 모두 pass(천장)**. 차이는 outbox의 K8 구간 위반 1건(109자 구간의 영어 한 문장, 턴 단위로는 pass). 유일한 공통 fail D4-07은 예고된 오탐(3/3). 토큰 control 31.6M / compact 19.7M / outbox 20.1M, 실행 27~34분. Haiku 스모크와 대비: Haiku는 컴팩트 뒤 구간 한글 비율 0.00~0.01(outbox 주입이 있어도). 동시 실행: `payment-claude-call-…`·`payment-claude-pilot-03-db-1`·`-bank-1` |
+| 11-18 17:5x | 메인: 집계와 Haiku K8 재채점본을 `docs/results/pilot-2026-11-18/`로 옮김 | 사용자 결정 필요: 천장 효과에 대한 방향(약한 모델 중심 / 과제 강화 / 파일럿 수준에서 마감). 도구 보완 후보: K8 구간 최소 글자 수, D4-07 제외, `session_log` 오탐(백그라운드 작업 출력 경로), 주입 토큰 측정의 인증 경로와 재채점 순서, `after_boundary`를 실행 전체 기준으로 |
 
 ## 생략한 검증
 

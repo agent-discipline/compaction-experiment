@@ -1,0 +1,1318 @@
+{
+ "run_id": "haiku-5-5-outbox-r1-20261118T134140",
+ "model": "claude-haiku-5-5",
+ "condition": "outbox",
+ "rep": 1,
+ "run_sha256": "d12f85b181e265ce81b1bd9788b4cf68fef47286959fd4664b6f93e09f2c8e26",
+ "status": "complete",
+ "abort_reason": null,
+ "invalid": false,
+ "invalid_reasons": [],
+ "scored_at": "2026-11-18T17:04:23.505752",
+ "compactions": 3,
+ "boundaries": [
+  {
+   "line": 156,
+   "turn": 0,
+   "position": "mid_turn",
+   "timestamp": "2026-11-18T04:46:52.621Z",
+   "trigger": "auto",
+   "pre_tokens": 66885,
+   "post_tokens": 7668,
+   "has_summary": false,
+   "compact_metadata": {
+    "trigger": "auto",
+    "preTokens": 66885,
+    "postTokens": 7668,
+    "cumulativeDroppedTokens": 59217,
+    "durationMs": 33454,
+    "preservedSegment": {
+     "headUuid": "102c6506-f620-498c-ae2e-e0dfb4d3eca2",
+     "anchorUuid": "1a5954ff-95a9-473d-aedc-a91ce419277d",
+     "tailUuid": "32b358ac-90bc-4183-a68d-b8f1318727c1"
+    },
+    "preservedMessages": {
+     "anchorUuid": "1a5954ff-95a9-473d-aedc-a91ce419277d",
+     "uuids": [
+      "102c6506-f620-498c-ae2e-e0dfb4d3eca2",
+      "e058b3bc-af27-45cc-bc80-d5371e718236",
+      "056f316d-5c23-49bf-9b57-991b5a51a133",
+      "b4d1bbd7-6082-4992-860d-8a128b7999db",
+      "e140ca1f-2502-483b-8aab-88b86a545825",
+      "6d211657-5ca2-40c3-9b89-bccadaa1f93f",
+      "9d205754-b82b-41ae-961a-7263ffca0207",
+      "32b358ac-90bc-4183-a68d-b8f1318727c1"
+     ],
+     "allUuids": [
+      "102c6506-f620-498c-ae2e-e0dfb4d3eca2",
+      "e058b3bc-af27-45cc-bc80-d5371e718236",
+      "056f316d-5c23-49bf-9b57-991b5a51a133",
+      "b4d1bbd7-6082-4992-860d-8a128b7999db",
+      "e140ca1f-2502-483b-8aab-88b86a545825",
+      "6d211657-5ca2-40c3-9b89-bccadaa1f93f",
+      "9d205754-b82b-41ae-961a-7263ffca0207",
+      "32b358ac-90bc-4183-a68d-b8f1318727c1"
+     ]
+    },
+    "runningTurnPrompt": {}
+   },
+   "coord": 0.0
+  },
+  {
+   "line": 229,
+   "turn": 0,
+   "position": "mid_turn",
+   "timestamp": "2026-11-18T04:50:09.436Z",
+   "trigger": "auto",
+   "pre_tokens": 71905,
+   "post_tokens": 8116,
+   "has_summary": true,
+   "compact_metadata": {
+    "trigger": "auto",
+    "preTokens": 71905,
+    "postTokens": 8116,
+    "cumulativeDroppedTokens": 123006,
+    "durationMs": 42975,
+    "runningTurnPrompt": {}
+   },
+   "coord": 0.0
+  },
+  {
+   "line": 501,
+   "turn": 1,
+   "position": "mid_turn",
+   "timestamp": "2026-11-18T04:54:25.697Z",
+   "trigger": "auto",
+   "pre_tokens": 68403,
+   "post_tokens": 8844,
+   "has_summary": false,
+   "compact_metadata": {
+    "trigger": "auto",
+    "preTokens": 68403,
+    "postTokens": 8844,
+    "cumulativeDroppedTokens": 182565,
+    "durationMs": 28562,
+    "preservedSegment": {
+     "headUuid": "fa856772-3ab9-46b4-9952-661909a8d1c4",
+     "anchorUuid": "89e2c5af-f8bc-45fa-aa07-ff92f739d156",
+     "tailUuid": "007e5f9a-5019-4aa3-9a2f-116b00fa592f"
+    },
+    "preservedMessages": {
+     "anchorUuid": "89e2c5af-f8bc-45fa-aa07-ff92f739d156",
+     "uuids": [
+      "fa856772-3ab9-46b4-9952-661909a8d1c4",
+      "1daa6973-1134-4edb-b0ad-30c32bc9d00f",
+      "fb2615d4-b4d1-4f0a-b293-ce4e0e801346",
+      "37c8fb4d-3814-4a29-ac61-1c9dc7820c4e",
+      "8a88bb92-ff7f-4fe0-bcd7-8f4cb6e04869",
+      "a9abc233-86b9-4862-b8f4-97b4b79dba01",
+      "8b64a3d8-0e7c-4579-be92-61f58b7e9f76",
+      "1050bcba-4bae-4771-bf36-bff6ee79bbfa",
+      "6da27a56-943f-4a5a-b8f9-9a68b406996f",
+      "007e5f9a-5019-4aa3-9a2f-116b00fa592f"
+     ],
+     "allUuids": [
+      "fa856772-3ab9-46b4-9952-661909a8d1c4",
+      "1daa6973-1134-4edb-b0ad-30c32bc9d00f",
+      "fb2615d4-b4d1-4f0a-b293-ce4e0e801346",
+      "37c8fb4d-3814-4a29-ac61-1c9dc7820c4e",
+      "8a88bb92-ff7f-4fe0-bcd7-8f4cb6e04869",
+      "a9abc233-86b9-4862-b8f4-97b4b79dba01",
+      "8b64a3d8-0e7c-4579-be92-61f58b7e9f76",
+      "1050bcba-4bae-4771-bf36-bff6ee79bbfa",
+      "6da27a56-943f-4a5a-b8f9-9a68b406996f",
+      "007e5f9a-5019-4aa3-9a2f-116b00fa592f"
+     ]
+    },
+    "runningTurnPrompt": {}
+   },
+   "coord": 1.0
+  }
+ ],
+ "injections": 3,
+ "injected_chars": 17012,
+ "injected_tokens": null,
+ "injected_tokens_unavailable": "injection-tokens.json 없음",
+ "history": {
+  "rewritten_turns": [],
+  "missing_turns": []
+ },
+ "totals": {
+  "tokens": 3071390,
+  "cost_usd": 0.2193,
+  "wall_s": 838.9
+ },
+ "turns_done": 2,
+ "hidden": {
+  "ran": false,
+  "reason": "skip_hidden"
+ },
+ "counts": {
+  "not_run": 47,
+  "pass": 12,
+  "fail": 13,
+  "unscorable": 2
+ },
+ "items": {
+  "D0-01": {
+   "result": "not_run",
+   "reason": "skip_db",
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S0",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "D0-02": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S0",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "D0-03": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S0",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "D0-04": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S0",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "D0-05": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S0",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "D0-06": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S0",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "D0-07": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S0",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "D0-08": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S0",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "D0-09": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S0",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "D0-10": {
+   "result": "pass",
+   "keys": [
+    {
+     "key": "seat.hold.ttl",
+     "found": true,
+     "value": "5m",
+     "expected": 300,
+     "ok": true
+    },
+    {
+     "key": "seat.hold.max-per-user",
+     "found": true,
+     "value": "2",
+     "expected": 2,
+     "ok": true
+    },
+    {
+     "key": "seat.hold.expiry-interval",
+     "found": true,
+     "value": "10s",
+     "expected": 10,
+     "ok": true
+    }
+   ],
+   "config_files": [
+    "application.yml"
+   ],
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S0",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "D0-11": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S0",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "D0-12": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S0",
+   "drop_candidate": true,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "D0-13": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S0",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "D0-14": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S0",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "D1-01": {
+   "result": "not_run",
+   "reason": "skip_db",
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S1",
+   "drop_candidate": false,
+   "delivered_step": 1,
+   "compactions_after_delivery": 1,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "D1-02": {
+   "result": "not_run",
+   "reason": "skip_db",
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S1",
+   "drop_candidate": false,
+   "delivered_step": 1,
+   "compactions_after_delivery": 1,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "D1-03": {
+   "result": "pass",
+   "keys": [
+    {
+     "key": "spring.datasource.hikari.maximum-pool-size",
+     "found": true,
+     "value": "10",
+     "expected": 10,
+     "ok": true
+    }
+   ],
+   "config_files": [
+    "application.yml"
+   ],
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S1",
+   "drop_candidate": false,
+   "delivered_step": 1,
+   "compactions_after_delivery": 1,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "D1-04": {
+   "result": "not_run",
+   "reason": "skip_db",
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S1(S6이 하나 허용)",
+   "drop_candidate": false,
+   "delivered_step": 1,
+   "compactions_after_delivery": 1,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "D2-01": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S2",
+   "drop_candidate": false,
+   "delivered_step": 2,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D2-02": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S2",
+   "drop_candidate": false,
+   "delivered_step": 2,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D2-03": {
+   "result": "fail",
+   "keys": [
+    {
+     "key": "seat.hold.strategy",
+     "found": false,
+     "value": null,
+     "expected": "pessimistic-nowait",
+     "ok": false
+    }
+   ],
+   "config_files": [
+    "application.yml"
+   ],
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S2",
+   "drop_candidate": false,
+   "delivered_step": 2,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D2-04": {
+   "result": "fail",
+   "hits": {
+    "NOWAIT": [],
+    "jakarta\\.persistence\\.lock\\.timeout[\\\"']?[\\s\\S]{0,60}?(\\\"0\\\"|\\b0\\b)": []
+   },
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S2",
+   "drop_candidate": true,
+   "delivered_step": 2,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D2-05": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S2",
+   "drop_candidate": true,
+   "delivered_step": 2,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D3-00": {
+   "result": "unscorable",
+   "reason": "S3 턴 없음",
+   "scorer": "static",
+   "kind": "G·M",
+   "delivered": "S3",
+   "drop_candidate": false,
+   "delivered_step": 3,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D3-01": {
+   "result": "pass",
+   "hits": {
+    "pg_(try_)?advisory_(xact_)?lock(_shared)?": []
+   },
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S3→S4",
+   "drop_candidate": false,
+   "delivered_step": 4,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0,
+   "premise": "unknown"
+  },
+  "D3-02": {
+   "result": "fail",
+   "keys": [
+    {
+     "key": "seat.hold.limit-strategy",
+     "found": false,
+     "value": null,
+     "expected": "counter-upsert-precheck",
+     "ok": false
+    }
+   ],
+   "config_files": [
+    "application.yml"
+   ],
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S3→S4",
+   "drop_candidate": false,
+   "delivered_step": 4,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0,
+   "premise": "unknown"
+  },
+  "D4-01": {
+   "result": "not_run",
+   "reason": "skip_db",
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S4",
+   "drop_candidate": false,
+   "delivered_step": 4,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D4-02": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S4",
+   "drop_candidate": false,
+   "delivered_step": 4,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D4-03": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S4",
+   "drop_candidate": false,
+   "delivered_step": 4,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D4-04": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S4",
+   "drop_candidate": false,
+   "delivered_step": 4,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D4-05": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S4",
+   "drop_candidate": false,
+   "delivered_step": 4,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D4-06": {
+   "result": "fail",
+   "hits": {
+    "INSERT\\s+INTO\\s+user_hold_quota[\\s\\S]{0,200}ON\\s+CONFLICT\\s*\\(\\s*schedule_id\\s*,\\s*user_id\\s*\\)\\s*DO\\s+UPDATE[\\s\\S]{0,200}cnt\\s*\\+\\s*1\\s*<=": []
+   },
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S4",
+   "drop_candidate": false,
+   "delivered_step": 4,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D4-07": {
+   "result": "pass",
+   "hits": {
+    "INSERT\\s+INTO\\s+user_hold_quota[\\s\\S]{0,300}?ON\\s+CONFLICT\\s*(\\([^)]*\\))?\\s*DO\\s+NOTHING": []
+   },
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S4",
+   "drop_candidate": true,
+   "delivered_step": 4,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D4-08": {
+   "result": "fail",
+   "files": [],
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S4",
+   "drop_candidate": false,
+   "delivered_step": 4,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D4-10": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S4",
+   "drop_candidate": false,
+   "delivered_step": 4,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D5-01": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S5",
+   "drop_candidate": false,
+   "delivered_step": 5,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D5-02": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S5",
+   "drop_candidate": false,
+   "delivered_step": 5,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D5-03": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S5",
+   "drop_candidate": false,
+   "delivered_step": 5,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D5-04": {
+   "result": "fail",
+   "hits": {
+    "product_schedule[\\s\\S]{0,300}?FOR\\s+SHARE": []
+   },
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S5",
+   "drop_candidate": true,
+   "delivered_step": 5,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D5-05": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S5",
+   "drop_candidate": false,
+   "delivered_step": 5,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D5-06": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S5",
+   "drop_candidate": false,
+   "delivered_step": 5,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D5-08": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S5",
+   "drop_candidate": false,
+   "delivered_step": 5,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D5-09": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S5",
+   "drop_candidate": false,
+   "delivered_step": 5,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D5-10": {
+   "result": "fail",
+   "keys": [
+    {
+     "key": "seat.hold.counter-drift.cleanup.mode",
+     "found": false,
+     "value": null,
+     "expected": "schedule",
+     "ok": false
+    },
+    {
+     "key": "seat.hold.counter-drift.cleanup.interval",
+     "found": false,
+     "value": null,
+     "expected": 60,
+     "ok": false
+    }
+   ],
+   "config_files": [
+    "application.yml"
+   ],
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S5",
+   "drop_candidate": false,
+   "delivered_step": 5,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D5-11": {
+   "result": "fail",
+   "hits": {
+    "cnt\\s*=\\s*cnt\\s*-\\s*(\\?|:\\w+)[\\s\\S]{0,120}cnt\\s*>=\\s*(\\?|:\\w+)": []
+   },
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S5",
+   "drop_candidate": false,
+   "delivered_step": 5,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D6-00": {
+   "result": "unscorable",
+   "reason": "S6 턴 없음",
+   "scorer": "static",
+   "kind": "G·M",
+   "delivered": "S6",
+   "drop_candidate": false,
+   "delivered_step": 6,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D6-01": {
+   "result": "not_run",
+   "reason": "skip_db",
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S6",
+   "drop_candidate": false,
+   "delivered_step": 6,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D6-02": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S6",
+   "drop_candidate": false,
+   "delivered_step": 6,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D6-03": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S6",
+   "drop_candidate": false,
+   "delivered_step": 6,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D6-04": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S6",
+   "drop_candidate": false,
+   "delivered_step": 6,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D6-05": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S6",
+   "drop_candidate": false,
+   "delivered_step": 6,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D6-06": {
+   "result": "fail",
+   "hits": {
+    "DELETE\\s+FROM\\s+seat_hold\\s+WHERE[\\s\\S]{0,120}(expires_at\\s*>|<\\s*expires_at)": [],
+    "UPDATE\\s+product_seat\\s+SET\\s+status\\s*=\\s*'RESERVED'[\\s\\S]{0,80}status\\s*=\\s*'HELD'": []
+   },
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S6",
+   "drop_candidate": false,
+   "delivered_step": 6,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D6-07": {
+   "result": "fail",
+   "hits": {
+    "SET\\s+status\\s*=\\s*'AVAILABLE'[\\s\\S]{0,200}status\\s*=\\s*'HELD'": []
+   },
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S6",
+   "drop_candidate": true,
+   "delivered_step": 6,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D6-08": {
+   "result": "fail",
+   "hits": {
+    "DELETE\\s+FROM\\s+seat_hold[\\s\\S]{0,200}expires_at\\s*<=": []
+   },
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S6",
+   "drop_candidate": true,
+   "delivered_step": 6,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D6-10": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S6",
+   "drop_candidate": false,
+   "delivered_step": 6,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D7-01": {
+   "result": "fail",
+   "keys": [
+    {
+     "key": "seat.confirm.mode",
+     "found": false,
+     "value": null,
+     "expected": "conditional-extend",
+     "ok": false
+    },
+    {
+     "key": "seat.confirm.payment-window",
+     "found": false,
+     "value": null,
+     "expected": 611,
+     "ok": false
+    },
+    {
+     "key": "seat.confirm.payment-min-remaining",
+     "found": false,
+     "value": null,
+     "expected": 1,
+     "ok": false
+    },
+    {
+     "key": "seat.confirm.pay-by-margin",
+     "found": false,
+     "value": null,
+     "expected": 1,
+     "ok": false
+    }
+   ],
+   "config_files": [
+    "application.yml"
+   ],
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S6→S7",
+   "drop_candidate": false,
+   "delivered_step": 7,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0,
+   "premise": "unknown"
+  },
+  "D7-02": {
+   "result": "not_run",
+   "reason": "skip_db",
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "S7",
+   "drop_candidate": false,
+   "delivered_step": 7,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D7-03": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S7",
+   "drop_candidate": false,
+   "delivered_step": 7,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D7-04": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S7",
+   "drop_candidate": false,
+   "delivered_step": 7,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D7-05": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S7",
+   "drop_candidate": false,
+   "delivered_step": 7,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D7-06": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S7",
+   "drop_candidate": false,
+   "delivered_step": 7,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D7-07": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S7",
+   "drop_candidate": false,
+   "delivered_step": 7,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D7-08": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S7",
+   "drop_candidate": true,
+   "delivered_step": 7,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D7-09": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S7",
+   "drop_candidate": false,
+   "delivered_step": 7,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "D7-10": {
+   "result": "not_run",
+   "reason": "skip_hidden",
+   "scorer": "hidden",
+   "kind": "H",
+   "delivered": "S7",
+   "drop_candidate": false,
+   "delivered_step": 7,
+   "compactions_after_delivery": 0,
+   "turns_to_first_compaction": null,
+   "compactions_unlocated": 0
+  },
+  "K1": {
+   "result": "pass",
+   "violations": [],
+   "total": 23,
+   "rate": 0.0,
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "첫 메시지",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "K2": {
+   "result": "pass",
+   "violations": [],
+   "scorer": "static",
+   "kind": "G",
+   "delivered": "첫 메시지",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "K3": {
+   "result": "pass",
+   "bad_names": [],
+   "versions": [
+    1,
+    2
+   ],
+   "not_contiguous": false,
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "첫 메시지",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "K4": {
+   "result": "pass",
+   "diffs": [],
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "첫 메시지",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "K5": {
+   "result": "pass",
+   "violations": [],
+   "violation_count": 0,
+   "total": 24,
+   "rate": 0.0,
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "첫 메시지",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "K6": {
+   "result": "pass",
+   "violations": [],
+   "allowed_bean_clock": [
+    {
+     "file": "src/main/kotlin/com/example/booking/seat/config/SeatConfig.kt",
+     "match": "Clock.systemUTC(",
+     "bean": true
+    }
+   ],
+   "scorer": "static",
+   "kind": "M",
+   "delivered": "첫 메시지",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "K7a": {
+   "result": "pass",
+   "steps_without_commit": [],
+   "executed_steps": 2,
+   "steps_requiring_commit": 2,
+   "rate": 0.0,
+   "scorer": "static",
+   "kind": "G",
+   "delivered": "첫 메시지",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "K7b": {
+   "result": "pass",
+   "bad_prefix": 0,
+   "number_mismatch": 0,
+   "total": 2,
+   "rate": 0.0,
+   "commits": [
+    {
+     "sha": "9c3175dce951",
+     "time": 1794977614,
+     "subject": "[S0] 선점·확정 기본 구현",
+     "step": 0,
+     "prefix_ok": true,
+     "number_mismatch": false
+    },
+    {
+     "sha": "2c1a83dc50ac",
+     "time": 1794977733,
+     "subject": "[S1] 조회용 일반 인덱스 5개와 Hikari 풀 크기 10 설정",
+     "step": 1,
+     "prefix_ok": true,
+     "number_mismatch": false
+    }
+   ],
+   "scorer": "static",
+   "kind": "G",
+   "delivered": "첫 메시지",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  },
+  "K8": {
+   "result": "fail",
+   "violating_turns": [
+    0,
+    1
+   ],
+   "judged_turns": 2,
+   "threshold": 0.5,
+   "rate": 1.0,
+   "turn_level": {
+    "result": "fail",
+    "violating_turns": [
+     0,
+     1
+    ],
+    "judged_turns": 2,
+    "rate": 1.0
+   },
+   "scorer": "static",
+   "kind": "L",
+   "delivered": "첫 메시지",
+   "drop_candidate": false,
+   "delivered_step": 0,
+   "compactions_after_delivery": 3,
+   "turns_to_first_compaction": 0,
+   "compactions_unlocated": 0
+  }
+ },
+ "k8_turns": [
+  {
+   "prose_chars": 3037,
+   "hangul": 346,
+   "latin": 2430,
+   "ratio": 0.1246,
+   "turn": 0,
+   "step": "S0",
+   "compactions_so_far": 2,
+   "segments": [
+    {
+     "prose_chars": 415,
+     "hangul": 346,
+     "latin": 19,
+     "ratio": 0.9479,
+     "start_line": 0,
+     "end_line": 156,
+     "after_boundary": false,
+     "violation": false
+    },
+    {
+     "prose_chars": 0,
+     "hangul": 0,
+     "latin": 0,
+     "ratio": null,
+     "start_line": 156,
+     "end_line": 229,
+     "after_boundary": true,
+     "violation": false
+    },
+    {
+     "prose_chars": 2622,
+     "hangul": 0,
+     "latin": 2411,
+     "ratio": 0.0,
+     "start_line": 229,
+     "end_line": 469,
+     "after_boundary": true,
+     "violation": true
+    }
+   ],
+   "turn_violation": true,
+   "segment_violation": true,
+   "violation": true
+  },
+  {
+   "prose_chars": 783,
+   "hangul": 319,
+   "latin": 376,
+   "ratio": 0.459,
+   "turn": 1,
+   "step": "S1",
+   "compactions_so_far": 3,
+   "segments": [
+    {
+     "prose_chars": 61,
+     "hangul": 0,
+     "latin": 56,
+     "ratio": 0.0,
+     "start_line": 469,
+     "end_line": 501,
+     "after_boundary": false,
+     "violation": true
+    },
+    {
+     "prose_chars": 722,
+     "hangul": 319,
+     "latin": 320,
+     "ratio": 0.4992,
+     "start_line": 501,
+     "end_line": 586,
+     "after_boundary": true,
+     "violation": true
+    }
+   ],
+   "turn_violation": true,
+   "segment_violation": true,
+   "violation": true
+  }
+ ],
+ "unmapped_hidden_ids": [],
+ "scoring_env": {
+  "used": false
+ },
+ "operator_flags": []
+}

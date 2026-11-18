@@ -1,0 +1,3638 @@
+{
+ "rows": [
+  {
+   "model": "claude-sonnet-5-5",
+   "condition": "compact",
+   "runs": 1,
+   "measurement_complete": 1,
+   "aborted": 0,
+   "unscored": 0,
+   "score_mismatch": 0,
+   "invalid": 0,
+   "input_mismatch": 0,
+   "included": 1,
+   "ops_problems": 0,
+   "secret_leak": 0,
+   "history_rewritten": 0,
+   "reread_runs": 1,
+   "memo_runs": 0,
+   "violation_rate": 0.0,
+   "judged": 65,
+   "drop_candidate_rate": 0.14285714285714285,
+   "drop_candidate_judged": 7,
+   "run_violation_rates": [
+    0.0
+   ],
+   "not_judged": {
+    "unscorable": 1
+   },
+   "mean_compactions": 4,
+   "unlocated_boundaries": 0,
+   "prompt_adjacent_boundaries": 0,
+   "mean_injected_chars": null,
+   "mean_injected_tokens": null,
+   "mean_tokens": 19712822,
+   "mean_cost_usd": 14.476
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "condition": "control",
+   "runs": 1,
+   "measurement_complete": 1,
+   "aborted": 0,
+   "unscored": 0,
+   "score_mismatch": 0,
+   "invalid": 0,
+   "input_mismatch": 0,
+   "included": 1,
+   "ops_problems": 0,
+   "secret_leak": 0,
+   "history_rewritten": 0,
+   "reread_runs": 0,
+   "memo_runs": 0,
+   "violation_rate": 0.0,
+   "judged": 65,
+   "drop_candidate_rate": 0.14285714285714285,
+   "drop_candidate_judged": 7,
+   "run_violation_rates": [
+    0.0
+   ],
+   "not_judged": {
+    "unscorable": 1
+   },
+   "mean_compactions": 0,
+   "unlocated_boundaries": 0,
+   "prompt_adjacent_boundaries": 0,
+   "mean_injected_chars": null,
+   "mean_injected_tokens": null,
+   "mean_tokens": 31603918,
+   "mean_cost_usd": 13.9075
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "condition": "outbox",
+   "runs": 1,
+   "measurement_complete": 1,
+   "aborted": 0,
+   "unscored": 0,
+   "score_mismatch": 0,
+   "invalid": 0,
+   "input_mismatch": 0,
+   "included": 1,
+   "ops_problems": 0,
+   "secret_leak": 0,
+   "history_rewritten": 0,
+   "reread_runs": 0,
+   "memo_runs": 0,
+   "violation_rate": 0.015384615384615385,
+   "judged": 65,
+   "drop_candidate_rate": 0.14285714285714285,
+   "drop_candidate_judged": 7,
+   "run_violation_rates": [
+    0.015384615384615385
+   ],
+   "not_judged": {
+    "unscorable": 1
+   },
+   "mean_compactions": 6,
+   "unlocated_boundaries": 0,
+   "prompt_adjacent_boundaries": 0,
+   "mean_injected_chars": 95486,
+   "mean_injected_tokens": 81134,
+   "mean_tokens": 20051916,
+   "mean_cost_usd": 16.5813
+  }
+ ],
+ "per_item": {
+  "D0-01": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-02": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-03": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-04": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-05": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-06": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-07": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-08": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-09": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-10": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-11": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-12": {
+   "drop_candidate": true,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-13": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-14": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D1-01": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D1-02": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D1-03": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D1-04": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D2-01": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D2-02": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D2-03": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D2-04": {
+   "drop_candidate": true,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D2-05": {
+   "drop_candidate": true,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D3-00": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D3-01": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D3-02": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D4-01": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D4-02": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D4-03": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D4-04": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D4-05": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D4-06": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D4-07": {
+   "drop_candidate": true,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      1,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      1,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      1,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D4-08": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D4-10": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D5-01": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D5-02": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D5-03": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D5-04": {
+   "drop_candidate": true,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D5-05": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D5-06": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D5-08": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D5-09": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D5-10": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D5-11": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D6-00": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D6-01": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D6-02": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D6-03": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D6-05": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D6-06": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D6-07": {
+   "drop_candidate": true,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D6-08": {
+   "drop_candidate": true,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D6-10": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D7-01": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D7-02": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D7-03": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D7-04": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D7-05": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D7-06": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D7-07": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D7-08": {
+   "drop_candidate": true,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D7-09": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D7-10": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "K1": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "K2": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "K3": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "K4": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "K5": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "K6": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "K7a": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "K7b": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "K8": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      1,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  }
+ },
+ "pairs": [
+  {
+   "model": "claude-sonnet-5-5",
+   "condition": "compact",
+   "run_id": "sonnet-5-5-compact-r1-20261118T153826",
+   "items": 65,
+   "unknown_items": 0,
+   "judged": 65,
+   "own_rate": 0.0,
+   "rate": 0.0,
+   "controls": 1,
+   "controls_without_items": 0,
+   "compared_items": [
+    65
+   ],
+   "left_out_items": [
+    0
+   ],
+   "comparisons": [
+    {
+     "control": "sonnet-5-5-control-r1-20261118T150842",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.0,
+     "control_rate": 0.0,
+     "diff": 0.0
+    }
+   ],
+   "control_rate_mean": 0.0,
+   "control_rate_span": [
+    0.0,
+    0.0
+   ],
+   "diff": 0.0
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "condition": "outbox",
+   "run_id": "sonnet-5-5-outbox-r1-20261118T170414",
+   "items": 65,
+   "unknown_items": 0,
+   "judged": 65,
+   "own_rate": 0.015384615384615385,
+   "rate": 0.015384615384615385,
+   "controls": 1,
+   "controls_without_items": 0,
+   "compared_items": [
+    65
+   ],
+   "left_out_items": [
+    0
+   ],
+   "comparisons": [
+    {
+     "control": "sonnet-5-5-control-r1-20261118T150842",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.015384615384615385,
+     "control_rate": 0.0,
+     "diff": 0.015384615384615385
+    }
+   ],
+   "control_rate_mean": 0.0,
+   "control_rate_span": [
+    0.0,
+    0.0
+   ],
+   "diff": 0.015384615384615385
+  }
+ ],
+ "primary": [
+  {
+   "model": "claude-sonnet-5-5",
+   "condition": "compact",
+   "runs": 1,
+   "runs_with_diff": 1,
+   "rate_mean": 0.0,
+   "control_rate_mean": 0.0,
+   "diff_mean": 0.0,
+   "diff_span": [
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "condition": "outbox",
+   "runs": 1,
+   "runs_with_diff": 1,
+   "rate_mean": 0.015384615384615385,
+   "control_rate_mean": 0.0,
+   "diff_mean": 0.015384615384615385,
+   "diff_span": [
+    0.015384615384615385,
+    0.015384615384615385
+   ]
+  }
+ ],
+ "excluded": []
+}
