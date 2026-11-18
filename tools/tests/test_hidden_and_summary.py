@@ -150,8 +150,24 @@ class SummaryTest(unittest.TestCase):
         self.assertEqual((pair["items"], pair["unknown_items"], pair["judged"], pair["rate"]), (3, 1, 2, 0.5))  # U는 판정 제외
         self.assertEqual((pair["controls"], pair["control_rate_mean"], pair["control_rate_span"]), (2, 0.75, (0.5, 1.0)))
         self.assertAlmostEqual(pair["diff"], -0.25)
+        self.assertEqual((pair["compared_items"], pair["left_out_items"]), ([2, 2], [1, 1]))  # U는 양쪽에서 뺌
         o = next(x for x in self.res["pairs"] if x["run_id"] == "o1")
         self.assertEqual((o["rate"], o["control_rate_mean"]), (0.0, 0.75))
+
+    def test_unscorable_items_left_out_on_both_sides(self):
+        b = Path(tempfile.mkdtemp())
+        recs = summarize.load([
+            make_run(b, "t", "compact", {"X": item("fail", 1), "Y": item("pass", 1), "Z": item("unscorable", 1)}),
+            make_run(b, "cA", "control", {"X": item("unscorable"), "Y": item("fail"), "Z": item("pass")}),
+            make_run(b, "cB", "control", {"X": item("not_run"), "Y": item("unscorable"), "Z": item("fail")})])
+        pair = summarize.summarize(recs)["pairs"][0]
+        # cA와는 Y 하나만 비교(X는 대조군에서, Z는 컴팩트 실행에서 판정 불가) · cB는 비교 항목이 없어 대조군 수에서 빠짐
+        self.assertEqual((pair["controls"], pair["controls_without_items"]), (1, 1))
+        self.assertEqual((pair["compared_items"], pair["left_out_items"]), ([1], [2]))
+        self.assertEqual((pair["rate"], pair["control_rate_mean"], pair["diff"]), (0.0, 1.0, -1.0))
+        self.assertEqual(pair["own_rate"], 0.5)
+        md = summarize.markdown(summarize.summarize(recs))
+        self.assertIn("| t | 3 | 0 | 2 | 1(2) · 비교 항목 없는 대조군 1 | 0.0% | (1) 100.0% [100.0~100.0%] | -100.0%p |", md)
 
     def test_stale_score_is_excluded_loudly(self):
         b = self.base
@@ -184,7 +200,7 @@ class SummaryTest(unittest.TestCase):
         md = summarize.markdown(self.res)
         self.assertIn("| m | compact | 5 | 4 | 1 | 1 | 0 | 1 | 1 | 1 | 0 | 0 | 0 | 1 | 1 |", md)
         self.assertIn("- k2: 미채점", md)
-        self.assertIn("| k1 | 3 | 1 | 2 | 50.0% | (2) 75.0% [50.0~100.0%] | -25.0%p |", md)
+        self.assertIn("| k1 | 3 | 1 | 2 | 2(1), 2(1) | 50.0% | (2) 75.0% [50.0~100.0%] | -25.0%p |", md)
         self.assertIn("| I0 | 뒤 1/1 | 없음 1/2 |", md.replace(" | 뒤 0/0", ""))
         self.assertIn("| D ● |", md)
         self.assertIn("미측정", md)

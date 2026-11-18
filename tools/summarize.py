@@ -13,7 +13,8 @@
 - 위반율 = fail / (pass + fail). not_run·unscorable·premise_unmet는 분모에서 빼고 따로 센다.
   별칭 항목(alias_of — 같은 테스트)은 세지 않는다. 버릴 후보(●, drop_candidate)는 주 지표에서 빼고 따로 낸다.
 - 주 측정값(명세 §2): 컴팩트 실행(compact·outbox)마다 "전달 뒤 최종 시점까지 위치가 확정된 컴팩트가 한 번 이상 있었던
-  항목" 집합을 정하고, 그 실행의 위반율과 같은 모델 대조군 실행들의 같은 항목 집합 위반율(평균·최소~최대)의 차이를 낸다.
+  항목" 집합을 정하고, 같은 모델 대조군 실행 하나하나와 그 집합 중 **양쪽 모두 판정된 항목만으로** 위반율 차이를 낸다(한쪽이라도
+  판정 불가면 그 비교에서 양쪽 모두 뺌 — 비교마다 비교 항목 수·뺀 수를 낸다). 비교 항목이 없는 대조군은 대조군 수에 넣지 않는다.
   위치 불명 경계(프롬프트 앞/뒤를 확정하지 못함)만 있는 항목은 집합을 정하는 데 쓰지 않고 "불명"으로 따로 센다.
 """
 import argparse
@@ -211,8 +212,17 @@ def summarize(recs):
                          for r in recs if not r["included"] or r["run"].get("failure_reasons")]}
 
 
+def judged_items(score, items):
+    return [i for i in items if score["items"].get(i, {}).get("result") in ("pass", "fail")]
+
+
 def paired(recs):
-    """주 측정값 — 컴팩트 실행마다 (전달 뒤 컴팩트 항목 집합의 위반율) − (같은 모델 대조군들의 같은 집합 위반율 평균)."""
+    """주 측정값 — 컴팩트 실행마다, 같은 모델 대조군 하나하나와 **같은 항목끼리** 비교한다.
+
+    비교 하나(컴팩트 실행 r, 대조군 c) = 전달 뒤 컴팩트 항목 집합 중 r과 c 양쪽에서 모두 판정된(pass/fail) 항목만 쓴다 —
+    어느 한쪽이라도 판정 불가(unscorable·not_run·premise_unmet·없음)면 그 비교에서 양쪽 모두 뺀다(비교 항목 수·뺀 수를 남김).
+    같은 항목에서 r의 위반율 − c의 위반율이 그 비교의 차이. 비교 항목이 0개인 대조군은 대조군 수에 넣지 않는다.
+    실행의 차이 = 비교들의 차이 평균(r 위반율·대조군 위반율도 비교들의 평균)."""
     ok = [r for r in recs if r["included"]]
     pairs = []
     for r in ok:
@@ -222,14 +232,27 @@ def paired(recs):
         items = r["score"]["items"]
         target = sorted(i for i, it in items.items() if main_item(it) and bucket(it) == "after")
         unknown = sum(main_item(it) and bucket(it) == "unknown" for it in items.values())
-        rr, judged = item_rate(r["score"], target)
-        controls = [c for c in ok if c["run"]["condition"] == "control" and c["run"]["model"] == run["model"]]
-        crates = [item_rate(c["score"], target)[0] for c in controls]
-        cm = mean(crates)
+        own = judged_items(r["score"], target)
+        comps = []
+        for c in ok:
+            if c["run"]["condition"] != "control" or c["run"]["model"] != run["model"]:
+                continue
+            both = judged_items(c["score"], own)
+            comps.append({"control": c["run"]["run_id"], "compared": len(both), "left_out": len(target) - len(both),
+                          "rate": item_rate(r["score"], both)[0], "control_rate": item_rate(c["score"], both)[0]})
+        used = [x for x in comps if x["compared"]]
+        for x in used:
+            x["diff"] = x["rate"] - x["control_rate"]
+        crates = [x["control_rate"] for x in used]
         pairs.append({"model": run["model"], "condition": run["condition"], "run_id": run["run_id"],
-                      "items": len(target), "unknown_items": unknown, "judged": judged, "rate": rr,
-                      "controls": len(controls), "control_rate_mean": cm, "control_rate_span": span(crates),
-                      "diff": None if rr is None or cm is None else rr - cm})
+                      "items": len(target), "unknown_items": unknown, "judged": len(own),
+                      "own_rate": item_rate(r["score"], own)[0],
+                      "rate": mean([x["rate"] for x in used]),
+                      "controls": len(used), "controls_without_items": len(comps) - len(used),
+                      "compared_items": [x["compared"] for x in used], "left_out_items": [x["left_out"] for x in used],
+                      "comparisons": comps,
+                      "control_rate_mean": mean(crates), "control_rate_span": span(crates),
+                      "diff": mean([x["diff"] for x in used])})
     primary = []
     for key in sorted({(x["model"], x["condition"]) for x in pairs}):
         xs = [x for x in pairs if (x["model"], x["condition"]) == key]
@@ -292,12 +315,14 @@ def markdown(res):
         out.append(f"| {x['model']} | {x['condition']} | {x['runs']} | {x['runs_with_diff']} | "
                    f"{fmt(x['rate_mean'], True)} | {fmt(x['control_rate_mean'], True)} | {pp(x['diff_mean'])} | "
                    f"{'—' if x['diff_span'] is None else pp(x['diff_span'][0]) + ' ~ ' + pp(x['diff_span'][1])} |")
-    out += ["", "| 실행 | 항목 수 | 불명 항목 | 판정 | 위반율 | 대조군(실행 수) 평균 [최소~최대] | 차이 |",
-            "|---|---|---|---|---|---|---|"]
+    out += ["", "| 실행 | 항목 수 | 불명 항목 | 판정 | 대조군별 비교 항목(뺀 항목) | 위반율(같은 항목) | "
+            "대조군(실행 수) 평균 [최소~최대] | 차이 |", "|---|---|---|---|---|---|---|---|"]
     for x in res["pairs"]:
-        out.append(f"| {x['run_id']} | {x['items']} | {x['unknown_items']} | {x['judged']} | {fmt(x['rate'], True)} | "
-                   f"({x['controls']}) {fmt(x['control_rate_mean'], True)} [{pct_span(x['control_rate_span'])}] | "
-                   f"{pp(x['diff'])} |")
+        cmp_ = ", ".join(f"{n}({m})" for n, m in zip(x["compared_items"], x["left_out_items"])) or "—"
+        nz = f" · 비교 항목 없는 대조군 {x['controls_without_items']}" if x["controls_without_items"] else ""
+        out.append(f"| {x['run_id']} | {x['items']} | {x['unknown_items']} | {x['judged']} | {cmp_}{nz} | "
+                   f"{fmt(x['rate'], True)} | ({x['controls']}) {fmt(x['control_rate_mean'], True)} "
+                   f"[{pct_span(x['control_rate_span'])}] | {pp(x['diff'])} |")
     per_item = res["per_item"]
     cols = sorted({k for v in per_item.values() for k in v["cells"]})
     out += ["", "### 항목별 — 위반 수/판정 수, 전달 뒤 컴팩트 있음(뒤)·없음·위치 불명(불명)", "",
