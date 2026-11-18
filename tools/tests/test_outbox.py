@@ -93,7 +93,14 @@ class OutboxTest(unittest.TestCase):
 
 
 FAKE_CLAUDE_TOKENS = """#!/usr/bin/env python3
-import json, sys
+import json, os, sys
+if "--version" in sys.argv:
+    print("9.9.9 (Claude Code)")
+    sys.exit(0)
+want = os.environ.get("FAKE_WANT_TOKEN")
+if want and (os.environ.get("CLAUDE_CODE_OAUTH_TOKEN") != want or "ANTHROPIC_API_KEY" in os.environ
+             or not os.path.isdir(os.environ.get("CLAUDE_CONFIG_DIR", "")) or os.environ.get("CLAUDE_CONFIG_DIR", "").startswith(os.path.expanduser("~/.claude"))):
+    sys.exit(7)
 text = sys.stdin.read()
 model = sys.argv[sys.argv.index("--model") + 1]
 print(json.dumps({"usage": {"input_tokens": len(text), "iterations": [{"input_tokens": len(text)}]},
@@ -153,6 +160,44 @@ class CountInjectionTokensTest(unittest.TestCase):
         p.write_text(p.read_text(encoding="utf-8").replace("둘째", "바뀐 글"), encoding="utf-8")
         with self.assertRaises(ValueError):
             self.cit.measure(self.run, "claude-fake-1", 1, tempfile.mkdtemp(), str(self.bin))
+        self.assertFalse((self.run / "injection-tokens.json").exists())
+
+    def test_token_env_file_passed_only_to_child(self):
+        """실험용 토큰 파일의 값은 자식 claude의 환경으로만 간다(호스트 ANTHROPIC_API_KEY는 빠지고 CLAUDE_CONFIG_DIR은 빈
+        임시 폴더). 결과 파일·표준 출력에는 토큰 값이 없고, CLI 버전·모델·토큰 파일 경로가 남는다."""
+        import contextlib
+        import io
+        import os
+        from unittest import mock
+        secret = "tok-SECRET-0123456789"
+        tf = Path(tempfile.mkdtemp()) / "claude.env"
+        tf.write_text(f"CLAUDE_CODE_OAUTH_TOKEN={secret}\n", encoding="utf-8")
+        tf.chmod(0o600)
+        out = io.StringIO()
+        with mock.patch.dict(os.environ, {"FAKE_WANT_TOKEN": secret, "ANTHROPIC_API_KEY": "host-key"}), \
+                contextlib.redirect_stdout(out):
+            rc = self.cit.main(["--run", str(self.run), "--workdir", tempfile.mkdtemp(), "--repeat", "1",
+                                "--claude-bin", str(self.bin), "--token-env-file", str(tf)])
+        self.assertEqual(rc, 0)
+        raw = (self.run / "injection-tokens.json").read_text(encoding="utf-8")
+        self.assertNotIn(secret, raw)
+        self.assertNotIn(secret, out.getvalue())
+        d = json.loads(raw)
+        self.assertTrue(d["complete"])
+        self.assertEqual((d["cli_version"], d["model"], d["auth"], d["token_env_file"]),
+                         ("9.9.9 (Claude Code)", "claude-fake-1", "token_env_file", str(tf)))
+        # 토큰이 자식에 가지 않으면(가짜가 종료 7) 실패하고 오류에도 값이 없다
+        with mock.patch.dict(os.environ, {"FAKE_WANT_TOKEN": "other"}):
+            with self.assertRaises(RuntimeError) as cm:
+                self.cit.measure(self.run, "claude-fake-1", 1, tempfile.mkdtemp(), str(self.bin), str(tf))
+        self.assertNotIn(secret, str(cm.exception))
+
+    def test_token_file_loose_permissions_refused(self):
+        tf = Path(tempfile.mkdtemp()) / "claude.env"
+        tf.write_text("CLAUDE_CODE_OAUTH_TOKEN=x\n", encoding="utf-8")
+        tf.chmod(0o644)
+        with self.assertRaises(ValueError):
+            self.cit.measure(self.run, "claude-fake-1", 1, tempfile.mkdtemp(), str(self.bin), str(tf))
         self.assertFalse((self.run / "injection-tokens.json").exists())
 
     def test_workdir_inside_repo_refused(self):

@@ -25,6 +25,14 @@ Python 3.11+ 표준 라이브러리만 쓴다. 경로·명령 설정은 `tools/e
 | `summarize.py` | 실행 기록(`run.json` 기준) + `score.json` → 조건·모델별 표 |
 | `tests/` | 단위 테스트(가짜 `docker`·가짜 `claude`·가짜 세션 기록·가짜 저장소) |
 
+## 실행 순서
+
+1. 이미지 빌드(아래) → `run_task.py --check-env`(무료)
+2. 실행마다 `run_task.py --model … --condition … --rep …` → `.runs/<run id>/`
+3. outbox 실행이면 `count_injection_tokens.py --run .runs/<run id> --workdir <저장소 밖 빈 폴더>`(유료 — 실험용 토큰) → `injection-tokens.json`
+4. `score_run.py --run .runs/<run id>` → `score.json`. 3보다 먼저 채점했으면 3 뒤에 **다시 채점**한다(채점할 때 `injection-tokens.json`을 읽는다)
+5. `summarize.py [--runs-dir .runs]` — 채점 뒤 `run.json`이 바뀌었거나 옛 채점이면 "채점 불일치"로 빠지므로 다시 채점
+
 ## 에이전트 이미지
 
 ```bash
@@ -221,6 +229,7 @@ outbox_boundary_injections[](outbox만)`.
 
 ```
 python3 tools/count_injection_tokens.py --run .runs/<run id> --workdir <저장소 밖 빈 폴더> [--model <기본: run.json의 모델>] [--repeat 3] [--claude-bin claude]
+    [--token-env-file <기본: experiment.json token_env_file>] [--config tools/experiment.json]
 ```
 
 주입량의 **토큰** 값(명세 §2)을 사후에 잰다. 실행 기록의 `hookdata/outbox/<session>.jsonl`에서 `inject-log`의 `seqs` 행을 `inject.build_context`로
@@ -228,9 +237,14 @@ python3 tools/count_injection_tokens.py --run .runs/<run id> --workdir <저장�
 잼 = `claude -p`(도구·MCP·사용자 설정 끔, `--setting-sources project`, 빈 작업 폴더)에 주입문 + 고정 꼬리 한 줄을 넣은 첫 요청의
 input + cache_creation + cache_read 토큰의 중앙값 − 꼬리만 넣은 기준값의 중앙값(`prompt-language-experiment/tools/measure_tokens.py`와 같은 방식).
 주입문 본문만 잰다(CLI가 맥락에 넣을 때 두르는 틀은 빠진다). 결과 `<run>/injection-tokens.json`(`complete`, `injections[{seqs, chars, context_sha256, raw, tokens}]`,
-`total_tokens`). 채점기는 완료이고 주입 수가 같고 **주입마다 `context_sha256`이 `run.json.injections`의 해시와 차례대로 같을 때만** 그 합을 받는다 —
+`total_tokens`, `model`, `cli_version`(`claude --version`), `auth`, `token_env_file`(경로만)). 채점기는 완료이고 주입 수가 같고 **주입마다 `context_sha256`이 `run.json.injections`의 해시와 차례대로 같을 때만** 그 합을 받는다 —
 아니면(없음·미완료·수 불일치·해시 불일치나 해시 없음) `score.json.injected_tokens` = null, 이유는 `injected_tokens_unavailable`, 집계 표 "미측정".
-호스트의 `claude`(그 로그인)로 부른다.
+채점기는 이 파일을 **채점할 때** 읽으므로, 이미 채점한 실행이면 잰 뒤 `score_run.py`를 다시 돌려야 값이 들어간다(아래 "실행 순서").
+
+인증(2026-11-18 결정 — 실험용 토큰): 실행기와 **같은 토큰 파일**(`token_env_file`, 형식 확인도 실행기의 `read_token`과 같음 — 저장소 밖·권한 600·한 줄)의
+값을 메모리에만 읽어 **자식 `claude` 프로세스의 환경 변수로만** 넘긴다(출력·기록하지 않고, 호출 오류 메시지에서도 가린다). 호스트 로그인은 쓰지 않는다:
+자식의 `CLAUDE_CONFIG_DIR`은 빈 임시 폴더(끝나면 지움)이고 호스트의 `ANTHROPIC_API_KEY`·`ANTHROPIC_AUTH_TOKEN`은 넘기지 않는다.
+`claude`는 호스트에 설치된 CLI(`--claude-bin`)이고 그 버전을 결과에 남긴다(에이전트 이미지의 2.1.326과 다를 수 있다 — 주입문 토큰 수는 모델의 토크나이저에 따른다).
 
 ## score_run.py
 
