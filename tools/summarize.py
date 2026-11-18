@@ -5,6 +5,8 @@
 인자가 없으면 <runs-dir>/*/run.json 전부. score.json이 없는 실행은 "미채점"으로 센다(빠뜨리지 않는다).
 
 - 집계 대상 = 측정 완료(run.json measurement_complete — 모든 턴이 끝남) · 유효(invalid 아님) · 입력 일치 · 채점됨.
+  채점됨 = score.json이 있고 그 신원(run_id·model·condition·채점한 run.json의 sha256)이 같은 폴더 run.json과 같음 — 다르면
+  "채점 불일치"로 빠진 실행 목록에 이유와 함께 내고(표준 오류에도 경고) 섞지 않는다.
   운영 문제(정리·보관 실패, 토큰 검출 — run.json failure_reasons)는 측정을 무효로 하지 않고 따로 센다.
 - 입력 일치: 모든 실행에서 같아야 할 것(COMMON_INPUTS)과 같은 조건 안에서 같아야 할 것(CONDITION_INPUTS)을 대조한다.
   가장 많은 값과 다르면(최다 값이 둘 이상이면 그 값을 가진 실행 모두) "입력 불일치"로 따로 내고 섞지 않는다.
@@ -15,6 +17,7 @@
   위치 불명 경계(프롬프트 앞/뒤를 확정하지 못함)만 있는 항목은 집합을 정하는 데 쓰지 않고 "불명"으로 따로 센다.
 """
 import argparse
+import hashlib
 import json
 import statistics
 import sys
@@ -52,16 +55,27 @@ def span(xs):
 # ---------- 입력 ----------
 
 def load(paths):
-    """[{dir, run, score 또는 None}] — 경로는 실행 폴더·run.json·score.json 아무거나."""
+    """[{dir, run, run_sha256, score 또는 None}] — 경로는 실행 폴더·run.json·score.json 아무거나."""
     out = []
     for p in paths:
         d = Path(p).parent if Path(p).is_file() else Path(p)
         if not (d / "run.json").is_file():
             raise SystemExit(f"run.json 없음: {d}")
         s = d / "score.json"
-        out.append({"dir": str(d), "run": json.loads((d / "run.json").read_text(encoding="utf-8")),
+        raw = (d / "run.json").read_bytes()
+        out.append({"dir": str(d), "run": json.loads(raw.decode("utf-8")), "run_sha256": hashlib.sha256(raw).hexdigest(),
                     "score": json.loads(s.read_text(encoding="utf-8")) if s.is_file() else None})
     return out
+
+
+def score_mismatch(rec):
+    """score.json이 같은 폴더 run.json의 채점인지 — 다른 키 목록(빈 목록 = 일치). 채점기가 남긴 신원(run_id·model·condition과
+    채점한 run.json의 해시)을 대조한다. 해시가 없는 옛 채점도 불일치(다시 채점)."""
+    s, run = rec["score"], rec["run"]
+    if not s:
+        return []
+    bad = [k for k in ("run_id", "model", "condition") if s.get(k) != run.get(k)]
+    return bad + (["run_sha256"] if s.get("run_sha256") != rec.get("run_sha256") else [])
 
 
 def input_value(run, key):
@@ -134,7 +148,9 @@ def summarize(recs):
     for r in recs:
         run, s = r["run"], r["score"]
         r["mismatch"] = bad_inputs.get(run["run_id"], [])
-        r["included"] = bool(s) and run["measurement_complete"] and not run.get("invalid") and not r["mismatch"]
+        r["score_mismatch"] = score_mismatch(r)
+        r["included"] = (bool(s) and not r["score_mismatch"] and run["measurement_complete"] and not run.get("invalid")
+                         and not r["mismatch"])
     groups = {}
     for r in recs:
         groups.setdefault((r["run"]["model"], r["run"]["condition"]), []).append(r)
@@ -166,12 +182,14 @@ def summarize(recs):
             "measurement_complete": sum(bool(r["run"]["measurement_complete"]) for r in rs),
             "aborted": sum(not r["run"]["measurement_complete"] for r in rs),
             "unscored": sum(r["score"] is None for r in rs),
+            "score_mismatch": sum(bool(r["score_mismatch"]) for r in rs),
             "invalid": sum(bool(r["run"].get("invalid")) for r in rs),
             "input_mismatch": sum(bool(r["mismatch"]) for r in rs),
             "included": len(ok),
             "ops_problems": sum(bool(r["run"].get("failure_reasons")) for r in rs),
             "secret_leak": sum("secret_leak" in (r["run"].get("failure_reasons") or []) for r in rs),
-            "history_rewritten": sum(bool(((r["score"] or {}).get("history") or {}).get("rewritten_turns")) for r in rs),
+            "history_rewritten": sum(bool(((r["score"] or {}).get("history") or {}).get("rewritten_turns"))
+                                     for r in rs if not r["score_mismatch"]),
             "reread_runs": sum(x[0] for x in flags), "memo_runs": sum(x[1] for x in flags),
             "violation_rate": rate(f, p), "judged": f + p,
             "drop_candidate_rate": rate(fd, pd), "drop_candidate_judged": fd + pd,
@@ -186,7 +204,7 @@ def summarize(recs):
         })
     pairs, primary = paired(recs)
     return {"rows": rows, "per_item": per_item, "pairs": pairs, "primary": primary,
-            "excluded": [{"run_id": r["run"]["run_id"], "unscored": r["score"] is None,
+            "excluded": [{"run_id": r["run"]["run_id"], "unscored": r["score"] is None, "score_mismatch": r["score_mismatch"],
                           "measurement_complete": r["run"]["measurement_complete"],
                           "invalid_reasons": r["run"].get("invalid_reasons") or [], "input_mismatch": r["mismatch"],
                           "failure_reasons": r["run"].get("failure_reasons") or []}
@@ -237,16 +255,19 @@ def pp(x):
 def markdown(res):
     rows, out = res["rows"], []
     out += ["### 실행 상태", "",
-            "| 모델 | 조건 | 실행 | 측정 완료 | 중단 | 미채점 | 무효 | 입력 불일치 | 집계 대상 | 운영 문제 | 토큰 검출 | "
-            "이력 재작성 | 원문 재독 실행 | 자기 메모 실행 |", "|---|---|" + "---|" * 12]
+            "| 모델 | 조건 | 실행 | 측정 완료 | 중단 | 미채점 | 채점 불일치 | 무효 | 입력 불일치 | 집계 대상 | 운영 문제 | 토큰 검출 | "
+            "이력 재작성 | 원문 재독 실행 | 자기 메모 실행 |", "|---|---|" + "---|" * 13]
     for r in rows:
         out.append(f"| {r['model']} | {r['condition']} | {r['runs']} | {r['measurement_complete']} | {r['aborted']} | "
-                   f"{r['unscored']} | {r['invalid']} | {r['input_mismatch']} | {r['included']} | {r['ops_problems']} | "
+                   f"{r['unscored']} | {r['score_mismatch']} | {r['invalid']} | {r['input_mismatch']} | {r['included']} | "
+                   f"{r['ops_problems']} | "
                    f"{r['secret_leak']} | {r['history_rewritten']} | {r['reread_runs']} | {r['memo_runs']} |")
     if res["excluded"]:
         out += ["", "집계에서 빠졌거나 운영 문제가 있는 실행:"]
         for x in res["excluded"]:
-            why = (["미채점"] if x["unscored"] else []) + ([] if x["measurement_complete"] else ["측정 미완료"]) \
+            why = (["미채점"] if x["unscored"] else []) \
+                + [f"채점 파일이 이 실행의 것이 아님 {', '.join(x['score_mismatch'])} — 다시 채점"] * bool(x["score_mismatch"]) \
+                + ([] if x["measurement_complete"] else ["측정 미완료"]) \
                 + [f"무효 {', '.join(x['invalid_reasons'])}"] * bool(x["invalid_reasons"]) \
                 + [f"입력 불일치 {', '.join(x['input_mismatch'])}"] * bool(x["input_mismatch"]) \
                 + [f"운영 문제 {', '.join(x['failure_reasons'])}"] * bool(x["failure_reasons"])
@@ -310,6 +331,9 @@ def main(argv=None):
         print("run.json 없음", file=sys.stderr)
         return 1
     res = summarize(load(paths))
+    stale = [x["run_id"] for x in res["excluded"] if x["score_mismatch"]]
+    if stale:
+        print(f"경고: score.json이 그 폴더 run.json의 채점이 아님(집계에서 뺌, 다시 채점): {stale}", file=sys.stderr)
     print(markdown(res))
     if a.json:
         Path(a.json).write_text(json.dumps(to_json(res), ensure_ascii=False, indent=1), encoding="utf-8")

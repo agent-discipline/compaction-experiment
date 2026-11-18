@@ -13,6 +13,7 @@
 """
 import argparse
 import datetime
+import hashlib
 import json
 import math
 import re
@@ -551,7 +552,8 @@ def open_stack(cfg, need, allow_concurrent=False):
 
 def score(cfg, run_dir, work, skip_hidden, skip_db=False, allow_concurrent=False):
     run_dir = Path(run_dir)
-    run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+    run_bytes = (run_dir / "run.json").read_bytes()
+    run = json.loads(run_bytes.decode("utf-8"))
     table = parse_scoring_items((Path(cfg["task_dir"]) / "scoring-items.md").read_text(encoding="utf-8"))
     static = {}
     try:
@@ -620,7 +622,9 @@ def score(cfg, run_dir, work, skip_hidden, skip_db=False, allow_concurrent=False
     chars = [x.get("chars_injected") for x in inj]
     history = history_check(work, run)
     return {
+        # run_id·model·condition·run_sha256 = 채점한 실행의 신원(집계가 run.json과 대조 — 다르면 이 채점을 쓰지 않는다)
         "run_id": run["run_id"], "model": run["model"], "condition": run["condition"], "rep": run["rep"],
+        "run_sha256": hashlib.sha256(run_bytes).hexdigest(),
         "status": run["status"], "abort_reason": run.get("abort_reason"), "invalid": run.get("invalid"),
         "invalid_reasons": run.get("invalid_reasons"), "scored_at": datetime.datetime.now().isoformat(),
         "compactions": len(run.get("boundaries") or []), "boundaries": [

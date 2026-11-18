@@ -221,6 +221,13 @@ class ScoreRunTest(unittest.TestCase):
         d = self.items["D2-03"]
         self.assertEqual((d["compactions_after_delivery"], d["turns_to_first_compaction"]), (0, None))
 
+    def test_score_stamped_with_run_identity(self):
+        import hashlib
+        cfg, rdir, work = make_case()
+        s = sr.score(cfg, rdir, work, skip_hidden=True, skip_db=True)
+        self.assertEqual((s["run_id"], s["model"], s["condition"]), ("fake-run", "m", "compact"))
+        self.assertEqual(s["run_sha256"], hashlib.sha256((rdir / "run.json").read_bytes()).hexdigest())
+
     def test_hidden_items_not_run_without_items_json(self):
         self.assertEqual(self.r("D0-02"), "not_run")
         self.assertFalse(self.s["hidden"]["ran"])

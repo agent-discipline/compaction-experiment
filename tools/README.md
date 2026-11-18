@@ -242,7 +242,7 @@ python3 tools/score_run.py --run .runs/<run id> [--work <폴더>] [--skip-hidden
 compactions_after_delivery(위치가 확정된 경계 중 좌표 ≥ delivered_step인 수), turns_to_first_compaction(ceil(첫 좌표) − delivered_step, 없으면 null),
 compactions_unlocated(위치 불명 경계 수)`, `scorer`.
 
-`score.json` 최상위: `run_id, model, condition, rep, status, abort_reason, invalid, invalid_reasons, scored_at, compactions,
+`score.json` 최상위: `run_id, model, condition, rep, run_sha256(채점한 run.json 바이트의 sha256 — 집계가 신원 대조), status, abort_reason, invalid, invalid_reasons, scored_at, compactions,
 boundaries[](+coord — 위치 불명은 null), injections, injected_chars(null = 주입 없음 또는 글자 수 기록이 빠진 주입이 있음),
 injected_tokens(null = 미측정 — injection-tokens.json), history{rewritten_turns[](턴 끝 HEAD가 최종 HEAD의 조상이 아닌 턴 — amend·rebase·reset),
 missing_turns[](커밋 객체가 없는 턴)}, totals, turns_done, hidden{ran, main_build{exit_code, timed_out}, exit_code, timed_out,
@@ -268,7 +268,8 @@ python3 tools/summarize.py [실행 폴더 | run.json | score.json …] [--runs-d
 ```
 
 실행은 `run.json`으로 열거한다(`score.json`이 없으면 "미채점"으로 센다). **집계 대상** = `measurement_complete` · 유효(invalid 아님) ·
-입력 일치 · 채점됨. 운영 문제(`failure_reasons`)는 측정을 무효로 하지 않는다 — 토큰 검출 실행도 집계에 들고 따로 표시된다.
+입력 일치 · 채점됨. 채점됨 = `score.json`의 신원(`run_id`·`model`·`condition`·`run_sha256`)이 같은 폴더 `run.json`(바이트 해시)과 같음 —
+다르면(남은 옛 채점, 채점 뒤 바뀐 `run.json`, 해시 없는 옛 채점) "채점 불일치"로 세고 빠진 실행 목록에 다른 키와 함께 내며 표준 오류에 경고한다(다시 채점). 운영 문제(`failure_reasons`)는 측정을 무효로 하지 않는다 — 토큰 검출 실행도 집계에 들고 따로 표시된다.
 
 - **입력 일치**: 모든 실행에서 같아야 할 것(`messages_sha256_all`·`image_id`·`skeleton_commit`·`cli_version`·`limits`·`container_limits`·
   컴팩트 기준값을 뺀 `container_env`)과 같은 조건 안에서 같아야 할 것(`settings_sha256`·`compact_window_env`·`outbox_config_sha256`)을
@@ -279,7 +280,7 @@ python3 tools/summarize.py [실행 폴더 | run.json | score.json …] [--runs-d
   그 실행의 위반율과 **같은 모델의 대조군 실행들에서 같은 항목 집합**의 위반율(평균·최소~최대)의 차이를 낸다. 각 실행의 위반율은 그 실행에서
   판정된(pass/fail) 항목만으로 낸다. 위치 불명 경계만 걸린 항목은 집합에 넣지 않고 "불명 항목"으로 센다.
 
-표: ① 실행 상태(실행·측정 완료·중단·미채점·무효·입력 불일치·집계 대상·운영 문제·토큰 검출·이력 재작성·원문 재독 실행·자기 메모 실행) +
+표: ① 실행 상태(실행·측정 완료·중단·미채점·채점 불일치·무효·입력 불일치·집계 대상·운영 문제·토큰 검출·이력 재작성·원문 재독 실행·자기 메모 실행) +
 빠진 실행 목록과 이유 ② 위반율(전체·버릴 후보·실행별·판정 제외·컴팩트 평균·위치 불명 경계·주입 글자/토큰·토큰·비용 — 모르는 값은 "미측정")
 ③ 주 측정값(조건별 요약 + 실행별) ④ 항목 × (모델, 조건) — 위반 수/판정 수를 전달 뒤 컴팩트 "뒤"·"없음"·"불명"으로 나눔.
 

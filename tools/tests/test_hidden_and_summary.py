@@ -1,4 +1,5 @@
 import contextlib
+import hashlib
 import io
 import json
 import tempfile
@@ -85,7 +86,8 @@ def make_run(base, run_id, cond, items=None, model="m", complete=True, invalid=(
     (d / "run.json").write_text(json.dumps(run), encoding="utf-8")
     if items is not None:
         (d / "score.json").write_text(json.dumps({
-            "items": items, "compactions": 0 if cond == "control" else 2,
+            "run_id": run_id, "model": model, "condition": cond,
+            "run_sha256": hashlib.sha256((d / "run.json").read_bytes()).hexdigest(), "items": items, "compactions": 0 if cond == "control" else 2,
             "boundaries": [] if cond == "control" else [{"coord": 1.5}, {"coord": None}],
             "injected_chars": 100 if cond == "outbox" else None, "injected_tokens": None,
             "history": {"rewritten_turns": [], "missing_turns": []}}), encoding="utf-8")
@@ -151,6 +153,25 @@ class SummaryTest(unittest.TestCase):
         o = next(x for x in self.res["pairs"] if x["run_id"] == "o1")
         self.assertEqual((o["rate"], o["control_rate_mean"]), (0.0, 0.75))
 
+    def test_stale_score_is_excluded_loudly(self):
+        b = self.base
+        a = make_run(b, "s1", "control", {"I0": item("pass")})
+        other = make_run(b, "s2", "control", {"I0": item("fail")})
+        (a / "score.json").write_text((other / "score.json").read_text())        # 다른 실행의 채점이 남음
+        c = make_run(b, "s3", "control", {"I0": item("pass")})
+        run = json.loads((c / "run.json").read_text())
+        run["turns"] = [{"index": 0}]                                            # 채점 뒤 run.json이 바뀜
+        (c / "run.json").write_text(json.dumps(run))
+        res = summarize.summarize(summarize.load([a, other, c]))
+        ex = {x["run_id"]: x for x in res["excluded"]}
+        self.assertEqual(ex["s1"]["score_mismatch"], ["run_id", "run_sha256"])
+        self.assertEqual(ex["s3"]["score_mismatch"], ["run_sha256"])
+        self.assertNotIn("s2", ex)
+        row = next(r for r in res["rows"] if r["condition"] == "control")
+        self.assertEqual((row["included"], row["score_mismatch"], row["judged"]), (1, 2, 1))
+        md = summarize.markdown(res)
+        self.assertIn("- s1: 채점 파일이 이 실행의 것이 아님 run_id, run_sha256 — 다시 채점", md)
+
     def test_per_item_split_by_compaction(self):
         cell = self.res["per_item"]["I0"]["cells"]
         self.assertEqual(cell[("m", "compact")]["after"], [1, 1])
@@ -161,7 +182,7 @@ class SummaryTest(unittest.TestCase):
 
     def test_markdown_and_cli(self):
         md = summarize.markdown(self.res)
-        self.assertIn("| m | compact | 5 | 4 | 1 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 1 | 1 |", md)
+        self.assertIn("| m | compact | 5 | 4 | 1 | 1 | 0 | 1 | 1 | 1 | 0 | 0 | 0 | 1 | 1 |", md)
         self.assertIn("- k2: 미채점", md)
         self.assertIn("| k1 | 3 | 1 | 2 | 50.0% | (2) 75.0% [50.0~100.0%] | -25.0%p |", md)
         self.assertIn("| I0 | 뒤 1/1 | 없음 1/2 |", md.replace(" | 뒤 0/0", ""))
