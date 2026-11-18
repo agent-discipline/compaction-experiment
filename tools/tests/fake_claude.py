@@ -86,8 +86,11 @@ with open(tp, "a", encoding="utf-8") as f:
         f.write(json.dumps(r, ensure_ascii=False) + "\n")
     if os.environ.get("FAKE_BAD_LINE_TURN") == str(turn):  # 읽지 못하는 줄(마지막 턴에만 쓸 것 — 다음 턴이 못 센다)
         f.write("{not json\n")
-print(json.dumps({"type": "result", "subtype": "success", "is_error": False, "session_id": sid, "num_turns": 1,
-                  "total_cost_usd": 0.01, "usage": {"input_tokens": 10, "output_tokens": 5,
+# 실제 CLI(2.1.277+)처럼 --resume 턴의 modelUsage·total_cost_usd는 세션 누적, usage는 그 호출의 주 루프만(턴마다 100토큰·0.01달러)
+n = turn + 1
+print(json.dumps({"type": "result", "subtype": "success", "is_error": False,
+                  "session_id": sid, "num_turns": 1,
+                  "total_cost_usd": round(0.01 * n, 6), "usage": {"input_tokens": 10, "output_tokens": 5,
                                                     "iterations": [{"input_tokens": 10, "cache_read_input_tokens": 90}]},
-                  "modelUsage": {"fake": {"inputTokens": 10, "outputTokens": 5, "cacheReadInputTokens": 85,
+                  "modelUsage": {"fake": {"inputTokens": 10 * n, "outputTokens": 5 * n, "cacheReadInputTokens": 85 * n,
                                           "cacheCreationInputTokens": 0}}}))

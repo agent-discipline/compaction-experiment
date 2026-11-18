@@ -351,6 +351,37 @@ class RereadTest(unittest.TestCase):
         self.assertEqual([h["match"] for h in rt.collection_data_reads(entries)], ["compact-log"])
 
 
+class SpendTest(unittest.TestCase):
+    """CLI 2.1.277+의 --resume 결과는 modelUsage·total_cost_usd가 세션 누적 — 턴 값은 앞 턴 대비 차분."""
+
+    def test_cumulative_to_delta(self):
+        sp, w = rt.turn_spend(1000, 0.1, "s", None)
+        self.assertEqual((sp, w), ({"tokens": 1000, "cost_usd": 0.1, "basis": "first"}, []))
+        sp, w = rt.turn_spend(1500, 0.25, "s", {"session": "s", "tokens": 1000, "cost": 0.1})
+        self.assertEqual((sp["tokens"], sp["cost_usd"], sp["basis"], w), (500, 0.15, "delta", []))
+
+    def test_session_change_and_decrease_use_raw_with_warning(self):
+        sp, w = rt.turn_spend(300, 0.03, "s2", {"session": "s1", "tokens": 1000, "cost": 0.1})
+        self.assertEqual((sp["tokens"], sp["cost_usd"], sp["basis"]), (300, 0.03, "session_changed"))
+        self.assertEqual(len(w), 1)
+        sp, w = rt.turn_spend(300, 0.2, "s", {"session": "s", "tokens": 1000, "cost": 0.1})
+        self.assertEqual((sp["tokens"], sp["cost_usd"], sp["basis"]), (300, 0.1, "decreased"))
+        self.assertEqual(len(w), 1)
+
+    def test_old_format_recomputed(self):
+        """옛 형식(usage_accounting 표식 없음): 턴의 tokens·cost_usd가 누적 → 차분 합 = 마지막 누적."""
+        turns = [{"index": k, "tokens": v, "cost_usd": c, "result_session_id": "s"}
+                 for k, (v, c) in enumerate([(1808158, 0.0652), (2456404, 0.0765), (3367405, 0.1633)])]
+        per, warns, tot = rt.recompute_spend(turns)
+        self.assertEqual([x["tokens"] for x in per], [1808158, 648246, 911001])
+        self.assertEqual((tot["tokens"], tot["cost_usd"], warns), (3367405, 0.1633, []))
+        self.assertEqual(rt.run_spend({"turns": turns, "totals": {"tokens": 7631967}}), (tot, True))
+        new = {"usage_accounting": rt.USAGE_ACCOUNTING, "turns": turns, "totals": {"tokens": 5, "cost_usd": 1.0}}
+        self.assertEqual(rt.run_spend(new), ({"tokens": 5, "cost_usd": 1.0}, False))
+        per, _, tot = rt.recompute_spend([{"index": 0, "tokens": None, "cost_usd": None}, turns[1]])
+        self.assertIsNone(tot["tokens"])                                   # 모르는 턴이 있으면 합은 모름
+
+
 class PrepareTest(unittest.TestCase):
     def test_prepare_root(self):
         base = Path(tempfile.mkdtemp())
@@ -413,6 +444,13 @@ class RunLoopTest(unittest.TestCase):
         self.assertTrue(run["secret_scan"]["archives_from_scanned"])
         self.assertTrue(run["measurement_complete"])
         self.assertEqual(run["totals"]["cost_usd"], 0.03)
+        # 가짜 CLI도 실제처럼 누적값을 낸다 → 턴 값은 차분, 원시 누적값·usage 합도 남김
+        self.assertEqual(run["usage_accounting"], rt.USAGE_ACCOUNTING)
+        self.assertEqual([t["tokens_cumulative"] for t in run["turns"]], [100, 200, 300])
+        self.assertEqual([t["tokens"] for t in run["turns"]], [100, 100, 100])
+        self.assertEqual([t["cost_usd"] for t in run["turns"]], [0.01, 0.01, 0.01])
+        self.assertEqual([t["spend_basis"] for t in run["turns"]], ["first", "delta", "delta"])
+        self.assertEqual([t["usage_tokens"] for t in run["turns"]], [15, 15, 15])
         self.assertEqual(run["messages_sha256_all"], rt.messages_digest(run["messages_sha256"]))
         self.assertEqual([len(t["tracked_diff_sha256"]) for t in run["turns"]], [64] * 3)
         self.assertEqual([t["reread"] for t in run["turns"]], [{k: [] for k in rt.REREAD}] * 3)

@@ -519,14 +519,80 @@ def invalid_reasons(condition, bounds, audit_hits, settings_tampered, injections
 
 # ---------- 턴 ----------
 
+USAGE_KEYS = ("input_tokens", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
+# run.json 표식: 턴의 tokens·cost_usd가 "앞 턴 대비 차분"인 기록. 없으면 옛 형식(턴 값 = 세션 누적 — summarize가 다시 계산)
+USAGE_ACCOUNTING = "session_cumulative_delta"
+
+
+def usage_tokens(res):
+    """결과의 `usage` 합 — 그 호출의 주 루프 요청만(컴팩트 요약·서브에이전트 등은 빠짐). 없으면 None."""
+    u = res.get("usage") or {}
+    return sum(u.get(k) or 0 for k in USAGE_KEYS) if u else None
+
+
 def tokens_of(res):
+    """결과의 `modelUsage` 합(없으면 `usage` 합). CLI 2.1.277+의 `--resume` 호출에서는 **세션 처음부터의 누적**이다."""
     mu = res.get("modelUsage") or {}
     if mu:
         return sum((v.get("inputTokens") or 0) + (v.get("outputTokens") or 0) + (v.get("cacheReadInputTokens") or 0)
                    + (v.get("cacheCreationInputTokens") or 0) for v in mu.values())
-    u = res.get("usage") or {}
-    keys = ("input_tokens", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
-    return sum(u.get(k) or 0 for k in keys) if u else None
+    return usage_tokens(res)
+
+
+def turn_spend(cum_tokens, cum_cost, session, prev):
+    """턴의 토큰·비용 = 결과의 누적값(modelUsage 합·total_cost_usd)의 앞 턴 대비 차분.
+    prev = 앞 턴까지의 {session, tokens, cost}(마지막으로 알려진 누적값) 또는 None(첫 턴).
+    첫 턴·세션이 바뀐 턴(결과 session_id가 앞과 다름)·누적이 줄어든 턴은 차분하지 않고 그 값을 그대로 쓴다(basis로 표시).
+    돌려줌: ({tokens, cost_usd, basis}, 경고 문자열 목록)."""
+    warn = []
+    if prev is None:
+        basis = "first"
+    elif session is not None and prev.get("session") is not None and session != prev["session"]:
+        basis = "session_changed"
+        warn.append(f"결과 session_id가 앞 턴과 다름({prev['session']} → {session}) — 누적 차분 대신 그 턴 값을 그대로 씀")
+    else:
+        basis = "delta"
+
+    def one(cur, before, what):
+        if cur is None:
+            return None
+        if basis != "delta" or before is None:
+            return cur
+        if cur < before:
+            warn.append(f"{what} 누적이 줄어듦({before} → {cur}) — 차분 대신 그 턴 값을 그대로 씀")
+            return cur
+        return cur - before
+    tok = one(cum_tokens, (prev or {}).get("tokens"), "토큰")
+    cost = one(cum_cost, (prev or {}).get("cost"), "비용")
+    if any("줄어듦" in w for w in warn):
+        basis = "decreased"
+    return {"tokens": tok, "cost_usd": None if cost is None else round(cost, 6), "basis": basis}, warn
+
+
+def recompute_spend(turns):
+    """옛 형식 기록(턴의 tokens·cost_usd = 세션 누적)에서 턴별 차분과 합을 다시 낸다. (턴별 [{tokens, cost_usd, basis}], 경고,
+    {tokens, cost_usd} 합 — 모르는 턴이 있으면 그 합은 None)."""
+    out, warns, prev = [], [], None
+    for t in turns:
+        sp, w = turn_spend(t.get("tokens"), t.get("cost_usd"), t.get("result_session_id"), prev)
+        out.append(sp)
+        warns += [f"turn {t.get('index')}: {x}" for x in w]
+        prev = {"session": t.get("result_session_id") or (prev or {}).get("session"),
+                "tokens": t.get("tokens") if t.get("tokens") is not None else (prev or {}).get("tokens"),
+                "cost": t.get("cost_usd") if t.get("cost_usd") is not None else (prev or {}).get("cost")}
+    tok = [x["tokens"] for x in out]
+    cost = [x["cost_usd"] for x in out]
+    return out, warns, {"tokens": sum(tok) if tok and None not in tok else None,
+                        "cost_usd": round(sum(cost), 4) if cost and None not in cost else None}
+
+
+def run_spend(run):
+    """실행의 {tokens, cost_usd}와 다시 계산했는지. 새 형식(usage_accounting 표식)은 totals 그대로, 없으면 옛 형식으로 보고
+    턴의 원시 값(누적)에서 차분 합을 다시 낸다."""
+    if run.get("usage_accounting") == USAGE_ACCOUNTING:
+        t = run.get("totals") or {}
+        return {"tokens": t.get("tokens"), "cost_usd": t.get("cost_usd")}, False
+    return recompute_spend(run.get("turns") or [])[2], True
 
 
 def context_tokens_last(res):
@@ -753,7 +819,7 @@ def main(argv=None):
     ap.add_argument("--turn-timeout", type=int, default=5400, help="턴 하나의 시간 상한(초)")
     ap.add_argument("--max-tokens", type=int, default=None, help="실행 전체 토큰 합 상한(modelUsage 합)")
     ap.add_argument("--max-wall", type=int, default=None, help="실행 전체 시간 상한(초)")
-    ap.add_argument("--max-budget-usd", default=None, help="턴마다 claude --max-budget-usd 로 넘김")
+    ap.add_argument("--max-budget-usd", default=None, help="턴마다 claude --max-budget-usd 로 넘김(호출 하나의 상한 — --resume로 되살린 앞 턴 비용은 세지 않음, README)")
     ap.add_argument("--keep-root", action="store_true", help="끝난 뒤 run_root(호스트 작업 폴더)를 지우지 않음")
     ap.add_argument("--allow-concurrent", action="store_true", help="다른 실험(payment-*) 컨테이너가 돌아도 실행")
     ap.add_argument("--dry-run", action="store_true")
@@ -812,6 +878,7 @@ def run(cfg, a):
         "limits": {"turn_timeout": a.turn_timeout, "max_tokens": a.max_tokens, "max_wall": a.max_wall,
                    "max_budget_usd": a.max_budget_usd},
         "turns": [], "boundaries": [], "totals": {"tokens": None, "cost_usd": None, "wall_s": 0.0},
+        "usage_accounting": USAGE_ACCOUNTING,
         "audit": [], "unexpected_tools": [], "injections": [], "compact_log": [], "hook_errors": [],
         "collection_data_reads": [], "transcript_unparsed_turns": [], "auto_memory_files": [], "cleanup_errors": [],
         "secret_scan": None,
@@ -824,6 +891,7 @@ def run(cfg, a):
     created, entries, tampered = [], [], False
     line_ends, prev_size, prev_hash = [], 0, None
     t_start, tokens_total, cost_total, tokens_known, cost_known = time.time(), 0, 0.0, True, True
+    spend_prev = None  # 앞 턴까지의 마지막 누적값 {session, tokens, cost}
     try:
         setup_stack(docker, cfg, names, created)
         v = docker.run("run", "--rm", "--name", f"{names['tag']}-version", "--label", LABEL, "--network", "none",
@@ -874,12 +942,19 @@ def run(cfg, a):
             else:
                 state["warnings"].append(f"turn {k}: 세션 기록 파일을 찾지 못함")
             line_ends.append(n_lines if n_lines is not None else (line_ends[-1] if line_ends else 0))
-            tok = tokens_of(res) if res else None
+            # 결과의 modelUsage·total_cost_usd는 --resume 턴에서 세션 누적 → 앞 턴 대비 차분이 그 턴의 값(README "토큰·비용")
+            cum_tok = tokens_of(res) if res else None
+            cum_cost = res.get("total_cost_usd") if res else None
+            spend, spend_warn = turn_spend(cum_tok, cum_cost, res.get("session_id") if res else None, spend_prev)
+            state["warnings"] += [f"turn {k}: {x}" for x in spend_warn]
+            spend_prev = {"session": (res or {}).get("session_id") or (spend_prev or {}).get("session"),
+                          "tokens": cum_tok if cum_tok is not None else (spend_prev or {}).get("tokens"),
+                          "cost": cum_cost if cum_cost is not None else (spend_prev or {}).get("cost")}
+            tok, cost = spend["tokens"], spend["cost_usd"]
             if tok is None:
                 tokens_known = False
             else:
                 tokens_total += tok
-            cost = res.get("total_cost_usd") if res else None
             if cost is None:
                 cost_known = False
             else:
@@ -896,7 +971,9 @@ def run(cfg, a):
                     "is_error": res.get("is_error") if res else None, "subtype": res.get("subtype") if res else None,
                     "result_session_id": res.get("session_id") if res else None,
                     "num_turns": res.get("num_turns") if res else None,
-                    "tokens": tok, "cost_usd": cost, "context_tokens_last": context_tokens_last(res) if res else None,
+                    "tokens": tok, "cost_usd": cost, "tokens_cumulative": cum_tok, "cost_cumulative": cum_cost,
+                    "spend_basis": spend["basis"], "usage_tokens": usage_tokens(res) if res else None,
+                    "context_tokens_last": context_tokens_last(res) if res else None,
                     "usage": res.get("usage") if res else None, "model_usage": res.get("modelUsage") if res else None,
                     "git_head": head, "tracked_diff_sha256": tracked_diff_sha256(work),
                     "transcript_lines": n_lines, "transcript_bad_lines": bad, "claude_dir_files": extra,
