@@ -492,14 +492,23 @@ def hidden_items(cfg, work, run_dir, skip, docker=None, stack=None, stack_error=
     meta = {"ran": True, "main_build": mb, "exit_code": r["exit_code"], "timed_out": r["timed_out"],
             "testcases": len(r["cases"]), "log": "hidden-test.log"}
     if not r["cases"]:
-        # 메인 코드가 컴파일되지 않음 = 최종 코드가 계약을 못 지킴 → fail(분모에 든다).
+        # 메인 코드가 컴파일 오류로 실패 = 최종 코드가 계약을 못 지킴 → fail(분모에 든다). 채점 환경 쪽 실패(의존성 받기·네트워크·
+        # docker 실행 — hidden_tests.failure_kind)나 원인을 모르는 실패 → 채점 불가 + 운영자 확인(operator_flag).
         # 메인은 되는데 숨긴 테스트만 컴파일 실패(앱 클래스 이동 등 — hidden/README) → 채점 불가. 시간 초과 → 실행 안 됨.
         if mb["timed_out"]:
             why, res = "main_build_timeout", "not_run"
         elif mb["exit_code"] != 0:
-            why, res = "main_build_failed", "fail"
+            kind = mb.get("failure_kind")
+            why, res = {"code": ("main_build_failed", "fail"),
+                        "environment": ("scoring_env_main_build", "unscorable")}.get(
+                kind, ("main_build_failed_unclassified", "unscorable"))
+            if res == "unscorable":
+                meta["operator_flag"] = f"{why}: hidden-test.log 확인 뒤 다시 채점"
         elif r["timed_out"]:
             why, res = "timeout", "not_run"
+        elif r.get("failure_kind") == "environment":
+            why, res = "scoring_env_hidden_build", "unscorable"
+            meta["operator_flag"] = f"{why}: hidden-test.log 확인 뒤 다시 채점"
         else:
             why, res = "hidden_build_failed_or_no_tests", "unscorable"
         meta["reason"] = why
@@ -623,6 +632,9 @@ def score(cfg, run_dir, work, skip_hidden, skip_db=False, allow_concurrent=False
         "hidden": hidden_meta, "counts": counts, "items": items, "k8_turns": k8_turns,
         "unmapped_hidden_ids": sorted(set(hidden) - set(table)),
         "scoring_env": env_info,
+        # 운영자가 봐야 할 채점 쪽 문제(채점 환경 실패로 채점 불가가 된 항목 등) — 고친 뒤 다시 채점한다
+        "operator_flags": [x for x in [hidden_meta.get("operator_flag"),
+                                       f"scoring_env: {stack_error}" if stack_error else None] if x],
     }
 
 
@@ -669,7 +681,8 @@ def main(argv=None):
     out.write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
     env = result["scoring_env"]
     print(json.dumps({"run_id": result["run_id"], "counts": result["counts"], "out": str(out),
-                      "scoring_env_error": env.get("error"), "cleanup_errors": env.get("cleanup_errors")},
+                      "scoring_env_error": env.get("error"), "cleanup_errors": env.get("cleanup_errors"),
+                      "operator_flags": result["operator_flags"]},
                      ensure_ascii=False))
     return 1 if env.get("cleanup_errors") else 0
 

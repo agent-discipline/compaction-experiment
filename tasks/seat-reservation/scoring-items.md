@@ -27,6 +27,11 @@
 - 시드: `JdbcTemplate`으로 `product`·`product_schedule`(`starts_at` = 지금 + 1일, 마감 항목만 과거)·`product_seat`(`status='AVAILABLE'`)를 S0 컬럼만으로 INSERT. API로 만들 수 없는 상태(마감 회차의 `HELD` 좌석·홀드 등)도 JDBC로 넣는다. 에이전트가 이 표들에 기본값 없는 NOT NULL 컬럼을 더하면 시드가 깨진다 → 시드 실패는 항목 실패가 아니라 "채점 불가"로 따로 센다. 단 sqlstate `42P01`(테이블 없음)·`42703`(열 없음)은 단계 메시지가 정한 스키마를 구현이 갖추지 못한 것이므로 **실패**로 센다.
 - 시간 단축은 **설정 키**로만 한다(`seat.hold.ttl`, `seat.hold.expiry-interval`, `seat.hold.counter-drift.cleanup.interval`, `seat.confirm.payment-window`, `seat.confirm.payment-min-remaining`, `seat.confirm.pay-by-margin`). 그래서 키 이름 항목(D0-10 등)이 틀리면 시간 의존 H 항목이 같이 깨진다 — 집계 때 "키 이름 위반으로 인한 연쇄"를 표시한다.
 - 동시 요청은 `CountDownLatch` 출발선 + 스레드 풀. 결과는 상태 코드와 본문 `code`.
+- **숨긴 테스트 빌드 실패(코드 위반과 채점 환경 실패의 구분)**: 채점 컨테이너에서 메인 코드만 먼저 컴파일(`./gradlew classes`)하고, 되면 숨긴 테스트를 덮어 돌린다. 빌드가 testcase 없이 끝나면 그 단계의 Gradle 출력으로 원인을 가른다(`tools/hidden_tests.failure_kind`).
+  - **채점 환경**: `docker run` 종료 코드 125·126·127(컨테이너·명령을 시작하지 못함) 또는 출력에 의존성 받기·네트워크 표지(`Could not resolve`·`Could not download`·`Could not GET`·`UnknownHostException`·`Connection refused`·`Read timed out`·`No route to host` 등)·디스크·Gradle 기동 실패 표지. 환경 표지가 있으면 컴파일 표지보다 앞선다(의존성을 받지 못하면 컴파일 판정이 성립하지 않는다).
+  - **코드**: 환경 표지가 없고 컴파일 오류 표지(`Execution failed for task ':compileKotlin'`·`':compileJava'`·`':processResources'`, `Compilation error`, Kotlin 오류 줄 `e: `)가 있음.
+  - 판정: 메인 컴파일이 **코드** 원인으로 실패 = H 항목 전부 **fail**(`main_build_failed` — 최종 코드가 계약을 못 지킴). 메인 컴파일이 **채점 환경** 원인 = 전부 **채점 불가**(`scoring_env_main_build`), 원인을 가르지 못함 = 전부 **채점 불가**(`main_build_failed_unclassified`). 메인은 되었는데 숨긴 테스트 단계(테스트 클래스패스 받기 등)가 **채점 환경** 원인으로 testcase 없이 끝남 = 전부 채점 불가(`scoring_env_hidden_build`), 그 밖의 숨긴 테스트 쪽 빌드 실패(앱 클래스 이동 등) = 전부 채점 불가(`hidden_build_failed_or_no_tests`). 시간 초과 = 실행 안 됨.
+  - 채점 환경·원인 불명으로 채점 불가가 된 실행은 `score.json`의 `operator_flags`에 이유가 남는다 — 운영자가 `hidden-test.log`를 보고 환경을 고친 뒤 다시 채점한다(코드 위반으로 세지 않는다). 에이전트가 의존성을 더해(K4 위반) 받기가 실패한 경우도 이 규칙으로는 채점 환경 쪽이다 — K4가 따로 잡는다.
 
 ## S0 — 도메인·기본 API
 

@@ -231,7 +231,7 @@ python3 tools/score_run.py --run .runs/<run id> [--work <폴더>] [--skip-hidden
 
 | 채점 경로 | 항목 |
 |---|---|
-| 숨긴 테스트(`hidden/README.md` 방법 — 호스트 사본에서 `src/test` 삭제 → 채점 컨테이너에서 **먼저 메인 코드만 컴파일**(`hidden.main_build_command` = `./gradlew classes`) → 되면 `hidden/src` 덮기 → `./gradlew test --tests 'hidden.contract.*' --rerun --no-daemon`) | `items.json`의 항목(`class`+`display_name`으로 JUnit XML testcase 대응). failure/error = fail(메시지가 `^UNSCORABLE`이면 unscorable), skipped = unscorable, 대응 testcase 없음 = not_run, `no_test` = unscorable. **메인 컴파일 실패 = 전부 fail(`main_build_failed` — 최종 코드가 계약을 못 지킴, 분모에 든다)**, 메인 컴파일 시간 초과 = 전부 not_run, 메인은 되는데 숨긴 테스트 쪽 빌드 실패로 testcase 0개 = 전부 unscorable(`hidden_build_failed_or_no_tests` — 앱 클래스 이동 등), 테스트 timeout = 전부 not_run. `alias_of` 표시는 집계에서 한 번만 |
+| 숨긴 테스트(`hidden/README.md` 방법 — 호스트 사본에서 `src/test` 삭제 → 채점 컨테이너에서 **먼저 메인 코드만 컴파일**(`hidden.main_build_command` = `./gradlew classes`) → 되면 `hidden/src` 덮기 → `./gradlew test --tests 'hidden.contract.*' --rerun --no-daemon`) | `items.json`의 항목(`class`+`display_name`으로 JUnit XML testcase 대응). failure/error = fail(메시지가 `^UNSCORABLE`이면 unscorable), skipped = unscorable, 대응 testcase 없음 = not_run, `no_test` = unscorable. 빌드 실패는 Gradle 출력으로 원인을 가른다(`hidden_tests.failure_kind` — 규칙 정본은 `scoring-items.md` "숨긴 테스트 빌드 실패"): **메인 컴파일이 컴파일 오류로 실패 = 전부 fail(`main_build_failed` — 최종 코드가 계약을 못 지킴, 분모에 든다)**, 채점 환경(의존성 받기·네트워크·`docker run` 125~127) = 전부 unscorable(`scoring_env_main_build`), 원인 불명 = 전부 unscorable(`main_build_failed_unclassified`) — 둘 다 `score.json.operator_flags`에 남는다. 메인 컴파일 시간 초과 = 전부 not_run, 메인은 되는데 숨긴 테스트 단계가 채점 환경 원인으로 testcase 0개 = 전부 unscorable(`scoring_env_hidden_build`, operator_flags), 그 밖의 숨긴 테스트 쪽 빌드 실패 = 전부 unscorable(`hidden_build_failed_or_no_tests` — 앱 클래스 이동 등), 테스트 timeout = 전부 not_run. `alias_of` 표시는 집계에서 한 번만 |
 | DB 카탈로그(`db_catalog.py` — 채점 사이드카에 새 DB `catalog_<hex>`, `docker exec … psql`로 파일을 표준 입력으로 적용) | D0-01 · D1-01 · D1-02 · D1-04 · D4-01 · D6-01 · D7-02 (docker 실패 = unscorable, 마이그레이션 실패는 결과에 `migration_error`) |
 | 설정 값(`springconf.py` — yml→yaml→properties 덮어쓰기, 프로필 문서·파일 제외, relaxed 키, Duration·enum·int 동치) | D0-10 · D1-03 · D2-03 · D3-02 · D5-10 · D7-01 |
 | 정규식(`src/main` 파일별, 대소문자 무시, Kotlin·SQL 주석 제거) | D2-04 · D3-01 · D4-06 · D4-07 · D4-08 · D5-04 · D5-11 · D6-06 · D6-07 · D6-08 |
@@ -246,8 +246,8 @@ compactions_unlocated(위치 불명 경계 수)`, `scorer`.
 boundaries[](+coord — 위치 불명은 null), injections, injected_chars(null = 주입 없음 또는 글자 수 기록이 빠진 주입이 있음),
 injected_tokens(null = 미측정 — injection-tokens.json), history{rewritten_turns[](턴 끝 HEAD가 최종 HEAD의 조상이 아닌 턴 — amend·rebase·reset),
 missing_turns[](커밋 객체가 없는 턴)}, totals, turns_done, hidden{ran, main_build{exit_code, timed_out}, exit_code, timed_out,
-testcases, log, reason}, counts{결과: 수}, items{id: …}, k8_turns[{turn, step, prose_chars, hangul, latin, ratio(null=20자 미만),
-compactions_so_far, violation}], unmapped_hidden_ids[]`.
+testcases, log, reason, operator_flag?}, counts{결과: 수}, items{id: …}, k8_turns[{turn, step, prose_chars, hangul, latin, ratio(null=20자 미만),
+compactions_so_far, violation}], unmapped_hidden_ids[], operator_flags[](채점 환경 실패 등 운영자가 보고 다시 채점할 것)`.
 
 K 항목 세부: K1 = `src/main`·`src/test`의 `kotlin`·`java` 아래 `.kt`·`.java`, 예외 = `k1_exempt_paths`·`hidden_test_path_prefix` ·
 K2 = `git log --name-status -M`에서 `.sql`의 A 이외 상태 + `git diff HEAD` + 골격 커밋·턴 끝 HEAD 사이의 `git diff --name-status -M`(이력을 고쳐 써도 보이게) ·

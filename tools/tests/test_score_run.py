@@ -365,14 +365,21 @@ class GitSnapshotTest(unittest.TestCase):
 class HiddenMainBuildTest(unittest.TestCase):
     """채점 컨테이너 대신 가짜 실행 함수 — 메인 빌드 실패면 H 항목 fail, 숨긴 테스트만 컴파일 실패면 unscorable."""
 
-    def hidden(self, main_rc, test_rc=1):
+    COMPILE_ERR = "e: file:///work/src/main/kotlin/A.kt:3:5 Unresolved reference 'x'.\n" \
+                  "Execution failed for task ':compileKotlin'.\n> Compilation error. See log for more details\n"
+    RESOLVE_ERR = "Execution failed for task ':compileKotlin'.\n> Could not resolve all files for configuration " \
+                  "':compileClasspath'.\n   > Could not resolve org.example:lib:1.0.\n      > Could not GET 'https://repo'.\n"
+
+    def hidden(self, main_rc, test_rc=1, main_log=COMPILE_ERR, test_log=""):
         cfg = run_task.load_config()
         work, rdir = Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
         write(work, "build.gradle.kts", BUILD)
 
         def fake_executor(*_):
             def execute(cmd, cwd, log, timeout):
-                return main_rc if cmd == cfg["hidden"]["main_build_command"] else test_rc  # JUnit XML 없음
+                main = cmd == cfg["hidden"]["main_build_command"]
+                log.write((main_log if main else test_log).encode())
+                return main_rc if main else test_rc  # JUnit XML 없음
             return execute
         orig, sr.container_executor = sr.container_executor, fake_executor
         try:
@@ -391,6 +398,30 @@ class HiddenMainBuildTest(unittest.TestCase):
         items, meta = self.hidden(main_rc=0)
         self.assertEqual(meta["reason"], "hidden_build_failed_or_no_tests")
         self.assertEqual(items["D0-02"]["result"], "unscorable")
+
+    def test_main_build_environment_failure_is_unscorable_and_flagged(self):
+        items, meta = self.hidden(main_rc=1, main_log=self.RESOLVE_ERR)
+        self.assertEqual((meta["reason"], meta["main_build"]["failure_kind"]), ("scoring_env_main_build", "environment"))
+        self.assertEqual((items["D0-02"]["result"], items["D0-02"]["reason"]), ("unscorable", "scoring_env_main_build"))
+        self.assertIn("scoring_env_main_build", meta["operator_flag"])
+        items, meta = self.hidden(main_rc=125, main_log="")  # docker run이 컨테이너를 시작하지 못함
+        self.assertEqual(items["D0-02"]["result"], "unscorable")
+
+    def test_main_build_unclassified_failure_is_unscorable_and_flagged(self):
+        items, meta = self.hidden(main_rc=1, main_log="FAILURE: Build failed with an exception.\n* What went wrong:\nboom\n")
+        self.assertEqual((items["D0-02"]["result"], meta["reason"]), ("unscorable", "main_build_failed_unclassified"))
+        self.assertIn("operator_flag", meta)
+
+    def test_main_build_compile_error_is_not_flagged(self):
+        items, meta = self.hidden(main_rc=1)
+        self.assertEqual(items["D0-02"]["result"], "fail")
+        self.assertNotIn("operator_flag", meta)
+
+    def test_hidden_phase_resolve_failure_is_flagged(self):
+        items, meta = self.hidden(main_rc=0, main_log="", test_log=self.RESOLVE_ERR.replace("compileClasspath",
+                                                                                           "testRuntimeClasspath"))
+        self.assertEqual((items["D0-02"]["result"], meta["reason"]), ("unscorable", "scoring_env_hidden_build"))
+        self.assertIn("operator_flag", meta)
 
 
 

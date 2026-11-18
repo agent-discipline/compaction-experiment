@@ -95,6 +95,28 @@ def item_results(items, cases):
     return out
 
 
+# 빌드 실패의 원인 구분(Gradle 출력) — 채점 환경 쪽이면 에이전트 코드의 판정에 쓰지 않는다(scoring-items.md "숨긴 테스트 빌드 실패").
+ENV_FAILURE = re.compile(
+    r"Could not resolve|Could not download|Could not GET|Could not HEAD|Could not determine the dependencies"
+    r"|Could not install Gradle distribution|UnknownHostException|Connection refused|Connection reset|Connect timed out"
+    r"|connect timed out|Read timed out|No route to host|Network is unreachable|PKIX path building failed"
+    r"|No space left on device|Timeout waiting to lock|Gradle could not start your build|Could not create service of type"
+    r"|Unable to find image|Cannot connect to the Docker daemon|OCI runtime")
+COMPILE_FAILURE = re.compile(r"Execution failed for task '[^']*:(compileKotlin|compileJava|processResources)'"
+                             r"|Compilation error|Compilation failed|^e: ", re.M)
+DOCKER_RUN_FAILED = (125, 126, 127)  # docker run 자체가 컨테이너·명령을 시작하지 못함
+
+
+def failure_kind(rc, log_text):
+    """빌드 실패의 원인: environment(채점 환경 — 네트워크·의존성 받기·docker 실행 실패) · code(컴파일 오류 표지) ·
+    unknown(둘 다 아님). 환경 표지가 있으면 컴파일 표지보다 앞선다(의존성을 못 받으면 컴파일 판정이 성립하지 않는다)."""
+    if rc in DOCKER_RUN_FAILED or ENV_FAILURE.search(log_text):
+        return "environment"
+    if COMPILE_FAILURE.search(log_text):
+        return "code"
+    return "unknown"
+
+
 def _execute(execute, cmd, work_copy, log, timeout):
     try:
         return execute(cmd, work_copy, log, timeout), False
@@ -106,7 +128,8 @@ def run_hidden(work_copy, hidden_cfg, hidden_dir, log_path, execute):
     """work_copy(이미 복사된 최종 작업 폴더)에서 먼저 메인 코드만 컴파일하고(`main_build_command`), 되면 숨긴 테스트를
     덮고 명령을 돌린다. 메인 컴파일이 실패하거나 시간을 넘기면 숨긴 테스트는 돌리지 않는다(cases 빈 목록).
     execute(cmd, work_copy, log_file, timeout) → 종료 코드(시간 초과면 subprocess.TimeoutExpired) — 채점기는 채점 컨테이너
-    (score_run.container_executor)를 준다. {main_build{exit_code, timed_out}, exit_code, timed_out, cases}"""
+    (score_run.container_executor)를 준다. {main_build{exit_code, timed_out, failure_kind?}, exit_code, timed_out, cases,
+    failure_kind?(testcase 0개일 때 숨긴 테스트 단계 로그의 원인)}"""
     work_copy = Path(work_copy)
     for d in ("build", ".gradle", ".kotlin", *hidden_cfg.get("pre_delete", [])):
         shutil.rmtree(work_copy / d, ignore_errors=True)
@@ -120,7 +143,10 @@ def run_hidden(work_copy, hidden_cfg, hidden_dir, log_path, execute):
         rc, timed_out = _execute(execute, hidden_cfg["main_build_command"], work_copy, log, timeout)
     main_build = {"exit_code": rc, "timed_out": timed_out}
     if timed_out or rc != 0:
+        if not timed_out:
+            main_build["failure_kind"] = failure_kind(rc, Path(log_path).read_text(encoding="utf-8", errors="replace"))
         return {"main_build": main_build, "exit_code": None, "timed_out": False, "cases": []}
+    start = Path(log_path).stat().st_size
     for src, dst in hidden_cfg["overlay"]:
         s = Path(hidden_dir) / src
         if not s.exists():
@@ -136,4 +162,9 @@ def run_hidden(work_copy, hidden_cfg, hidden_dir, log_path, execute):
         rc, timed_out = _execute(execute, hidden_cfg["command"], work_copy, log, timeout)
     jd = work_copy / hidden_cfg["junit_dir"]
     cases = parse_junit(jd, hidden_cfg.get("unscorable_pattern")) if jd.is_dir() else []
-    return {"main_build": main_build, "exit_code": rc, "timed_out": timed_out, "cases": cases}
+    out = {"main_build": main_build, "exit_code": rc, "timed_out": timed_out, "cases": cases}
+    if not cases and not timed_out:
+        with open(log_path, "rb") as f:
+            f.seek(start)
+            out["failure_kind"] = failure_kind(rc, f.read().decode("utf-8", errors="replace"))
+    return out
