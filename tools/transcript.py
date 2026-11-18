@@ -59,6 +59,11 @@ def boundaries(entries):
     return out
 
 
+def is_assistant_output(e):
+    """어시스턴트 출력 줄(생각·텍스트·도구 호출 무엇이든 — 사이드체인·API 오류 제외)."""
+    return bool(e) and e.get("type") == "assistant" and not e.get("isSidechain") and not e.get("isApiErrorMessage")
+
+
 def tool_uses(entries, start=0, end=None):
     """[(줄 번호, 도구 이름, 입력 dict)] — 어시스턴트 줄의 tool_use 블록."""
     out = []
@@ -105,6 +110,8 @@ def locate_boundaries(entries, turn_line_ends, messages):
     turn_line_ends[k] = 턴 k가 끝난 뒤 세션 기록의 줄 수. messages[k] = 턴 k에 보낸 본문.
     position: before_prompt(턴 k의 프롬프트 줄보다 앞) · mid_turn(뒤) · unknown(프롬프트 줄을 못 찾음) ·
     after_last_turn(기록된 턴 범위 밖).
+    mid_turn_phase(mid_turn일 때만, 아니면 None — 기록용, 위치 좌표·판정에는 쓰지 않는다): before_first_output(그 턴의 프롬프트
+    줄과 경계 사이에 어시스턴트 출력 줄이 없음 — 프롬프트 직후) · after_first_output(있음).
     """
     out = []
     for line, e, has_summary in boundaries(entries):
@@ -114,12 +121,15 @@ def locate_boundaries(entries, turn_line_ends, messages):
                 turn = k
                 break
             lo = hi
-        pos = "after_last_turn"
+        pos, phase = "after_last_turn", None
         if turn is not None:
             p = find_prompt(entries, messages[turn], lo, turn_line_ends[turn]) if turn < len(messages) else None
             pos = "unknown" if p is None else ("before_prompt" if line < p else "mid_turn")
+            if pos == "mid_turn":
+                phase = ("after_first_output" if any(is_assistant_output(x) for x in entries[p + 1:line])
+                         else "before_first_output")
         meta = e.get("compactMetadata") or {}
-        out.append({"line": line, "turn": turn, "position": pos, "timestamp": e.get("timestamp"),
+        out.append({"line": line, "turn": turn, "position": pos, "mid_turn_phase": phase, "timestamp": e.get("timestamp"),
                     "trigger": meta.get("trigger"), "pre_tokens": meta.get("preTokens"),
                     "post_tokens": meta.get("postTokens"), "has_summary": has_summary,
                     "compact_metadata": meta})

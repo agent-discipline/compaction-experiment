@@ -88,7 +88,7 @@ def make_run(base, run_id, cond, items=None, model="m", complete=True, invalid=(
         (d / "score.json").write_text(json.dumps({
             "run_id": run_id, "model": model, "condition": cond,
             "run_sha256": hashlib.sha256((d / "run.json").read_bytes()).hexdigest(), "items": items, "compactions": 0 if cond == "control" else 2,
-            "boundaries": [] if cond == "control" else [{"coord": 1.5}, {"coord": None}],
+            "boundaries": [] if cond == "control" else [{"coord": 1.0, "mid_turn_phase": "before_first_output"}, {"coord": None}],
             "injected_chars": 100 if cond == "outbox" else None, "injected_tokens": None,
             "history": {"rewritten_turns": [], "missing_turns": []}}), encoding="utf-8")
     return d
@@ -144,6 +144,8 @@ class SummaryTest(unittest.TestCase):
         k = self.row("compact")
         self.assertEqual((k["violation_rate"], k["judged"], k["not_judged"]), (0.5, 4, {"unscorable": 1}))
         self.assertEqual(k["unlocated_boundaries"], 1)
+        self.assertEqual(k["prompt_adjacent_boundaries"], 1)  # 턴 도중 중 프롬프트 직후(첫 출력 전) 경계 — 기록만
+        self.assertIn("프롬프트 직후 경계", summarize.markdown(self.res))
 
     def test_primary_metric_pairs_same_items_with_controls(self):
         pair = next(x for x in self.res["pairs"] if x["run_id"] == "k1")

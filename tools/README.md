@@ -155,9 +155,11 @@ outbox_boundary_injections[](outbox만)`.
   context_tokens_last(usage.iterations 마지막 요청의 input+cache_creation+cache_read), usage, model_usage, git_head(턴 끝 HEAD),
   tracked_diff_sha256(턴 끝 `git diff HEAD --binary`의 해시 — 추적 파일 변경 비교용), transcript_lines(그 턴 뒤 세션 기록 줄 수 = 턴 경계),
   transcript_bad_lines, claude_dir_files, reread{session_log, outbox_data, root_search, memo}(아래), message_sha256`.
-- `boundaries[]`: `line, turn(그 경계가 생긴 턴 번호), position(before_prompt|mid_turn|unknown|after_last_turn), timestamp,
-  trigger, pre_tokens, post_tokens, has_summary, compact_metadata`. 좌표(`transcript.boundary_coord`):
+- `boundaries[]`: `line, turn(그 경계가 생긴 턴 번호), position(before_prompt|mid_turn|unknown|after_last_turn), mid_turn_phase,
+  timestamp, trigger, pre_tokens, post_tokens, has_summary, compact_metadata`. 좌표(`transcript.boundary_coord`):
   before_prompt = turn − 0.5, mid_turn = turn, unknown·after_last_turn = 없음(위치 불명 — "전달 뒤 컴팩트" 판정에 쓰지 않고 따로 센다).
+  `mid_turn_phase`(mid_turn일 때만, 그 밖은 null — 기록만, 좌표·무효·주 지표 항목 선정에 쓰지 않음): `before_first_output`(그 턴
+  프롬프트 줄과 경계 줄 사이에 어시스턴트 줄(생각·텍스트·도구 호출)이 없음 = 프롬프트 직후) · `after_first_output`(있음).
   `has_summary` = 경계 뒤 첫 대화 줄(user·assistant)이 요약(`isCompactSummary`)인지 — 2.1.326은 경계와 요약 사이에
   `attachment` 줄(session_context·date)을 두므로 대화 줄이 아닌 줄은 건너뛴다(다음 경계까지).
 - `invalid_reasons`: `control_has_compaction` · `no_compaction`(compact/outbox) · `audit:<패턴>`·`audit:tool:<이름>`
@@ -297,7 +299,8 @@ python3 tools/summarize.py [실행 폴더 | run.json | score.json …] [--runs-d
   실행의 차이 = 비교들의 (같은 항목 위반율 − 대조군 위반율) 평균. 위치 불명 경계만 걸린 항목은 집합에 넣지 않고 "불명 항목"으로 센다.
 
 표: ① 실행 상태(실행·측정 완료·중단·미채점·채점 불일치·무효·입력 불일치·집계 대상·운영 문제·토큰 검출·이력 재작성·원문 재독 실행·자기 메모 실행) +
-빠진 실행 목록과 이유 ② 위반율(전체·버릴 후보·실행별·판정 제외·컴팩트 평균·위치 불명 경계·주입 글자/토큰·토큰·비용 — 모르는 값은 "미측정")
+빠진 실행 목록과 이유 ② 위반율(전체·버릴 후보·실행별·판정 제외·컴팩트 평균·위치 불명 경계·프롬프트 직후 경계(`mid_turn_phase` = before_first_output 수)·
+주입 글자/토큰·토큰·비용 — 모르는 값은 "미측정")
 ③ 주 측정값(조건별 요약 + 실행별) ④ 항목 × (모델, 조건) — 위반 수/판정 수를 전달 뒤 컴팩트 "뒤"·"없음"·"불명"으로 나눔.
 
 ## 테스트

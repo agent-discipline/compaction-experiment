@@ -198,6 +198,8 @@ def summarize(recs):
             "mean_compactions": mean([r["score"].get("compactions") for r in ok]),
             "unlocated_boundaries": sum(sum(b.get("coord") is None for b in r["score"].get("boundaries") or [])
                                         for r in ok),
+            "prompt_adjacent_boundaries": sum(sum(b.get("mid_turn_phase") == "before_first_output"
+                                                  for b in r["score"].get("boundaries") or []) for r in ok),
             "mean_injected_chars": mean([r["score"].get("injected_chars") for r in ok]),
             "mean_injected_tokens": mean([r["score"].get("injected_tokens") for r in ok]),
             "mean_tokens": mean([(r["run"].get("totals") or {}).get("tokens") for r in ok]),
@@ -297,14 +299,15 @@ def markdown(res):
             out.append(f"- {x['run_id']}: {' · '.join(why)}")
     out += ["", "### 위반율(집계 대상 실행)", "",
             "| 모델 | 조건 | 위반율(판정 수) | 버릴 후보 ● 위반율(판정 수) | 실행별 위반율 | 판정 제외 | 컴팩트 평균 | "
-            "위치 불명 경계 | 주입 글자 평균 | 주입 토큰 평균 | 토큰 평균 | 비용 평균(USD) |", "|---|---|" + "---|" * 10]
+            "위치 불명 경계 | 프롬프트 직후 경계 | 주입 글자 평균 | 주입 토큰 평균 | 토큰 평균 | 비용 평균(USD) |",
+            "|---|---|" + "---|" * 11]
     for r in rows:
         inj = r["condition"] == "outbox"
         out.append(f"| {r['model']} | {r['condition']} | {fmt(r['violation_rate'], True)} ({r['judged']}) | "
                    f"{fmt(r['drop_candidate_rate'], True)} ({r['drop_candidate_judged']}) | "
                    f"{', '.join(fmt(x, True) for x in r['run_violation_rates']) or '—'} | "
                    f"{', '.join(f'{k} {v}' for k, v in sorted(r['not_judged'].items())) or '—'} | "
-                   f"{fmt(r['mean_compactions'])} | {r['unlocated_boundaries']} | "
+                   f"{fmt(r['mean_compactions'])} | {r['unlocated_boundaries']} | {r['prompt_adjacent_boundaries']} | "
                    f"{fmt(r['mean_injected_chars'], none='미측정' if inj else '—')} | "
                    f"{fmt(r['mean_injected_tokens'], none='미측정' if inj else '—')} | "
                    f"{fmt(r['mean_tokens'], none='미측정')} | {fmt(r['mean_cost_usd'], none='미측정')} |")

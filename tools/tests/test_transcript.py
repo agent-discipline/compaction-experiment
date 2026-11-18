@@ -61,6 +61,20 @@ class TranscriptTest(unittest.TestCase):
         entries = self.load(rows)
         self.assertEqual([h for _, _, h in transcript.boundaries(entries)], [True, False])
 
+    def test_mid_turn_phase(self):
+        msgs = ["M0", "M1"]
+        rows = [user("M0"), {"type": "attachment", "attachment": {"type": "date"}},
+                boundary(), summary(), assistant("a0"),                           # 턴 0: 프롬프트 직후(출력 전)
+                user("M1"), assistant(tools=[("Bash", {"command": "ls"})]), tool_result(),
+                boundary(), summary(), assistant("a1")]                           # 턴 1: 첫 출력 뒤
+        entries = self.load(rows)
+        b = transcript.locate_boundaries(entries, [5, 11], msgs)
+        self.assertEqual([(x["position"], x["mid_turn_phase"]) for x in b],
+                         [("mid_turn", "before_first_output"), ("mid_turn", "after_first_output")])
+        self.assertEqual([transcript.boundary_coord(x) for x in b], [0.0, 1.0])  # 좌표는 그대로
+        before = transcript.locate_boundaries(self.load([user("M0"), boundary(), summary(), user("M1")]), [1, 4], msgs)
+        self.assertEqual((before[0]["position"], before[0]["mid_turn_phase"]), ("before_prompt", None))
+
     def test_boundary_unknown_when_prompt_missing(self):
         entries = self.load([boundary(), assistant("x")])
         b = transcript.locate_boundaries(entries, [2], ["안 보낸 메시지"])
