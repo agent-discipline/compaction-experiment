@@ -55,15 +55,32 @@ docker build -t cx-agent:2.1.326 --build-arg UID=$(id -u) --build-arg GID=$(id -
 python3 tools/run_task.py --model <모델 ID> --condition {control|compact|outbox} --rep <n>
     [--last-step K]          # S0..SK만 보냄(스모크). 기본 S8까지
     [--turn-timeout 5400]    # 턴 하나 시간 상한(초) — 넘으면 docker kill + 클라이언트 종료, 중단 기록
-    [--max-tokens N]         # 실행 전체 토큰 합 상한(턴별 modelUsage 합). 턴이 끝날 때 검사
+    [--max-tokens N]         # 실행 전체 토큰 상한(턴별 차분의 합 = 마지막 턴의 세션 누적 — 아래 "토큰·비용"). 턴이 끝날 때 검사
     [--max-wall S]           # 실행 전체 시간 상한(초). 남은 시간이 턴 timeout보다 짧으면 그만큼만 기다림
-    [--max-budget-usd X]     # 턴마다 claude --max-budget-usd 로 전달
+    [--max-budget-usd X]     # 턴마다 claude --max-budget-usd 로 전달 — 호출(턴) 하나의 상한(아래)
     [--keep-root] [--allow-concurrent] [--config tools/experiment.json]
 python3 tools/run_task.py --dry-run [--condition …] [--model …]   # 유료 호출·파일·Docker 리소스 생성 없음(이미지 inspect만)
 python3 tools/run_task.py --check-env [--check-gradle]             # 무료: 이미지·토큰 파일(경로·권한만)·컨테이너 안 버전·격리·훅
 ```
 
 종료 코드: 0 = complete, 2 = aborted, 3 = failed(토큰 검출·검사 오류·보관 실패·Docker 정리 실패), 그 밖 = 실행기 오류(예외도 run.json에 `runner_error`로 기록 뒤 다시 올림).
+### 토큰·비용
+
+- CLI 결과 JSON의 `modelUsage`(토큰 4종 합)와 `total_cost_usd`는 `--resume` 호출에서 **세션 처음부터의 누적**이다(문서
+  https://code.claude.com/docs/en/agent-sdk/cost-tracking — "A resumed call's results report the session's whole spend", v2.1.277부터.
+  2.1.326 실제 기록에서도 턴별 값의 차분이 그 턴의 `usage` 합과 같음). `usage`는 그 호출의 주 루프 요청만이다(컴팩트 요약 요청·서브에이전트 빠짐).
+- 그래서 턴의 `tokens`·`cost_usd` = 그 턴 결과의 누적값 − 앞 턴까지의 마지막 누적값(첫 턴은 그대로). 결과의 `session_id`가 앞 턴과 다르거나
+  누적이 줄어들면 차분하지 않고 그 값을 그대로 쓰고 `warnings`에 남긴다(`spend_basis` = first·delta·session_changed·decreased).
+  원시 누적값은 `tokens_cumulative`·`cost_cumulative`, 그 턴의 `usage` 합은 `usage_tokens`로 함께 남긴다 — `tokens − usage_tokens`가
+  컴팩트 요약 요청 등 `usage`에 안 잡히는 몫이다(파일럿: 경계 하나에 약 7~8만 토큰 = 요약 요청의 입력(경계 직전 맥락)+요약 출력).
+- `totals.tokens`·`totals.cost_usd` = 턴 차분의 합(= 마지막 누적), `--max-tokens`도 이 값으로 검사한다. 이 방식으로 쓴 기록은
+  `run.json.usage_accounting = "session_cumulative_delta"`를 단다. **이 표식이 없는 기록은 옛 형식**(2026-11-18 Sonnet 파일럿·Haiku 스모크·중단된
+  Haiku 본 실행 r1 — 턴 값이 누적이라 `totals`가 턴 수만큼 부풀었다)이고, 채점기(`score.json.totals`·`totals_recomputed`)와 집계(표의 ※)가
+  턴의 원시 값에서 차분 합을 다시 낸다(`run_task.run_spend`). 옛 기록 파일은 고치지 않는다.
+- `--max-budget-usd`는 **호출 하나의 상한**이다: 문서(cli-reference) "When you return to a conversation with `--continue` or `--resume`, totals
+  restored from earlier runs don't count toward it". 그래서 턴마다 같은 값을 넘기면 턴 하나의 상한이 되고(세 조건 같음), 실행 전체 상한은 `--max-tokens`·
+  `--max-wall`이 맡는다. 파일럿 기록에는 세션 누적이 그 값(15)을 넘은 실행이 없어(최대 3.79달러) 기록으로는 확인되지 않았다.
+
 `status`는 운영 결과까지 섞인 값이고, 측정이 끝났는지는 `measurement_complete`(모든 턴 완료)로 따로 본다 — failed여도 측정은 완료일 수 있다
 (운영 문제는 `failure_reasons`). 집계의 분모는 `measurement_complete` 기준이다.
 
@@ -160,13 +177,14 @@ failure_reasons[](운영 문제: secret_leak·secret_scan_error·archive_failed�
 warnings[], started_at, ended_at, cli_version(컨테이너 안), session_id, image, image_id, image_labels, docker{리소스 이름}, token_env_file(경로만),
 run_root, work_dir(/work), skeleton_commit, steps_planned[], compact_window_env, settings_sha256, container_env{토큰 제외}, container_limits,
 outbox_config, outbox_config_sha256, messages_sha256[], messages_sha256_all(메시지별 해시를 이은 것의 해시 — 집계의 입력 일치 확인), limits{},
-turns[], boundaries[], totals{tokens(모르면 null), cost_usd(모르는 턴이 있으면 null), wall_s}, audit[], unexpected_tools[], injections[],
+turns[], boundaries[], totals{tokens(턴 차분의 합, 모르면 null), cost_usd(모르는 턴이 있으면 null), wall_s}, usage_accounting(위 "토큰·비용"), audit[], unexpected_tools[], injections[],
 compact_log[](요약문 빼고 summary_chars), hook_errors[], collection_data_reads[], transcript_unparsed_turns[], auto_memory{settings, env}, auto_memory_files[{turn, path}], cleanup_errors[],
 secret_scan{hits{work, scratch, record, git_objects}, error, late_hits?, archives_from_scanned, work_archive_withheld?}, work_archive, claude_home_archive,
 outbox_boundary_injections[](outbox만)`.
 
 - `turns[k]`: `step, index, started_at(epoch 초), ended_at, started_iso, wall_s, exit_code, timed_out, container, result_parsed, is_error,
-  subtype, result_session_id, num_turns, tokens(modelUsage 합 — 없으면 usage 합, 둘 다 없으면 null), cost_usd,
+  subtype, result_session_id, num_turns, tokens·cost_usd(그 턴 몫 = 누적의 앞 턴 대비 차분), tokens_cumulative(modelUsage 합 — 없으면 usage 합,
+  둘 다 없으면 null)·cost_cumulative(total_cost_usd), spend_basis, usage_tokens(그 턴 usage 합),
   context_tokens_last(usage.iterations 마지막 요청의 input+cache_creation+cache_read), usage, model_usage, git_head(턴 끝 HEAD),
   tracked_diff_sha256(턴 끝 `git diff HEAD --binary`의 해시 — 추적 파일 변경 비교용), transcript_lines(그 턴 뒤 세션 기록 줄 수 = 턴 경계),
   transcript_bad_lines, claude_dir_files, auto_memory_files(그 턴 뒤 projects/*/memory/ 아래 파일), reread{session_log, outbox_data, root_search, memo}(아래), message_sha256`.
@@ -285,7 +303,7 @@ compactions_unlocated(위치 불명 경계 수)`, `scorer`.
 `score.json` 최상위: `run_id, model, condition, rep, run_sha256(채점한 run.json 바이트의 sha256 — 집계가 신원 대조), status, abort_reason, invalid, invalid_reasons, scored_at, compactions,
 boundaries[](+coord — 위치 불명은 null), injections, injected_chars(null = 주입 없음 또는 글자 수 기록이 빠진 주입이 있음),
 injected_tokens(null = 미측정 — injection-tokens.json, 해시 대조), injected_tokens_unavailable(미측정 이유), history{rewritten_turns[](턴 끝 HEAD가 최종 HEAD의 조상이 아닌 턴 — amend·rebase·reset),
-missing_turns[](커밋 객체가 없는 턴)}, totals, turns_done, hidden{ran, main_build{exit_code, timed_out}, exit_code, timed_out,
+missing_turns[](커밋 객체가 없는 턴)}, totals(토큰·비용은 run_spend — 옛 형식이면 다시 계산), totals_recomputed, turns_done, hidden{ran, main_build{exit_code, timed_out}, exit_code, timed_out,
 testcases, log, reason, operator_flag?}, counts{결과: 수}, items{id: …}, k8_turns[{turn, step, prose_chars, hangul, latin, ratio(null=20자 미만),
 compactions_so_far, segments[{start_line, end_line, after_boundary_in_turn, after_first_compaction, prose_chars, hangul, latin, ratio,
 judged, violation}], turn_violation, segment_violation, violation}], unmapped_hidden_ids[], operator_flags[](채점 환경 실패 등 운영자가 보고 다시 채점할 것)`.
@@ -315,6 +333,10 @@ python3 tools/summarize.py [실행 폴더 | run.json | score.json …] [--runs-d
 - **입력 일치**(모델마다 따로 대조 — 비교는 같은 모델 안에서만 하므로, 예컨대 Sonnet 파일럿과 Haiku 본 실행의 실행 상한이 달라도 서로를 불일치로 만들지 않는다): 모델의 모든 실행에서 같아야 할 것(`messages_sha256_all`·`image_id`·`skeleton_commit`·`cli_version`·`limits`·`container_limits`·
   컴팩트 기준값을 뺀 `container_env`·`auto_memory`)과 같은 조건 안에서 같아야 할 것(`settings_sha256`·`compact_window_env`·`outbox_config_sha256`)을
   최다 값과 대조한다. 다르면(최다 값이 둘 이상이면 그 값을 가진 실행 모두) "입력 불일치"로 따로 내고 섞지 않는다.
+  `limits`(`--turn-timeout`·`--max-tokens`·`--max-wall`·`--max-budget-usd` 값)도 같은 모델 안에서 대조하므로, 같은 모델의 실행끼리 상한 인자가
+  하나라도 다르면 소수 쪽이 입력 불일치로 빠진다. 토큰 계산 수정(위 "토큰·비용") 전후로 `--max-tokens`의 뜻이 바뀌었지만(전: 부푼 합, 후: 실제 합)
+  대조는 인자 값만 본다 — 같은 값이면 일치, 다르면 불일치. 수정 전 기록(표식 없음)과 수정 뒤 기록을 함께 집계하려면 같은 상한 인자로 돌린다.
+  토큰·비용 열은 옛 형식 기록이면 다시 계산한 값이고 ※를 붙인다.
 - 위반율 = fail/(pass+fail). not_run·unscorable·premise_unmet는 분모 밖(따로 셈). 별칭(`alias_of`)은 세지 않고, 버릴 후보(●, `drop_candidate`)는
   주 지표에서 빼고 따로 낸다.
 - **주 측정값**(명세 §2): 컴팩트 실행(compact·outbox)마다 "전달 뒤 위치가 확정된 컴팩트가 한 번 이상 있었던 항목"(●·별칭 제외) 집합을 정하고,
