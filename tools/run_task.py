@@ -422,6 +422,31 @@ def unexpected_tools(entries, cfg):
     return sorted({name for _, name, _ in transcript.tool_uses(entries) if name not in allowed})
 
 
+def _ts(x):
+    try:
+        return datetime.datetime.fromisoformat(str(x).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def boundary_injections(compact_log, injections, n_bounds):
+    """경계마다 그 경계의 주입(차례대로). 경계 k의 창 = [k번째 PreCompact 시각, k+1번째 PreCompact 시각) — 둘 다 같은 컨테이너
+    안의 훅이 남긴 시각(수집 훅 compact-log·주입 훅 inject-log)이라 시계가 같다. 창 안의, 앞 경계에 쓴 주입보다 뒤의 첫 주입을
+    잇는다. [{boundary, injection(inject-log 차례 또는 None)}]"""
+    pre = [_ts(r.get("ts")) for r in compact_log if r.get("event") == "PreCompact"]
+    times = [(j, _ts(e.get("ts"))) for j, e in enumerate(injections)]
+    out, last = [], -1
+    for k in range(n_bounds):
+        lo = pre[k] if k < len(pre) else None
+        hi = pre[k + 1] if k + 1 < len(pre) else None
+        j = None if lo is None else next((j for j, t in times if j > last and t is not None and t >= lo
+                                          and (hi is None or t < hi)), None)
+        if j is not None:
+            last = j
+        out.append({"boundary": k, "injection": j})
+    return out
+
+
 def invalid_reasons(condition, bounds, audit_hits, settings_tampered, injections, compact_log=(), hook_errors=(),
                     transcript_unparsed=False, collection_reads=()):
     out = []
@@ -441,6 +466,8 @@ def invalid_reasons(condition, bounds, audit_hits, settings_tampered, injections
     if condition == "outbox":
         if len(injections) != len(bounds):
             out.append("outbox_injection_count_mismatch")
+        if any(x["injection"] is None for x in boundary_injections(compact_log, injections, len(bounds))):
+            out.append("outbox_boundary_without_injection")  # 경계마다 그 경계의 주입이 있어야 한다(수만 같아도 안 됨)
         if any(e.get("hook") == "capture" for e in hook_errors):
             out.append("outbox_capture_error")
     if collection_reads:
@@ -905,6 +932,9 @@ def finalize(docker, cfg, a, state, rdir, root, names, created, entries, tampere
     state["compact_log"] = [{k: v for k, v in r.items() if k != "compact_summary"} | {
         "summary_chars": len(r.get("compact_summary") or "")} for r in read_jsonl(hd / "compact-log.jsonl")]
     state["hook_errors"] = read_jsonl(hd / "hook-errors.jsonl")
+    if state["condition"] == "outbox":
+        state["outbox_boundary_injections"] = boundary_injections(state["compact_log"], state["injections"],
+                                                                  len(state["boundaries"]))
     state["audit"] = audit(entries, cfg)
     state["unexpected_tools"] = unexpected_tools(entries, cfg)
     state["collection_data_reads"] = collection_data_reads(entries)

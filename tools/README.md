@@ -140,7 +140,8 @@ run_root, work_dir(/work), skeleton_commit, steps_planned[], compact_window_env,
 outbox_config, outbox_config_sha256, messages_sha256[], messages_sha256_all(메시지별 해시를 이은 것의 해시 — 집계의 입력 일치 확인), limits{},
 turns[], boundaries[], totals{tokens(모르면 null), cost_usd(모르는 턴이 있으면 null), wall_s}, audit[], unexpected_tools[], injections[],
 compact_log[](요약문 빼고 summary_chars), hook_errors[], collection_data_reads[], transcript_unparsed_turns[], cleanup_errors[],
-secret_scan{hits{work, scratch, record}, error, late_hits?}, work_archive, claude_home_archive`.
+secret_scan{hits{work, scratch, record}, error, late_hits?}, work_archive, claude_home_archive,
+outbox_boundary_injections[](outbox만)`.
 
 - `turns[k]`: `step, index, started_at(epoch 초), ended_at, started_iso, wall_s, exit_code, timed_out, container, result_parsed, is_error,
   subtype, result_session_id, num_turns, tokens(modelUsage 합 — 없으면 usage 합, 둘 다 없으면 null), cost_usd,
@@ -154,7 +155,9 @@ secret_scan{hits{work, scratch, record}, error, late_hits?}, work_archive, claud
   (도구 입력 JSON에 금지 문자열 — `experiment.json.audit_forbidden_patterns`(`{real_home}`·`{hooks}` 치환) — 또는 WebFetch/WebSearch 호출) ·
   `settings_tampered`(턴 뒤 settings.json 해시 변화) · `transcript_unparsed`(세션 기록에 읽지 못한 줄 — 그 줄이 경계였을 수 있음) ·
   `compact_hook_count_mismatch`(수집 훅의 PreCompact·PostCompact 수 ≠ 세션 기록의 경계 수) ·
-  `outbox_injection_count_mismatch`(outbox인데 주입 기록 수 ≠ 경계 수) · `outbox_capture_error`(capture 훅 오류) ·
+  `outbox_injection_count_mismatch`(outbox인데 주입 기록 수 ≠ 경계 수) · `outbox_boundary_without_injection`(outbox인데 주입이 없는 경계가 있음 —
+  경계 k의 창 [k번째 PreCompact 시각, k+1번째 PreCompact 시각)에 앞 경계의 주입보다 뒤인 주입이 있어야 한다. 시각은 둘 다 컨테이너 안 훅이
+  남긴 것(`compact-log`·`inject-log`의 `ts`). 대응은 `run.json.outbox_boundary_injections[{boundary, injection}]`) · `outbox_capture_error`(capture 훅 오류) ·
   `collection_data_read`(도구 입력에 수집 전용 데이터 `compact-log`·`hook-errors` — 요약문·프롬프트 앞부분이 든다).
   무효여도 기록·보관은 그대로 한다. `failed`(실행기 쪽 실패)와 `invalid`(측정 무효)는 별개다.
 

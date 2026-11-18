@@ -208,15 +208,40 @@ class TokenTest(unittest.TestCase):
         self.assertEqual(rt.scrub(self.d / "s", TOKEN), [])
 
 
+def ts(sec):
+    return f"2026-11-18T00:00:{sec:02d}+00:00"
+
+
+INJ = {"ts": ts(2), "source": "compact"}
+
+
 class ValidityTest(unittest.TestCase):
     def test_invalid_reasons(self):
-        b, log = [{"turn": 1}], [{"event": "PreCompact"}, {"event": "PostCompact"}]
+        b, log = [{"turn": 1}], [{"event": "PreCompact", "ts": ts(1)}, {"event": "PostCompact", "ts": ts(2)}]
         self.assertEqual(rt.invalid_reasons("control", b, [], False, [], log), ["control_has_compaction"])
         self.assertEqual(rt.invalid_reasons("compact", [], [], False, []), ["no_compaction"])
         self.assertEqual(rt.invalid_reasons("compact", b, [], False, [], log), [])
-        self.assertEqual(rt.invalid_reasons("outbox", b, [], False, [], log), ["outbox_injection_count_mismatch"])
-        self.assertEqual(rt.invalid_reasons("outbox", b, [], False, [{}], log), [])
-        self.assertEqual(rt.invalid_reasons("outbox", b, [], False, [{}, {}], log), ["outbox_injection_count_mismatch"])
+        self.assertEqual(rt.invalid_reasons("outbox", b, [], False, [], log),
+                         ["outbox_injection_count_mismatch", "outbox_boundary_without_injection"])
+        self.assertEqual(rt.invalid_reasons("outbox", b, [], False, [INJ], log), [])
+        self.assertEqual(rt.invalid_reasons("outbox", b, [], False, [INJ, INJ], log), ["outbox_injection_count_mismatch"])
+
+    def test_each_boundary_needs_its_own_injection(self):
+        """주입 수가 경계 수와 같아도, 한 경계에 주입이 없고 다른 경계에 둘이면 무효."""
+        b = [{"turn": 1}, {"turn": 2}]
+        log = [{"event": "PreCompact", "ts": ts(10)}, {"event": "PostCompact", "ts": ts(11)},
+               {"event": "PreCompact", "ts": ts(20)}, {"event": "PostCompact", "ts": ts(21)}]
+        good = [{"ts": ts(12)}, {"ts": ts(22)}]
+        self.assertEqual(rt.invalid_reasons("outbox", b, [], False, good, log), [])
+        self.assertEqual(rt.boundary_injections(log, good, 2), [{"boundary": 0, "injection": 0},
+                                                                {"boundary": 1, "injection": 1}])
+        both_late = [{"ts": ts(22)}, {"ts": ts(23)}]  # 첫 경계 뒤 주입 없음, 둘째 경계 뒤 둘
+        self.assertEqual(rt.invalid_reasons("outbox", b, [], False, both_late, log), ["outbox_boundary_without_injection"])
+        self.assertEqual(rt.boundary_injections(log, both_late, 2)[0]["injection"], None)
+        before = [{"ts": ts(5)}, {"ts": ts(22)}]  # 첫 경계보다 앞선 주입은 그 경계의 것이 아님
+        self.assertIn("outbox_boundary_without_injection", rt.invalid_reasons("outbox", b, [], False, before, log))
+        no_ts = [{}, {}]
+        self.assertIn("outbox_boundary_without_injection", rt.invalid_reasons("outbox", b, [], False, no_ts, log))
         self.assertIn("settings_tampered", rt.invalid_reasons("compact", b, [], True, [], log))
         self.assertEqual(rt.invalid_reasons("compact", b, [{"hit": "tool:WebFetch"}], False, [], log),
                          ["audit:tool:WebFetch"])
@@ -227,8 +252,9 @@ class ValidityTest(unittest.TestCase):
         self.assertEqual(rt.invalid_reasons("control", [], [], False, [], log), ["compact_hook_count_mismatch"])
         self.assertEqual(rt.invalid_reasons("compact", b, [], False, [], log, transcript_unparsed=True),
                          ["transcript_unparsed"])
-        self.assertEqual(rt.invalid_reasons("outbox", b, [], False, [{}], log, [{"hook": "capture"}]),
-                         ["outbox_capture_error"])
+        self.assertEqual(rt.invalid_reasons("outbox", b, [], False, [{"ts": "2026-11-18T00:00:00+00:00"}],
+                                            [{"event": "PreCompact", "ts": "2026-11-18T00:00:00+00:00"}, log[1]],
+                                            [{"hook": "capture"}]), ["outbox_capture_error"])
         self.assertEqual(rt.invalid_reasons("compact", b, [], False, [], log, [{"hook": "capture"}]), [])
         self.assertEqual(rt.invalid_reasons("compact", b, [], False, [], log, collection_reads=[{}]),
                          ["collection_data_read"])
@@ -339,6 +365,7 @@ class RunLoopTest(unittest.TestCase):
         self.assertEqual([(b["turn"], b["position"]) for b in run["boundaries"]],
                          [(1, "before_prompt"), (2, "before_prompt")])
         self.assertEqual(len(run["injections"]), 2)
+        self.assertEqual(run["outbox_boundary_injections"], [{"boundary": 0, "injection": 0}, {"boundary": 1, "injection": 1}])
         self.assertGreater(run["injections"][0]["chars_injected"], 0)
         self.assertEqual(run["compact_window_env"], "100000")
         self.assertEqual(run["image_id"], "sha256:fakeimage")
