@@ -33,7 +33,7 @@ import language  # noqa: E402
 import source_text  # noqa: E402
 import springconf  # noqa: E402
 import transcript  # noqa: E402
-from run_task import LABEL, load_config, resolve, uid_gid  # noqa: E402
+from run_task import LABEL, load_config, resolve, run_spend, uid_gid  # noqa: E402
 
 I = re.I
 MIGRATION_DIR = "src/main/resources/db/migration"
@@ -672,7 +672,9 @@ def score(cfg, run_dir, work, skip_hidden, skip_db=False, allow_concurrent=False
         # injected_chars: null = 주입 없음(또는 글자 수 기록이 빠진 주입이 있음). injected_tokens: null = 미측정
         "injections": len(inj), "injected_chars": sum(chars) if chars and None not in chars else None,
         "injected_tokens": tokens, "injected_tokens_unavailable": tokens_note, "history": history,
-        "totals": run.get("totals"), "turns_done": len(run.get("turns") or []),
+        # totals: 토큰·비용은 run_spend(옛 형식 기록이면 턴별 누적의 차분으로 다시 계산 — totals_recomputed true)
+        "totals": dict(run.get("totals") or {}, **run_spend(run)[0]), "totals_recomputed": run_spend(run)[1],
+        "turns_done": len(run.get("turns") or []),
         "hidden": hidden_meta, "counts": counts, "items": items, "k8_turns": k8_turns,
         "unmapped_hidden_ids": sorted(set(hidden) - set(table)),
         "scoring_env": env_info,

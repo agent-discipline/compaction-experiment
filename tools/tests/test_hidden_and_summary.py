@@ -68,7 +68,8 @@ class HiddenTest(unittest.TestCase):
 
 BASE_RUN = {"messages_sha256_all": "M", "image_id": "img", "skeleton_commit": "sk", "cli_version": "2.1.326",
             "limits": {"turn_timeout": 5400}, "container_limits": {"cpus": "4"},
-            "container_env": {"HOME": "/home/agent", "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "x"}, "outbox_config_sha256": None}
+            "container_env": {"HOME": "/home/agent", "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "x"}, "outbox_config_sha256": None,
+            "usage_accounting": "session_cumulative_delta"}  # 새 형식(totals = 턴 차분의 합)
 SETTINGS = {"control": ("S-c", "1000000"), "compact": ("S-c", "100000"), "outbox": ("S-o", "100000")}
 
 
@@ -249,6 +250,24 @@ class SummaryTest(unittest.TestCase):
         self.assertIn("| s-outbox-r1 | outbox | 1 | 예 | 3 | 3 | 미측정 | 10 | pass (0) | pass (0) | 0.900 (9/1) | 0.900 (9/1) |",
                       sonnet)
         self.assertIn("| h-compact-r1 | compact | 1 | 예 | 2 | 0 | — | 10 | fail (1) | pass (0) |", haiku)
+
+    def test_old_format_spend_recomputed_and_marked(self):
+        """usage_accounting 표식이 없는 옛 기록: 턴의 tokens·cost_usd가 세션 누적 → 차분 합(= 마지막 누적)으로 다시 계산, ※ 표시."""
+        b = Path(tempfile.mkdtemp())
+        turns = [{"index": k, "tokens": v, "cost_usd": c, "result_session_id": "s"}
+                 for k, (v, c) in enumerate([(398689, 0.40), (802784, 0.52), (1311897, 0.71)])]
+        old = make_run(b, "old", "control", {"K1": item("pass")}, turns=turns, usage_accounting=None)  # totals(10)는 무시
+        new = make_run(b, "new", "control", {"K1": item("pass")})                     # 새 형식: totals(10) 그대로
+        res = summarize.summarize(summarize.load([old, new]))
+        runs = {x["run_id"]: x for x in res["runs"]}
+        self.assertEqual((runs["old"]["tokens"], runs["old"]["cost_usd"], runs["old"]["spend_recomputed"]),
+                         (1311897, 0.71, True))
+        self.assertEqual((runs["new"]["tokens"], runs["new"]["spend_recomputed"]), (10, False))
+        row = res["rows"][0]
+        self.assertEqual((row["mean_tokens"], row["spend_recomputed"]), ((1311897 + 10) / 2, 1))
+        md = summarize.markdown(res)
+        self.assertIn("| old | control | None | 예 | 0 | 0 | — | 1311897 ※ |", md)
+        self.assertIn("| new | control | None | 예 | 0 | 0 | — | 10 |", md)
 
     def test_markdown_and_cli(self):
         md = summarize.markdown(self.res)

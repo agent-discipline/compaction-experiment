@@ -26,6 +26,8 @@ from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "tools"))
+from run_task import run_spend  # noqa: E402  옛 형식(턴 값 = 세션 누적) 기록의 토큰·비용을 차분으로 다시 계산
 COMPACT_CONDITIONS = ("compact", "outbox")
 COMMON_INPUTS = ("messages_sha256_all", "image_id", "skeleton_commit", "cli_version", "limits", "container_limits",
                  "container_env_common", "auto_memory")
@@ -206,8 +208,9 @@ def summarize(recs):
                                                   for b in r["score"].get("boundaries") or []) for r in ok),
             "mean_injected_chars": mean([r["score"].get("injected_chars") for r in ok]),
             "mean_injected_tokens": mean([r["score"].get("injected_tokens") for r in ok]),
-            "mean_tokens": mean([(r["run"].get("totals") or {}).get("tokens") for r in ok]),
-            "mean_cost_usd": mean([(r["run"].get("totals") or {}).get("cost_usd") for r in ok]),
+            "mean_tokens": mean([run_spend(r["run"])[0]["tokens"] for r in ok]),
+            "mean_cost_usd": mean([run_spend(r["run"])[0]["cost_usd"] for r in ok]),
+            "spend_recomputed": sum(run_spend(r["run"])[1] for r in ok),
         })
     pairs, primary = paired(recs)
     return {"rows": rows, "per_item": per_item, "pairs": pairs, "primary": primary,
@@ -227,11 +230,12 @@ def run_record(r):
     run = r["run"]
     s = r["score"] if r["score"] and not r["score_mismatch"] else None
     k8 = ((s or {}).get("items") or {}).get("K8") or {}
+    spend, recomputed = run_spend(run)
     return {"model": run["model"], "condition": run["condition"], "rep": run.get("rep"), "run_id": run["run_id"],
             "included": r["included"], "compactions": len(run.get("boundaries") or []),
             "injections": len(run.get("injections") or []),
-            "injected_tokens": (s or {}).get("injected_tokens"), "tokens": (run.get("totals") or {}).get("tokens"),
-            "cost_usd": (run.get("totals") or {}).get("cost_usd"),
+            "injected_tokens": (s or {}).get("injected_tokens"), "tokens": spend["tokens"],
+            "cost_usd": spend["cost_usd"], "spend_recomputed": recomputed,
             "k8": k8.get("result"), "k8_violating_turns": k8.get("violating_turns"),
             "k8_turn_level": (k8.get("turn_level") or {}).get("result"),
             "k8_turn_level_violating_turns": (k8.get("turn_level") or {}).get("violating_turns"),
@@ -312,6 +316,7 @@ def pp(x):
 
 
 RESULT_MARK = {"pass": "P", "fail": "F"}
+RECOMP = " ※"  # 옛 형식 기록에서 다시 계산한 토큰·비용
 
 
 def k8_ratio(part):
@@ -379,7 +384,8 @@ def markdown_model(res):
                    f"{fmt(r['mean_compactions'])} | {r['unlocated_boundaries']} | {r['prompt_adjacent_boundaries']} | "
                    f"{fmt(r['mean_injected_chars'], none='미측정' if inj else '—')} | "
                    f"{fmt(r['mean_injected_tokens'], none='미측정' if inj else '—')} | "
-                   f"{fmt(r['mean_tokens'], none='미측정')} | {fmt(r['mean_cost_usd'], none='미측정')} |")
+                   f"{fmt(r['mean_tokens'], none='미측정')}{RECOMP * bool(r['spend_recomputed'])} | "
+                   f"{fmt(r['mean_cost_usd'], none='미측정')}{RECOMP * bool(r['spend_recomputed'])} |")
     out += ["", "### 주 측정값 — 전달 뒤 컴팩트가 있었던 항목의 위반율 − 같은 모델 대조군의 같은 항목 위반율", "",
             "| 모델 | 조건 | 컴팩트 실행 | 차이를 낸 실행 | 위반율 평균 | 대조군 위반율 평균 | 차이 평균 | 차이 폭 |",
             "|---|---|---|---|---|---|---|---|"]
@@ -408,7 +414,9 @@ def markdown_model(res):
                                                                        ("unknown", "불명")) if b and b[key][1]]
             cells.append(" · ".join(parts) or "—")
         out.append(f"| {item}{' ●' if per_item[item]['drop_candidate'] else ''} | " + " | ".join(cells) + " |")
-    out += ["", "● = 버릴 후보(scoring-items.md 취약 열) — 주 지표·위반율에서 빼고 따로 낸다. 별칭 항목은 세지 않는다."]
+    out += ["", "● = 버릴 후보(scoring-items.md 취약 열) — 주 지표·위반율에서 빼고 따로 낸다. 별칭 항목은 세지 않는다.",
+            f"※ = 옛 형식 기록(run.json에 usage_accounting 표식 없음 — 턴의 토큰·비용이 세션 누적)에서 턴별 차분으로 다시 계산한 값"
+            f"(run.json totals는 턴 수만큼 부풀어 있음)."]
     return "\n".join(out)
 
 
@@ -449,7 +457,8 @@ def k_tables(res):
             inj = x["condition"] == "outbox"
             out.append(f"| {x['run_id']} | {x['condition']} | {x['rep']} | {'예' if x['included'] else '아니오'} | "
                        f"{x['compactions']} | {x['injections']} | "
-                       f"{fmt(x['injected_tokens'], none='미측정' if inj else '—')} | {fmt(x['tokens'], none='미측정')} | "
+                       f"{fmt(x['injected_tokens'], none='미측정' if inj else '—')} | "
+                       f"{fmt(x['tokens'], none='미측정')}{RECOMP * x['spend_recomputed']} | "
                        f"{x['k8'] or '—'} ({len(x['k8_violating_turns'] or [])}) | "
                        f"{x['k8_turn_level'] or '—'} ({len(x['k8_turn_level_violating_turns'] or [])}) | "
                        f"{k8_ratio(b.get('before'))} | {k8_ratio(b.get('after'))} |")
