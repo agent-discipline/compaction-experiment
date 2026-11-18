@@ -315,6 +315,16 @@ class RereadTest(unittest.TestCase):
         p = f"/home/agent/.claude/projects/-work/{SID}/tool-results/toolu_01.txt"
         self.assertEqual(kinds([("Read", {"file_path": p})]), {})
 
+    def test_background_task_output_is_not_reread(self):
+        """CLI 백그라운드 작업 출력(/tmp/claude-<uid>/<프로젝트>/<세션 id>/tasks/<id>.output)은 세션 id가 들어 있어도
+        세션 기록 재독이 아니다. 같은 세션 id의 실제 세션 기록 읽기는 그대로 센다."""
+        out = f"/tmp/claude-1000/-work/{SID}/tasks/bfr9l0nsk.output"
+        self.assertEqual(kinds([("Bash", {"command": f"tail -30 {out}"})]), {})
+        self.assertEqual(kinds([("Read", {"file_path": out})]), {})
+        self.assertIn("session_log", kinds([("Bash", {"command": f"tail -30 {out}; cat ~/.claude/projects/-work/{SID}.jsonl"})]))
+        self.assertIn("session_log", kinds([("Bash", {"command": f"grep -c user /home/agent/x/{SID}.jsonl"})]))
+        self.assertIn("session_log", kinds([("Bash", {"command": f"ls /tmp/claude-1000/-work/{SID}/"})]))
+
     def test_outbox_and_root_search(self):
         k = kinds([("Bash", {"command": "cd /cx && cat hookdata/outbox/*"})])
         self.assertEqual(list(k), ["outbox_data"])

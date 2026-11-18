@@ -187,7 +187,7 @@ outbox_boundary_injections[](outbox만)`.
 
 | 키 | 감지 |
 |---|---|
-| `session_log` (가) | `.claude/projects`, `~`·`/home/agent`·`$HOME` 아래 `.claude`, `CLAUDE_CONFIG_DIR`, `*.jsonl` 같은 전역 패턴, 이 세션 id. CLI가 큰 도구 출력을 두는 `…/tool-results/…` 경로는 정상 경로라 지운 뒤 본다 |
+| `session_log` (가) | `.claude/projects`, `~`·`/home/agent`·`$HOME` 아래 `.claude`, `CLAUDE_CONFIG_DIR`, `*.jsonl` 같은 전역 패턴, 이 세션 id. CLI가 큰 도구 출력을 두는 `…/tool-results/…` 경로와 백그라운드 작업 출력 `/tmp/claude-<uid>/<프로젝트>/<세션 id>/tasks/<id>.output`(세션 id가 들어 있지만 세션 기록이 아님)은 정상 경로라 지운 뒤 본다. 이미 끝난 실행의 `run.json`에 남은 값은 실행 때의 규칙이다 |
 | `outbox_data` (나) | `hookdata`, `outbox/…jsonl`, `inject-log` |
 | `root_search` (다) | `find`·`grep`·`rg`·`ls` 등이 `/`·`/cx`·`/home`·`/home/agent`·`~`를 인자로 받음, Grep/Glob의 `path`가 그 경로 |
 | `memo` (라) | `CLAUDE.md`·`AGENTS.md`, 작업 폴더 `.claude/` 아래 settings.json 밖의 파일(도구 입력 + 턴 끝 `claude_dir_files`), 이름에 notes·decisions·memo·rules·constraints·conventions·guidelines·규칙·결정·메모·제약·노트·지침이 든 `.md`·`.txt` 등 |

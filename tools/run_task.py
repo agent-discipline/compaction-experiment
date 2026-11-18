@@ -404,6 +404,9 @@ def audit(entries, cfg):
 
 # 원문 재독 경로(공변량 — 막지 않고 기록한다). 도구 입력 문자열에 대한 패턴 검사라 우회·오탐이 있다(README).
 TOOL_RESULTS = re.compile(r"[^\s\"']*/tool-results/[^\s\"']*")  # CLI가 큰 도구 출력을 두는 곳 — 정상 경로라 지운 뒤 본다
+# CLI의 백그라운드 작업 출력 파일 /tmp/claude-<uid>/<프로젝트>/<세션 id>/tasks/<id>.output — 세션 id가 들어 있지만 세션 기록이
+# 아니다(파일럿 Sonnet compact 실행의 `tail -30 …/tasks/….output`). tool-results와 같이 지운 뒤 본다
+TASK_OUTPUT = re.compile(r"[^\s\"']*/tmp/claude-\d+/[^\s\"'/]+/[^\s\"'/]+/tasks/[^\s\"'/]+\.output\b")
 MEMO_NAME = (r"(?:CLAUDE|AGENTS)\.md|[^\s/'\"]*(?:notes?|decisions?|memo|rules?|constraints?|conventions?|guidelines?"
              r"|규칙|결정|메모|제약|노트|지침)[^\s/'\"]*\.(?:md|txt|markdown|rst)")
 REREAD = {
@@ -431,7 +434,7 @@ def reread_hits(entries, start, end, session_id):
     pats = {k: re.compile(v + (f"|{re.escape(session_id)}" if k == "session_log" else "")) for k, v in REREAD.items()}
     out = {k: [] for k in REREAD}
     for line, name, inp in transcript.tool_uses(entries, start, end):
-        text = TOOL_RESULTS.sub(" ", tool_text(inp))
+        text = TASK_OUTPUT.sub(" ", TOOL_RESULTS.sub(" ", tool_text(inp)))
         for kind, pat in pats.items():
             m = pat.search(text)
             if m:
