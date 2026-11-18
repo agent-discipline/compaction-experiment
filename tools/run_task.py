@@ -308,6 +308,30 @@ def scrub(base, secret, skip_suffixes=()):
     return sorted(set(hits))
 
 
+def git_objects_hits(work, secret):
+    """작업 폴더 git 저장소의 모든 객체(느슨한 객체·팩, 압축을 푼 내용)에서 secret을 찾는다 — 바이트 검사(scrub)는 zlib으로
+    압축된 `.git/objects`를 볼 수 없다. 찾으면 [".git"], 없거나 저장소가 없으면 []. git 실패는 예외(검사 실패로 처리)."""
+    work, needle = Path(work), secret.encode()
+    if not (work / ".git").is_dir():
+        return []
+    p = subprocess.Popen(["git", "-c", f"safe.directory={work}", "cat-file", "--batch-all-objects", "--batch", "--unordered"],
+                         cwd=work, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    tail, overlap, found = b"", len(needle) - 1, False
+    while not found:
+        chunk = p.stdout.read(SCAN_CHUNK)
+        if not chunk:
+            break
+        found = needle in tail + chunk
+        tail = (tail + chunk)[-overlap:] if overlap else b""
+    p.stdout.close()
+    if found:
+        p.kill()
+    rc = p.wait()
+    if not found and rc != 0:
+        raise RuntimeError(f"git cat-file --batch-all-objects 실패(rc={rc})")
+    return [".git"] if found else []
+
+
 # ---------- 준비 ----------
 
 def git(args, cwd, env=None, check=True):
@@ -922,7 +946,9 @@ def finalize(docker, cfg, a, state, rdir, root, names, created, entries, tampere
     try:
         # scratch 전체(~/.claude 사본 + 턴마다 복사한 세션 기록 projects/) — --keep-root면 남으므로 함께 검사
         hits = {"work": scrub(work, token), "scratch": scrub(scratch, token),
-                "record": scrub(rdir, token, skip_suffixes=(".tar.gz",))}
+                "record": scrub(rdir, token, skip_suffixes=(".tar.gz",)),
+                # git 객체 안의 토큰은 가릴 수 없다(객체 해시가 바뀜) → 찾으면 작업 폴더 압축본을 만들지 않는다(아래)
+                "git_objects": git_objects_hits(work, token)}
         scanned = (work, scratch)
         state["secret_scan"] = {"hits": hits, "error": None, "archives_from_scanned": all(
             any(src == d or d in src.parents for d in scanned) for src, *_ in archives)}
@@ -949,6 +975,9 @@ def finalize(docker, cfg, a, state, rdir, root, names, created, entries, tampere
                               state["compact_log"], state["hook_errors"], bool(state["transcript_unparsed_turns"]),
                               state["collection_data_reads"])
     state["invalid_reasons"], state["invalid"] = reasons, bool(reasons)
+    if (state["secret_scan"].get("hits") or {}).get("git_objects"):
+        archives = [a for a in archives if a[0] != work]
+        state["secret_scan"]["work_archive_withheld"] = "git_objects"  # 보관하면 토큰이 든 git 객체가 그대로 남는다
     try:
         for src, dest, arcname, skip, key in archives:
             if src.is_dir():

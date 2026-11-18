@@ -377,7 +377,7 @@ class RunLoopTest(unittest.TestCase):
         self.assertEqual(run["turns"][2]["container"]["exit_code"], 0)
         self.assertEqual(run["messages_sha256"], [t["message_sha256"] for t in run["turns"]])
         self.assertEqual(run["totals"]["tokens"], 300)
-        self.assertEqual(run["secret_scan"]["hits"], {"work": [], "scratch": [], "record": []})
+        self.assertEqual(run["secret_scan"]["hits"], {"work": [], "scratch": [], "record": [], "git_objects": []})
         self.assertTrue(run["secret_scan"]["archives_from_scanned"])
         self.assertTrue(run["measurement_complete"])
         self.assertEqual(run["totals"]["cost_usd"], 0.03)
@@ -433,6 +433,30 @@ class RunLoopTest(unittest.TestCase):
         with tarfile.open(rdir / "work.tar.gz") as tf:
             self.assertEqual(tf.extractfile("work/leak.txt").read(), b"token=<REDACTED-SECRET>\n")
         self.assertNotIn(TOKEN, (rdir / "run.json").read_text())
+
+    def test_token_in_git_objects_fails_run_and_withholds_work_archive(self):
+        rc, run, rdir, base = self.run_fake("compact", FAKE_COMMIT_LEAK_TURN="0")
+        self.assertEqual((rc, run["status"]), (3, "failed"))
+        self.assertIn("secret_leak", run["failure_reasons"])
+        self.assertEqual((run["secret_scan"]["hits"]["work"], run["secret_scan"]["hits"]["git_objects"]), ([], [".git"]))
+        self.assertEqual(run["secret_scan"]["work_archive_withheld"], "git_objects")
+        self.assertFalse((rdir / "work.tar.gz").exists())
+        self.assertNotIn("work_archive", run)
+        self.assertTrue((rdir / "claude-home.tar.gz").is_file())
+
+    def test_git_objects_hits(self):
+        d = Path(tempfile.mkdtemp())
+        self.assertEqual(rt.git_objects_hits(d, TOKEN), [])  # 저장소 없음
+        write(d, "a.txt", "clean")
+        subprocess.run(["git", "init", "-q"], cwd=d, check=True)
+        g = ["git", "-c", "user.name=a", "-c", "user.email=a@e.invalid"]
+        subprocess.run([*g, "add", "-A"], cwd=d, check=True)
+        subprocess.run([*g, "commit", "-q", "-m", "x"], cwd=d, check=True)
+        self.assertEqual(rt.git_objects_hits(d, TOKEN), [])
+        write(d, "a.txt", TOKEN)
+        subprocess.run([*g, "commit", "-qam", "y"], cwd=d, check=True)
+        write(d, "a.txt", "clean")
+        self.assertEqual(rt.git_objects_hits(d, TOKEN), [".git"])
 
     def test_scan_error_marks_archives_unscanned(self):
         """검사가 실패하면 압축본이 검사한 내용에서 만들어졌다고 기록하지 않는다(실행은 failed)."""

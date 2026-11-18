@@ -117,7 +117,10 @@ python3 tools/run_task.py --check-env [--check-gradle]             # 무료: 이
 - **압축본과 토큰 검사**: `.tar.gz`는 압축된 바이트라 검사 대상에서 빼고, 대신 압축본을 **검사(와 가림)를 마친 폴더에서만** 만든다 —
   `work.tar.gz` ← `run_root/work`, `claude-home.tar.gz` ← `run_root/scratch/claude-home`(둘 다 검사 범위 안, 검사와 압축 사이에 쓰는 것 없음).
   이 사실을 `secret_scan.archives_from_scanned`(true)로 남기고, 검사가 실패하면 false(실행은 `secret_scan_error`로 failed — 압축본 내용은 검사되지 않음).
-  한계: 바이트 검사라 git 객체(`.git/objects` — zlib 압축)에 커밋된 토큰은 폴더에서도 압축본에서도 보이지 않는다.
+- **git 객체**: 바이트 검사로는 zlib으로 압축된 `.git/objects`(느슨한 객체·팩)를 볼 수 없으므로, 작업 폴더 저장소의 모든 객체를
+  `git cat-file --batch-all-objects --batch`(압축을 푼 내용)로 따로 검사한다(`secret_scan.hits.git_objects`). 찾으면 `secret_leak`(failed)이고,
+  git 객체는 가릴 수 없으므로(가리면 객체 해시가 바뀐다) **`work.tar.gz`를 만들지 않는다**(`secret_scan.work_archive_withheld = "git_objects"` —
+  그 실행은 채점할 작업 폴더 보관본이 없다). `claude-home.tar.gz`는 그대로 만든다. git 실패는 `secret_scan_error`.
 
 ### 기록 형식 — `<runs_dir>/<run id>/` (run id = `<모델에서 claude- 뺀 것>-<조건>-r<반복>-<YYYYmmddTHHMMSS>`)
 
@@ -144,7 +147,7 @@ run_root, work_dir(/work), skeleton_commit, steps_planned[], compact_window_env,
 outbox_config, outbox_config_sha256, messages_sha256[], messages_sha256_all(메시지별 해시를 이은 것의 해시 — 집계의 입력 일치 확인), limits{},
 turns[], boundaries[], totals{tokens(모르면 null), cost_usd(모르는 턴이 있으면 null), wall_s}, audit[], unexpected_tools[], injections[],
 compact_log[](요약문 빼고 summary_chars), hook_errors[], collection_data_reads[], transcript_unparsed_turns[], cleanup_errors[],
-secret_scan{hits{work, scratch, record}, error, late_hits?, archives_from_scanned}, work_archive, claude_home_archive,
+secret_scan{hits{work, scratch, record, git_objects}, error, late_hits?, archives_from_scanned, work_archive_withheld?}, work_archive, claude_home_archive,
 outbox_boundary_injections[](outbox만)`.
 
 - `turns[k]`: `step, index, started_at(epoch 초), ended_at, started_iso, wall_s, exit_code, timed_out, container, result_parsed, is_error,
@@ -303,7 +306,7 @@ python3 -m unittest discover -s tools/tests -p 'test_*.py'
 
 실행기 테스트는 Docker 없이 돈다: `cfg["docker_bin"]`을 `tests/fake_docker.py`(가짜 docker — create·start·cp·inspect·rm·network·volume·ps를
 흉내, 마운트 대상 경로를 호스트 폴더로 바꿔 명령을 호스트에서 실행)로 바꾸고, 컨테이너 안 `claude`는 `tests/fake_claude.py`(세션 기록 작성,
-settings.json 훅 실제 호출, 두 번째 턴부터 가짜 컴팩트, 토큰 유출·턴 실패·읽지 못하는 줄 흉내)가 된다. 실제 Docker를 쓰는 테스트는
+settings.json 훅 실제 호출, 두 번째 턴부터 가짜 컴팩트, 토큰 유출(파일·git 커밋)·턴 실패·읽지 못하는 줄 흉내)가 된다. 실제 Docker를 쓰는 테스트는
 `test_db_catalog.DockerCatalogTest`(`PostgresStack` — 실제 `postgres:16`) 하나이고, **`CX_REAL_DOCKER_TESTS=1`일 때만** 돈다(그 밖에는
 `docker info`도 부르지 않고 건너뜀 — 같은 데몬에서 다른 실험이 돌 수 있다). 확인하려면 부르면 기록하고 실패하는 `docker` 실행 파일을
 PATH 앞에 두고 `DOCKER_HOST`를 없는 소켓으로 돌린 채 돌려, 그 기록이 비어 있는지 본다.
