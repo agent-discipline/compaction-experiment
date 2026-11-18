@@ -258,7 +258,8 @@ K6 = 메인 코드(`src/main/kotlin`·`java`)의 **인자 없는** `Instant|Loca
 (`@Bean` 앞 400자 안의 것 1곳만 허용) + 문자열 리터럴 속 SQL `now()`·`CURRENT_TIMESTAMP`·`clock_/statement_/transaction_timestamp(`·`LOCALTIMESTAMP` ·
 K7a/b = 골격 커밋 이후 커밋을 커밋 시각(`%ct`)으로 턴 창 `[턴 k 시작, 턴 k+1 시작)`에 배정(마지막 턴은 끝 없음). K7a는 S0~S7 턴마다 커밋을 요구하고,
 S8은 그 턴에 추적 파일이 바뀐 경우(HEAD가 움직였거나 `tracked_diff_sha256`이 앞 턴 끝과 다름 — 기록이 없으면 요구)에만 요구한다 ·
-K8 = 기준 `k8_threshold`(0.5), 본문 `k8_min_chars`(20)자 미만 턴 제외.
+K8 = 기준 `k8_threshold`(0.5), 본문 `k8_min_chars`(20)자 미만 턴 제외. 경로는 토큰 전체를 뺀다(`language.PATH` — 확장자로 끝나는 `…/이름.ext`,
+`/`·`./`·`~/` 뒤 ASCII 폴더, ASCII 폴더 둘 이상으로 시작, 확장자 붙은 파일 이름, ASCII만의 `a/b`; 한글 이름도 함께 빠진다). 한글만의 `선점/확정`은 산문으로 남긴다.
 
 ## summarize.py
 

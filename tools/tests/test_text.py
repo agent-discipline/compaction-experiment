@@ -50,6 +50,17 @@ class LanguageTest(unittest.TestCase):
         r = language.ratio("설정은 src/main/resources/application.yml 에 넣었습니다", 5)
         self.assertEqual(r["latin"], 0)
 
+    def test_path_with_korean_name_removed_whole(self):
+        r = language.ratio("I updated src/main/좌석.kt and the tests pass now", 5)
+        self.assertEqual(r["hangul"], 0)
+        for text in ("src/main/kotlin/좌석서비스.kt를 고쳤습니다", "좌석/확정.kt 수정했습니다", "/work/좌석 폴더를 봤습니다",
+                     "src/좌석/Hold.kt 수정했습니다", "docs/plans/작업/로그 확인했습니다"):
+            prose = language.strip_non_prose(text)
+            self.assertNotIn("/", prose, text)
+            self.assertFalse(any(x in prose for x in ("좌석", "확정", "작업", "로그")), (text, prose))
+        self.assertEqual(language.strip_non_prose("선점/확정/취소 흐름"), "선점/확정/취소 흐름")
+        self.assertEqual(language.strip_non_prose("API/응답 형식").strip(), "응답 형식")  # ASCII 조각은 전과 같이 지움
+
     def test_short_turn_excluded(self):
         self.assertIsNone(language.ratio("완료", 20)["ratio"])
         self.assertIsNone(language.ratio("```\ncode only block that is long enough\n```", 20)["ratio"])

@@ -5,9 +5,18 @@ FENCE = re.compile(r"(^|\n)[ \t]*(```|~~~)[^\n]*\n.*?(\n[ \t]*\2[^\n]*(?=\n|$)|$
 INLINE = re.compile(r"`[^`\n]*`")
 QUOTE = re.compile(r"^[ \t]*>.*$", re.M)
 URL = re.compile(r"\b[a-zA-Z][a-zA-Z0-9+.-]*://\S+")
-# 경로 문자는 ASCII만 — Python `\w`는 한글도 포함해 "선점/확정" 같은 산문이 경로로 지워진다
-PATH = re.compile(r"(?<![\w가-힣])(?:\.{0,2}/)?(?:[A-Za-z0-9_.@-]+/)+[A-Za-z0-9_.@-]*"
-                  r"|(?<![\w가-힣])[A-Za-z0-9_-]+\.(?:kt|kts|java|sql|ya?ml|md|json|xml|properties|gradle|txt|sh|py)\b")
+# 경로는 토큰 전체를 지운다(한글 파일·폴더 이름 포함). 한글만으로 된 "선점/확정" 같은 산문은 경로가 아니다 — 경로로 보는 것:
+#  ① 확장자로 끝나는 `…/이름.ext`(폴더·파일 이름 한글 가능) ② `/`·`./`·`../`·`~/` 뒤 ASCII 폴더로 시작
+#  ③ ASCII 폴더 둘 이상으로 시작 ④ 확장자가 붙은 파일 이름 하나 ⑤ ASCII만의 `a/b`(전과 같음)
+EXT = r"(?:kt|kts|java|sql|ya?ml|md|json|xml|properties|gradle|txt|sh|py)(?![A-Za-z0-9_])"
+SEG = r"[^\s/()\[\]{}<>\"'`,;:]"   # 경로 한 조각의 글자(한글 포함, 공백·구분 기호 제외)
+ASEG = r"[A-Za-z0-9_.@-]+"
+PATH = re.compile(rf"(?<![\w가-힣])(?:"
+                  rf"(?:(?:~|\.{{1,2}})?/)?(?:{SEG}+/)+{SEG}*?\.{EXT}"
+                  rf"|(?:~|\.{{1,2}})?/{ASEG}(?:/{SEG}*)*"
+                  rf"|(?:{ASEG}/){{2,}}{SEG}*(?:/{SEG}*)*"
+                  rf"|{SEG}+?\.{EXT}"
+                  rf"|(?:\.{{0,2}}/)?(?:{ASEG}/)+[A-Za-z0-9_.@-]*)")
 HANGUL = re.compile(r"[가-힣ᄀ-ᇿ㄰-㆏]")
 LATIN = re.compile(r"[A-Za-z]")
 
