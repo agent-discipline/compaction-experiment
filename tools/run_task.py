@@ -42,6 +42,11 @@ CONDITIONS = ("control", "compact", "outbox")
 COPY_IGNORE = shutil.ignore_patterns(".git", "build", ".gradle", ".kotlin", ".idea", "out")
 LABEL = containers.EXPERIMENT_LABEL
 EXIT = {"complete": 0, "aborted": 2, "failed": 3}
+# 자동 메모리(auto memory) 끔 — 세 조건 같게. 켜져 있으면 에이전트가 대화 전용 제약을 ~/.claude/projects/<p>/memory/에 적어
+# 컴팩트와 무관하게 남긴다(스모크에서 확인). 문서: https://code.claude.com/docs/en/memory#enable-or-disable-auto-memory
+# 설정 키와 환경 변수를 둘 다 둔다(둘 중 하나만으로도 꺼짐 — 2.1.326 이미지에서 확인, README).
+AUTO_MEMORY_SETTINGS = {"autoMemoryEnabled": False}
+AUTO_MEMORY_ENV = {"CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1"}
 
 
 # ---------- 설정 ----------
@@ -125,7 +130,7 @@ def settings_for(condition, cfg):
     return {"permissions": {"allow": list(cfg["allowed_tools"]), "deny": deny,
                             "blockReadsOutsideWorkingDirectories": True,
                             "blockWritesOutsideWorkingDirectories": True},
-            "hooks": hk}
+            "hooks": hk, **AUTO_MEMORY_SETTINGS}
 
 
 def settings_text(d):
@@ -148,7 +153,7 @@ def claude_cmd(cfg, model, session_id, first, budget=None):
 def container_env(cfg, condition):
     """에이전트 컨테이너 환경(토큰 제외 — 토큰은 --env-file로만). 조건 간 차이는 컴팩트 기준값뿐."""
     home = cfg["container"]["home"]
-    return {"HOME": home, "CLAUDE_CONFIG_DIR": f"{home}/.claude", "DISABLE_AUTOUPDATER": "1",
+    return {"HOME": home, "CLAUDE_CONFIG_DIR": f"{home}/.claude", "DISABLE_AUTOUPDATER": "1", **AUTO_MEMORY_ENV,
             "CLAUDE_CODE_AUTO_COMPACT_WINDOW": cfg["compact_window"][condition], **containers.jdbc_env(cfg["db"])}
 
 
@@ -471,8 +476,16 @@ def boundary_injections(compact_log, injections, n_bounds):
     return out
 
 
+def auto_memory_files(projects):
+    """턴마다 복사한 `~/.claude/projects` 사본에서 자동 메모리 파일(`<프로젝트>/memory/` 아래 파일) 목록 — 꺼져 있으면 비어야 한다.
+    (켜진 CLI는 빈 `memory/` 폴더를 미리 만들기도 하므로 폴더가 아니라 파일을 본다.)"""
+    projects = Path(projects)
+    return sorted(str(f.relative_to(projects)) for f in projects.glob("*/memory/**/*") if f.is_file()) \
+        if projects.is_dir() else []
+
+
 def invalid_reasons(condition, bounds, audit_hits, settings_tampered, injections, compact_log=(), hook_errors=(),
-                    transcript_unparsed=False, collection_reads=()):
+                    transcript_unparsed=False, collection_reads=(), memory_files=()):
     out = []
     if condition == "control" and bounds:
         out.append("control_has_compaction")
@@ -496,6 +509,8 @@ def invalid_reasons(condition, bounds, audit_hits, settings_tampered, injections
             out.append("outbox_capture_error")
     if collection_reads:
         out.append("collection_data_read")
+    if memory_files:  # 자동 메모리를 껐는데 메모리 파일이 생김 — 제약이 컴팩트와 무관하게 파일로 남았을 수 있다
+        out.append("auto_memory_files")
     return out
 
 
@@ -785,7 +800,8 @@ def run(cfg, a):
         "docker": {k: v for k, v in names.items()}, "token_env_file": cfg["token_env_file"],
         "run_root": str(root), "work_dir": cfg["container"]["work"], "skeleton_commit": skeleton_head,
         "steps_planned": cfg["steps"][:len(msgs)], "compact_window_env": env["CLAUDE_CODE_AUTO_COMPACT_WINDOW"],
-        "settings_sha256": settings_sha, "container_env": env, "container_limits": {
+        "settings_sha256": settings_sha, "container_env": env,
+        "auto_memory": {"settings": AUTO_MEMORY_SETTINGS, "env": AUTO_MEMORY_ENV}, "container_limits": {
             k: cfg["container"][k] for k in ("cpus", "memory", "pids_limit")},
         "outbox_config": None, "outbox_config_sha256": None,
         "messages_sha256": [sha256_bytes(m.encode()) for m in msgs],
@@ -794,7 +810,8 @@ def run(cfg, a):
                    "max_budget_usd": a.max_budget_usd},
         "turns": [], "boundaries": [], "totals": {"tokens": None, "cost_usd": None, "wall_s": 0.0},
         "audit": [], "unexpected_tools": [], "injections": [], "compact_log": [], "hook_errors": [],
-        "collection_data_reads": [], "transcript_unparsed_turns": [], "cleanup_errors": [], "secret_scan": None,
+        "collection_data_reads": [], "transcript_unparsed_turns": [], "auto_memory_files": [], "cleanup_errors": [],
+        "secret_scan": None,
     }
     if a.condition == "outbox":
         oc = (root / "hooks" / "outbox-config.json").read_bytes()
@@ -880,6 +897,7 @@ def run(cfg, a):
                     "usage": res.get("usage") if res else None, "model_usage": res.get("modelUsage") if res else None,
                     "git_head": head, "tracked_diff_sha256": tracked_diff_sha256(work),
                     "transcript_lines": n_lines, "transcript_bad_lines": bad, "claude_dir_files": extra,
+                    "auto_memory_files": auto_memory_files(scratch / "projects"),
                     "reread": reread_hits(entries, line_ends[-2] if len(line_ends) > 1 else 0, line_ends[-1],
                                           session_id),
                     "message_sha256": sha256_bytes(msg.encode())}
@@ -888,6 +906,9 @@ def run(cfg, a):
                     turn["reread"]["memo"].append({"line": None, "tool": None, "match": f".claude/{f}"})
             if res and res.get("session_id") not in (None, session_id):
                 state["warnings"].append(f"turn {k}: 결과의 session_id가 다름 ({res.get('session_id')})")
+            for f in turn["auto_memory_files"]:
+                if f not in [x["path"] for x in state["auto_memory_files"]]:
+                    state["auto_memory_files"].append({"turn": k, "path": f})
             state["turns"].append(turn)
             write_json(tdir / "meta.json", turn)
             state["boundaries"] = transcript.locate_boundaries(entries, line_ends, msgs)
@@ -973,7 +994,7 @@ def finalize(docker, cfg, a, state, rdir, root, names, created, entries, tampere
     state["collection_data_reads"] = collection_data_reads(entries)
     reasons = invalid_reasons(state["condition"], state["boundaries"], state["audit"], tampered, state["injections"],
                               state["compact_log"], state["hook_errors"], bool(state["transcript_unparsed_turns"]),
-                              state["collection_data_reads"])
+                              state["collection_data_reads"], state["auto_memory_files"])
     state["invalid_reasons"], state["invalid"] = reasons, bool(reasons)
     if (state["secret_scan"].get("hits") or {}).get("git_objects"):
         archives = [a for a in archives if a[0] != work]

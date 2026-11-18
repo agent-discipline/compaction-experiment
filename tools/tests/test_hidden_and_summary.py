@@ -135,6 +135,12 @@ class SummaryTest(unittest.TestCase):
         recs = summarize.load([make_run(self.base, "x1", "control", {}), make_run(self.base, "x2", "control", {},
                                                                                image_id="img2")])
         self.assertEqual(sorted(summarize.input_mismatches(recs)), ["x1", "x2"])  # 최다 값이 없으면 둘 다
+        on, off = {"settings": {}, "env": {}}, {"settings": {"autoMemoryEnabled": False},
+                                                 "env": {"CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1"}}
+        recs = summarize.load([make_run(self.base, "y1", "control", {}, auto_memory=off),
+                               make_run(self.base, "y2", "compact", {}, auto_memory=off),
+                               make_run(self.base, "y3", "outbox", {}, auto_memory=on)])
+        self.assertEqual(summarize.input_mismatches(recs), {"y3": ["auto_memory"]})  # 자동 메모리 설정은 조건 사이에서도 대조
 
     def test_rates_exclude_alias_drop_and_unjudged(self):
         c = self.row("control")

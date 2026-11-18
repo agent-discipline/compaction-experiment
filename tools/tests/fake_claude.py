@@ -8,6 +8,7 @@
 - FAKE_FAIL_TURN=k 이면 k번째 턴(0부터)에서 exit 1. FAKE_LEAK_TURN=k 이면 그 턴에 환경의 토큰 값을 작업 폴더 파일에 쓴다.
   FAKE_COMMIT_LEAK_TURN=k 이면 그 턴에 토큰 값이 든 파일을 git에 커밋한 뒤 작업 트리에서는 지운다(git 객체에만 남음).
   FAKE_BAD_LINE_TURN=k 이면 그 턴 끝에 JSON이 아닌 줄을 덧붙인다. FAKE_TOOL_CMD = 어시스턴트 Bash 도구 입력.
+  FAKE_MEMORY_TURN=k 이면 그 턴에 자동 메모리 파일(CLAUDE_CONFIG_DIR/projects/-work/memory/MEMORY.md)을 쓴다(꺼져 있어야 할 때 생긴 경우 흉내).
 """
 import json
 import os
@@ -39,6 +40,9 @@ if os.environ.get("FAKE_COMMIT_LEAK_TURN") == str(turn):
     subprocess.run([*g, "commit", "-q", "-m", "[S0] x"], check=True, capture_output=True)
     subprocess.run([*g, "rm", "-q", "cfg.txt"], check=True, capture_output=True)
     subprocess.run([*g, "commit", "-q", "-m", "[S0] y"], check=True, capture_output=True)
+if os.environ.get("FAKE_MEMORY_TURN") == str(turn):
+    (tp.parent / "memory").mkdir(exist_ok=True)
+    (tp.parent / "memory" / "MEMORY.md").write_text("- 규칙\n", encoding="utf-8")
 settings = json.loads(Path(".claude/settings.json").read_text(encoding="utf-8"))
 path_map = json.loads(os.environ.get("FAKE_PATH_MAP", "[]"))
 

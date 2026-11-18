@@ -28,7 +28,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 COMPACT_CONDITIONS = ("compact", "outbox")
 COMMON_INPUTS = ("messages_sha256_all", "image_id", "skeleton_commit", "cli_version", "limits", "container_limits",
-                 "container_env_common")
+                 "container_env_common", "auto_memory")
 CONDITION_INPUTS = ("settings_sha256", "compact_window_env", "outbox_config_sha256")
 REREAD_KINDS = ("session_log", "outbox_data", "root_search")
 

@@ -70,6 +70,26 @@ class SettingsTest(unittest.TestCase):
         self.assertEqual(set(o["hooks"]) - set(c["hooks"]), {"UserPromptSubmit", "SessionStart"})
         self.assertEqual({e: o["hooks"][e] for e in c["hooks"]}, c["hooks"])
         self.assertEqual(o["hooks"]["SessionStart"][0]["matcher"], "compact")
+        self.assertEqual({k: v for k, v in o.items() if k != "hooks"}, {k: v for k, v in c.items() if k != "hooks"})
+
+    def test_auto_memory_off_in_every_condition(self):
+        for cond in rt.CONDITIONS:
+            self.assertIs(rt.settings_for(cond, self.cfg)["autoMemoryEnabled"], False, cond)
+            self.assertEqual(rt.container_env(self.cfg, cond)["CLAUDE_CODE_DISABLE_AUTO_MEMORY"], "1", cond)
+        envs = [{k: v for k, v in rt.container_env(self.cfg, c).items() if k != "CLAUDE_CODE_AUTO_COMPACT_WINDOW"}
+                for c in rt.CONDITIONS]
+        self.assertEqual(envs[0], envs[1])
+        self.assertEqual(envs[0], envs[2])  # 조건 간 환경 차이는 컴팩트 기준값뿐
+
+    def test_auto_memory_files(self):
+        d = Path(tempfile.mkdtemp())
+        self.assertEqual(rt.auto_memory_files(d / "none"), [])
+        write(d, "-work/sid.jsonl", "{}")
+        (d / "-work" / "memory").mkdir()          # 빈 폴더는 파일이 아니다
+        self.assertEqual(rt.auto_memory_files(d), [])
+        write(d, "-work/memory/MEMORY.md", "x")
+        write(d, "-work/memory/sub/rules.md", "x")
+        self.assertEqual(rt.auto_memory_files(d), ["-work/memory/MEMORY.md", "-work/memory/sub/rules.md"])
 
     def test_container_paths_in_hooks_and_deny_rules(self):
         s = rt.settings_for("outbox", self.cfg)
@@ -256,6 +276,8 @@ class ValidityTest(unittest.TestCase):
                                             [{"event": "PreCompact", "ts": "2026-11-18T00:00:00+00:00"}, log[1]],
                                             [{"hook": "capture"}]), ["outbox_capture_error"])
         self.assertEqual(rt.invalid_reasons("compact", b, [], False, [], log, [{"hook": "capture"}]), [])
+        self.assertEqual(rt.invalid_reasons("compact", b, [], False, [], log, memory_files=[{"turn": 0, "path": "p"}]),
+                         ["auto_memory_files"])
         self.assertEqual(rt.invalid_reasons("compact", b, [], False, [], log, collection_reads=[{}]),
                          ["collection_data_read"])
 
@@ -403,6 +425,16 @@ class RunLoopTest(unittest.TestCase):
         self.assertEqual(run["boundaries"], [])
         self.assertFalse(run["invalid"])
         self.assertEqual(run["compact_window_env"], "1000000")
+        self.assertEqual(run["auto_memory"], {"settings": {"autoMemoryEnabled": False},
+                                              "env": {"CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1"}})
+        self.assertEqual(run["auto_memory_files"], [])
+        self.assertEqual([t["auto_memory_files"] for t in run["turns"]], [[]] * 3)
+
+    def test_auto_memory_files_make_run_invalid(self):
+        rc, run, rdir, _ = self.run_fake("control", FAKE_MEMORY_TURN="1")
+        self.assertEqual(run["invalid_reasons"], ["auto_memory_files"])
+        self.assertEqual(run["auto_memory_files"], [{"turn": 1, "path": "-work/memory/MEMORY.md"}])
+        self.assertEqual([t["auto_memory_files"] for t in run["turns"]], [[]] + [["-work/memory/MEMORY.md"]] * 2)
 
     def test_turn_failure_aborts_keeps_record_and_cleans_up(self):
         rc, run, rdir, base = self.run_fake("compact", FAKE_FAIL_TURN="1")
