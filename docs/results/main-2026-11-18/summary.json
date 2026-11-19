@@ -1,0 +1,8220 @@
+{
+ "rows": [
+  {
+   "model": "claude-haiku-5-5",
+   "condition": "compact",
+   "runs": 3,
+   "measurement_complete": 3,
+   "aborted": 0,
+   "unscored": 0,
+   "score_mismatch": 0,
+   "invalid": 0,
+   "input_mismatch": 0,
+   "included": 3,
+   "ops_problems": 0,
+   "secret_leak": 0,
+   "history_rewritten": 0,
+   "reread_runs": 2,
+   "memo_runs": 0,
+   "violation_rate": 0.015384615384615385,
+   "judged": 195,
+   "drop_candidate_rate": 0.23809523809523808,
+   "drop_candidate_judged": 21,
+   "run_violation_rates": [
+    0.015384615384615385,
+    0.015384615384615385,
+    0.015384615384615385
+   ],
+   "not_judged": {
+    "unscorable": 3
+   },
+   "mean_compactions": 12.333333333333334,
+   "unlocated_boundaries": 0,
+   "prompt_adjacent_boundaries": 1,
+   "mean_injected_chars": null,
+   "mean_injected_tokens": null,
+   "mean_tokens": 8020807.666666667,
+   "mean_cost_usd": 0.47356666666666664,
+   "spend_recomputed": 0
+  },
+  {
+   "model": "claude-haiku-5-5",
+   "condition": "control",
+   "runs": 3,
+   "measurement_complete": 3,
+   "aborted": 0,
+   "unscored": 0,
+   "score_mismatch": 0,
+   "invalid": 0,
+   "input_mismatch": 0,
+   "included": 3,
+   "ops_problems": 0,
+   "secret_leak": 0,
+   "history_rewritten": 0,
+   "reread_runs": 0,
+   "memo_runs": 0,
+   "violation_rate": 0.010256410256410256,
+   "judged": 195,
+   "drop_candidate_rate": 0.23809523809523808,
+   "drop_candidate_judged": 21,
+   "run_violation_rates": [
+    0.0,
+    0.015384615384615385,
+    0.015384615384615385
+   ],
+   "not_judged": {
+    "unscorable": 3
+   },
+   "mean_compactions": 0,
+   "unlocated_boundaries": 0,
+   "prompt_adjacent_boundaries": 0,
+   "mean_injected_chars": null,
+   "mean_injected_tokens": null,
+   "mean_tokens": 30985619.666666668,
+   "mean_cost_usd": 2.287,
+   "spend_recomputed": 0
+  },
+  {
+   "model": "claude-haiku-5-5",
+   "condition": "outbox",
+   "runs": 3,
+   "measurement_complete": 3,
+   "aborted": 0,
+   "unscored": 0,
+   "score_mismatch": 0,
+   "invalid": 0,
+   "input_mismatch": 0,
+   "included": 3,
+   "ops_problems": 0,
+   "secret_leak": 0,
+   "history_rewritten": 0,
+   "reread_runs": 0,
+   "memo_runs": 0,
+   "violation_rate": 0.015384615384615385,
+   "judged": 195,
+   "drop_candidate_rate": 0.14285714285714285,
+   "drop_candidate_judged": 21,
+   "run_violation_rates": [
+    0.015384615384615385,
+    0.015384615384615385,
+    0.015384615384615385
+   ],
+   "not_judged": {
+    "unscorable": 3
+   },
+   "mean_compactions": 12,
+   "unlocated_boundaries": 0,
+   "prompt_adjacent_boundaries": 0,
+   "mean_injected_chars": 177873,
+   "mean_injected_tokens": 150753.0,
+   "mean_tokens": 8363293.333333333,
+   "mean_cost_usd": 0.4541,
+   "spend_recomputed": 0
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "condition": "compact",
+   "runs": 1,
+   "measurement_complete": 1,
+   "aborted": 0,
+   "unscored": 0,
+   "score_mismatch": 0,
+   "invalid": 0,
+   "input_mismatch": 0,
+   "included": 1,
+   "ops_problems": 0,
+   "secret_leak": 0,
+   "history_rewritten": 0,
+   "reread_runs": 1,
+   "memo_runs": 0,
+   "violation_rate": 0.0,
+   "judged": 65,
+   "drop_candidate_rate": 0.14285714285714285,
+   "drop_candidate_judged": 7,
+   "run_violation_rates": [
+    0.0
+   ],
+   "not_judged": {
+    "unscorable": 1
+   },
+   "mean_compactions": 4,
+   "unlocated_boundaries": 0,
+   "prompt_adjacent_boundaries": 0,
+   "mean_injected_chars": null,
+   "mean_injected_tokens": null,
+   "mean_tokens": 4233112,
+   "mean_cost_usd": 3.0655,
+   "spend_recomputed": 1
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "condition": "control",
+   "runs": 1,
+   "measurement_complete": 1,
+   "aborted": 0,
+   "unscored": 0,
+   "score_mismatch": 0,
+   "invalid": 0,
+   "input_mismatch": 0,
+   "included": 1,
+   "ops_problems": 0,
+   "secret_leak": 0,
+   "history_rewritten": 0,
+   "reread_runs": 0,
+   "memo_runs": 0,
+   "violation_rate": 0.0,
+   "judged": 65,
+   "drop_candidate_rate": 0.14285714285714285,
+   "drop_candidate_judged": 7,
+   "run_violation_rates": [
+    0.0
+   ],
+   "not_judged": {
+    "unscorable": 1
+   },
+   "mean_compactions": 0,
+   "unlocated_boundaries": 0,
+   "prompt_adjacent_boundaries": 0,
+   "mean_injected_chars": null,
+   "mean_injected_tokens": null,
+   "mean_tokens": 9004691,
+   "mean_cost_usd": 3.2347,
+   "spend_recomputed": 1
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "condition": "outbox",
+   "runs": 1,
+   "measurement_complete": 1,
+   "aborted": 0,
+   "unscored": 0,
+   "score_mismatch": 0,
+   "invalid": 0,
+   "input_mismatch": 0,
+   "included": 1,
+   "ops_problems": 0,
+   "secret_leak": 0,
+   "history_rewritten": 0,
+   "reread_runs": 0,
+   "memo_runs": 0,
+   "violation_rate": 0.0,
+   "judged": 65,
+   "drop_candidate_rate": 0.14285714285714285,
+   "drop_candidate_judged": 7,
+   "run_violation_rates": [
+    0.0
+   ],
+   "not_judged": {
+    "unscorable": 1
+   },
+   "mean_compactions": 6,
+   "unlocated_boundaries": 0,
+   "prompt_adjacent_boundaries": 0,
+   "mean_injected_chars": 95486,
+   "mean_injected_tokens": 81134,
+   "mean_tokens": 4512606,
+   "mean_cost_usd": 3.7867,
+   "spend_recomputed": 1
+  }
+ ],
+ "per_item": {
+  "D0-01": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-02": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-03": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-04": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-05": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-06": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-07": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-08": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-09": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-10": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-11": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-12": {
+   "drop_candidate": true,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-13": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D0-14": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D1-01": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D1-02": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D1-03": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D1-04": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D2-01": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D2-02": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D2-03": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D2-04": {
+   "drop_candidate": true,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D2-05": {
+   "drop_candidate": true,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D3-00": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D3-01": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D3-02": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D4-01": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D4-02": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D4-03": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D4-04": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D4-05": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D4-06": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D4-07": {
+   "drop_candidate": true,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      3,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      3,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      3,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      1,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      1,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      1,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D4-08": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D4-10": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D5-01": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D5-02": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D5-03": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D5-04": {
+   "drop_candidate": true,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      2,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      2,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D5-05": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D5-06": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D5-08": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D5-09": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D5-10": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D5-11": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D6-00": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D6-01": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D6-02": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D6-03": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D6-05": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D6-06": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      2,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D6-07": {
+   "drop_candidate": true,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D6-08": {
+   "drop_candidate": true,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D6-10": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D7-01": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D7-02": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D7-03": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D7-04": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D7-05": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D7-06": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D7-07": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D7-08": {
+   "drop_candidate": true,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D7-09": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "D7-10": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "K1": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "K2": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "K3": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "K4": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "K5": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "K6": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "K7a": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "K7b": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      0,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  },
+  "K8": {
+   "drop_candidate": false,
+   "cells": {
+    "claude-haiku-5-5|compact": {
+     "after": [
+      3,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      3
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-haiku-5-5|outbox": {
+     "after": [
+      3,
+      3
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|compact": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|control": {
+     "after": [
+      0,
+      0
+     ],
+     "none": [
+      0,
+      1
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    },
+    "claude-sonnet-5-5|outbox": {
+     "after": [
+      0,
+      1
+     ],
+     "none": [
+      0,
+      0
+     ],
+     "unknown": [
+      0,
+      0
+     ]
+    }
+   }
+  }
+ },
+ "pairs": [
+  {
+   "model": "claude-haiku-5-5",
+   "condition": "compact",
+   "run_id": "haiku-5-5-compact-r1-20261118T201859",
+   "items": 65,
+   "unknown_items": 0,
+   "judged": 65,
+   "own_rate": 0.015384615384615385,
+   "rate": 0.015384615384615385,
+   "controls": 3,
+   "controls_without_items": 0,
+   "compared_items": [
+    65,
+    65,
+    65
+   ],
+   "left_out_items": [
+    0,
+    0,
+    0
+   ],
+   "comparisons": [
+    {
+     "control": "haiku-5-5-control-r1-20261118T193732",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.015384615384615385,
+     "control_rate": 0.0,
+     "diff": 0.015384615384615385
+    },
+    {
+     "control": "haiku-5-5-control-r2-20261119T001619",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.015384615384615385,
+     "control_rate": 0.015384615384615385,
+     "diff": 0.0
+    },
+    {
+     "control": "haiku-5-5-control-r3-20261119T021801",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.015384615384615385,
+     "control_rate": 0.015384615384615385,
+     "diff": 0.0
+    }
+   ],
+   "control_rate_mean": 0.010256410256410256,
+   "control_rate_span": [
+    0.0,
+    0.015384615384615385
+   ],
+   "diff": 0.005128205128205128
+  },
+  {
+   "model": "claude-haiku-5-5",
+   "condition": "compact",
+   "run_id": "haiku-5-5-compact-r2-20261118T220209",
+   "items": 65,
+   "unknown_items": 0,
+   "judged": 65,
+   "own_rate": 0.015384615384615385,
+   "rate": 0.015384615384615385,
+   "controls": 3,
+   "controls_without_items": 0,
+   "compared_items": [
+    65,
+    65,
+    65
+   ],
+   "left_out_items": [
+    0,
+    0,
+    0
+   ],
+   "comparisons": [
+    {
+     "control": "haiku-5-5-control-r1-20261118T193732",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.015384615384615385,
+     "control_rate": 0.0,
+     "diff": 0.015384615384615385
+    },
+    {
+     "control": "haiku-5-5-control-r2-20261119T001619",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.015384615384615385,
+     "control_rate": 0.015384615384615385,
+     "diff": 0.0
+    },
+    {
+     "control": "haiku-5-5-control-r3-20261119T021801",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.015384615384615385,
+     "control_rate": 0.015384615384615385,
+     "diff": 0.0
+    }
+   ],
+   "control_rate_mean": 0.010256410256410256,
+   "control_rate_span": [
+    0.0,
+    0.015384615384615385
+   ],
+   "diff": 0.005128205128205128
+  },
+  {
+   "model": "claude-haiku-5-5",
+   "condition": "compact",
+   "run_id": "haiku-5-5-compact-r3-20261119T033709",
+   "items": 65,
+   "unknown_items": 0,
+   "judged": 65,
+   "own_rate": 0.015384615384615385,
+   "rate": 0.015384615384615385,
+   "controls": 3,
+   "controls_without_items": 0,
+   "compared_items": [
+    65,
+    65,
+    65
+   ],
+   "left_out_items": [
+    0,
+    0,
+    0
+   ],
+   "comparisons": [
+    {
+     "control": "haiku-5-5-control-r1-20261118T193732",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.015384615384615385,
+     "control_rate": 0.0,
+     "diff": 0.015384615384615385
+    },
+    {
+     "control": "haiku-5-5-control-r2-20261119T001619",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.015384615384615385,
+     "control_rate": 0.015384615384615385,
+     "diff": 0.0
+    },
+    {
+     "control": "haiku-5-5-control-r3-20261119T021801",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.015384615384615385,
+     "control_rate": 0.015384615384615385,
+     "diff": 0.0
+    }
+   ],
+   "control_rate_mean": 0.010256410256410256,
+   "control_rate_span": [
+    0.0,
+    0.015384615384615385
+   ],
+   "diff": 0.005128205128205128
+  },
+  {
+   "model": "claude-haiku-5-5",
+   "condition": "outbox",
+   "run_id": "haiku-5-5-outbox-r1-20261118T211218",
+   "items": 65,
+   "unknown_items": 0,
+   "judged": 65,
+   "own_rate": 0.015384615384615385,
+   "rate": 0.015384615384615385,
+   "controls": 3,
+   "controls_without_items": 0,
+   "compared_items": [
+    65,
+    65,
+    65
+   ],
+   "left_out_items": [
+    0,
+    0,
+    0
+   ],
+   "comparisons": [
+    {
+     "control": "haiku-5-5-control-r1-20261118T193732",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.015384615384615385,
+     "control_rate": 0.0,
+     "diff": 0.015384615384615385
+    },
+    {
+     "control": "haiku-5-5-control-r2-20261119T001619",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.015384615384615385,
+     "control_rate": 0.015384615384615385,
+     "diff": 0.0
+    },
+    {
+     "control": "haiku-5-5-control-r3-20261119T021801",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.015384615384615385,
+     "control_rate": 0.015384615384615385,
+     "diff": 0.0
+    }
+   ],
+   "control_rate_mean": 0.010256410256410256,
+   "control_rate_span": [
+    0.0,
+    0.015384615384615385
+   ],
+   "diff": 0.005128205128205128
+  },
+  {
+   "model": "claude-haiku-5-5",
+   "condition": "outbox",
+   "run_id": "haiku-5-5-outbox-r2-20261118T225054",
+   "items": 65,
+   "unknown_items": 0,
+   "judged": 65,
+   "own_rate": 0.015384615384615385,
+   "rate": 0.015384615384615385,
+   "controls": 3,
+   "controls_without_items": 0,
+   "compared_items": [
+    65,
+    65,
+    65
+   ],
+   "left_out_items": [
+    0,
+    0,
+    0
+   ],
+   "comparisons": [
+    {
+     "control": "haiku-5-5-control-r1-20261118T193732",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.015384615384615385,
+     "control_rate": 0.0,
+     "diff": 0.015384615384615385
+    },
+    {
+     "control": "haiku-5-5-control-r2-20261119T001619",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.015384615384615385,
+     "control_rate": 0.015384615384615385,
+     "diff": 0.0
+    },
+    {
+     "control": "haiku-5-5-control-r3-20261119T021801",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.015384615384615385,
+     "control_rate": 0.015384615384615385,
+     "diff": 0.0
+    }
+   ],
+   "control_rate_mean": 0.010256410256410256,
+   "control_rate_span": [
+    0.0,
+    0.015384615384615385
+   ],
+   "diff": 0.005128205128205128
+  },
+  {
+   "model": "claude-haiku-5-5",
+   "condition": "outbox",
+   "run_id": "haiku-5-5-outbox-r3-20261119T005754",
+   "items": 65,
+   "unknown_items": 0,
+   "judged": 65,
+   "own_rate": 0.015384615384615385,
+   "rate": 0.015384615384615385,
+   "controls": 3,
+   "controls_without_items": 0,
+   "compared_items": [
+    65,
+    65,
+    65
+   ],
+   "left_out_items": [
+    0,
+    0,
+    0
+   ],
+   "comparisons": [
+    {
+     "control": "haiku-5-5-control-r1-20261118T193732",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.015384615384615385,
+     "control_rate": 0.0,
+     "diff": 0.015384615384615385
+    },
+    {
+     "control": "haiku-5-5-control-r2-20261119T001619",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.015384615384615385,
+     "control_rate": 0.015384615384615385,
+     "diff": 0.0
+    },
+    {
+     "control": "haiku-5-5-control-r3-20261119T021801",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.015384615384615385,
+     "control_rate": 0.015384615384615385,
+     "diff": 0.0
+    }
+   ],
+   "control_rate_mean": 0.010256410256410256,
+   "control_rate_span": [
+    0.0,
+    0.015384615384615385
+   ],
+   "diff": 0.005128205128205128
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "condition": "compact",
+   "run_id": "sonnet-5-5-compact-r1-20261118T153826",
+   "items": 65,
+   "unknown_items": 0,
+   "judged": 65,
+   "own_rate": 0.0,
+   "rate": 0.0,
+   "controls": 1,
+   "controls_without_items": 0,
+   "compared_items": [
+    65
+   ],
+   "left_out_items": [
+    0
+   ],
+   "comparisons": [
+    {
+     "control": "sonnet-5-5-control-r1-20261118T150842",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.0,
+     "control_rate": 0.0,
+     "diff": 0.0
+    }
+   ],
+   "control_rate_mean": 0.0,
+   "control_rate_span": [
+    0.0,
+    0.0
+   ],
+   "diff": 0.0
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "condition": "outbox",
+   "run_id": "sonnet-5-5-outbox-r1-20261118T170414",
+   "items": 65,
+   "unknown_items": 0,
+   "judged": 65,
+   "own_rate": 0.0,
+   "rate": 0.0,
+   "controls": 1,
+   "controls_without_items": 0,
+   "compared_items": [
+    65
+   ],
+   "left_out_items": [
+    0
+   ],
+   "comparisons": [
+    {
+     "control": "sonnet-5-5-control-r1-20261118T150842",
+     "compared": 65,
+     "left_out": 0,
+     "rate": 0.0,
+     "control_rate": 0.0,
+     "diff": 0.0
+    }
+   ],
+   "control_rate_mean": 0.0,
+   "control_rate_span": [
+    0.0,
+    0.0
+   ],
+   "diff": 0.0
+  }
+ ],
+ "primary": [
+  {
+   "model": "claude-haiku-5-5",
+   "condition": "compact",
+   "runs": 3,
+   "runs_with_diff": 3,
+   "rate_mean": 0.015384615384615385,
+   "control_rate_mean": 0.010256410256410256,
+   "diff_mean": 0.005128205128205128,
+   "diff_span": [
+    0.005128205128205128,
+    0.005128205128205128
+   ]
+  },
+  {
+   "model": "claude-haiku-5-5",
+   "condition": "outbox",
+   "runs": 3,
+   "runs_with_diff": 3,
+   "rate_mean": 0.015384615384615385,
+   "control_rate_mean": 0.010256410256410256,
+   "diff_mean": 0.005128205128205128,
+   "diff_span": [
+    0.005128205128205128,
+    0.005128205128205128
+   ]
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "condition": "compact",
+   "runs": 1,
+   "runs_with_diff": 1,
+   "rate_mean": 0.0,
+   "control_rate_mean": 0.0,
+   "diff_mean": 0.0,
+   "diff_span": [
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "condition": "outbox",
+   "runs": 1,
+   "runs_with_diff": 1,
+   "rate_mean": 0.0,
+   "control_rate_mean": 0.0,
+   "diff_mean": 0.0,
+   "diff_span": [
+    0.0,
+    0.0
+   ]
+  }
+ ],
+ "runs": [
+  {
+   "model": "claude-haiku-5-5",
+   "condition": "compact",
+   "rep": 1,
+   "run_id": "haiku-5-5-compact-r1-20261118T201859",
+   "included": true,
+   "compactions": 12,
+   "injections": 0,
+   "injected_tokens": null,
+   "tokens": 7166685,
+   "cost_usd": 0.4422,
+   "spend_recomputed": false,
+   "k8": "fail",
+   "k8_violating_turns": [
+    0,
+    1,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "k8_turn_level": "fail",
+   "k8_turn_level_violating_turns": [
+    0,
+    1,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "k8_by_first_compaction": {
+    "before": {
+     "segments": 1,
+     "prose_chars": 407,
+     "hangul": 314,
+     "latin": 60,
+     "ratio": 0.8396
+    },
+    "after": {
+     "segments": 20,
+     "prose_chars": 18599,
+     "hangul": 4331,
+     "latin": 12204,
+     "ratio": 0.2619
+    },
+    "first_compaction_line": 180
+   }
+  },
+  {
+   "model": "claude-haiku-5-5",
+   "condition": "compact",
+   "rep": 2,
+   "run_id": "haiku-5-5-compact-r2-20261118T220209",
+   "included": true,
+   "compactions": 11,
+   "injections": 0,
+   "injected_tokens": null,
+   "tokens": 7086527,
+   "cost_usd": 0.4028,
+   "spend_recomputed": false,
+   "k8": "fail",
+   "k8_violating_turns": [
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "k8_turn_level": "fail",
+   "k8_turn_level_violating_turns": [
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "k8_by_first_compaction": {
+    "before": {
+     "segments": 1,
+     "prose_chars": 634,
+     "hangul": 480,
+     "latin": 86,
+     "ratio": 0.8481
+    },
+    "after": {
+     "segments": 19,
+     "prose_chars": 15761,
+     "hangul": 3942,
+     "latin": 10111,
+     "ratio": 0.2805
+    },
+    "first_compaction_line": 231
+   }
+  },
+  {
+   "model": "claude-haiku-5-5",
+   "condition": "compact",
+   "rep": 3,
+   "run_id": "haiku-5-5-compact-r3-20261119T033709",
+   "included": true,
+   "compactions": 14,
+   "injections": 0,
+   "injected_tokens": null,
+   "tokens": 9809211,
+   "cost_usd": 0.5757,
+   "spend_recomputed": false,
+   "k8": "fail",
+   "k8_violating_turns": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "k8_turn_level": "fail",
+   "k8_turn_level_violating_turns": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "k8_by_first_compaction": {
+    "before": {
+     "segments": 1,
+     "prose_chars": 423,
+     "hangul": 343,
+     "latin": 46,
+     "ratio": 0.8817
+    },
+    "after": {
+     "segments": 22,
+     "prose_chars": 19942,
+     "hangul": 4204,
+     "latin": 13806,
+     "ratio": 0.2334
+    },
+    "first_compaction_line": 207
+   }
+  },
+  {
+   "model": "claude-haiku-5-5",
+   "condition": "control",
+   "rep": 1,
+   "run_id": "haiku-5-5-control-r1-20261118T193732",
+   "included": true,
+   "compactions": 0,
+   "injections": 0,
+   "injected_tokens": null,
+   "tokens": 28641943,
+   "cost_usd": 2.1212,
+   "spend_recomputed": false,
+   "k8": "pass",
+   "k8_violating_turns": [],
+   "k8_turn_level": "pass",
+   "k8_turn_level_violating_turns": [],
+   "k8_by_first_compaction": {
+    "before": {
+     "segments": 9,
+     "prose_chars": 12161,
+     "hangul": 9853,
+     "latin": 717,
+     "ratio": 0.9322
+    },
+    "after": {
+     "segments": 0,
+     "prose_chars": 0,
+     "hangul": 0,
+     "latin": 0,
+     "ratio": null
+    },
+    "first_compaction_line": null
+   }
+  },
+  {
+   "model": "claude-haiku-5-5",
+   "condition": "control",
+   "rep": 2,
+   "run_id": "haiku-5-5-control-r2-20261119T001619",
+   "included": true,
+   "compactions": 0,
+   "injections": 0,
+   "injected_tokens": null,
+   "tokens": 34046881,
+   "cost_usd": 2.4852,
+   "spend_recomputed": false,
+   "k8": "pass",
+   "k8_violating_turns": [],
+   "k8_turn_level": "pass",
+   "k8_turn_level_violating_turns": [],
+   "k8_by_first_compaction": {
+    "before": {
+     "segments": 9,
+     "prose_chars": 14067,
+     "hangul": 11339,
+     "latin": 894,
+     "ratio": 0.9269
+    },
+    "after": {
+     "segments": 0,
+     "prose_chars": 0,
+     "hangul": 0,
+     "latin": 0,
+     "ratio": null
+    },
+    "first_compaction_line": null
+   }
+  },
+  {
+   "model": "claude-haiku-5-5",
+   "condition": "control",
+   "rep": 3,
+   "run_id": "haiku-5-5-control-r3-20261119T021801",
+   "included": true,
+   "compactions": 0,
+   "injections": 0,
+   "injected_tokens": null,
+   "tokens": 30268035,
+   "cost_usd": 2.2546,
+   "spend_recomputed": false,
+   "k8": "pass",
+   "k8_violating_turns": [],
+   "k8_turn_level": "pass",
+   "k8_turn_level_violating_turns": [],
+   "k8_by_first_compaction": {
+    "before": {
+     "segments": 9,
+     "prose_chars": 12352,
+     "hangul": 9920,
+     "latin": 729,
+     "ratio": 0.9315
+    },
+    "after": {
+     "segments": 0,
+     "prose_chars": 0,
+     "hangul": 0,
+     "latin": 0,
+     "ratio": null
+    },
+    "first_compaction_line": null
+   }
+  },
+  {
+   "model": "claude-haiku-5-5",
+   "condition": "outbox",
+   "rep": 1,
+   "run_id": "haiku-5-5-outbox-r1-20261118T211218",
+   "included": true,
+   "compactions": 13,
+   "injections": 13,
+   "injected_tokens": 165093.0,
+   "tokens": 9146773,
+   "cost_usd": 0.4698,
+   "spend_recomputed": false,
+   "k8": "fail",
+   "k8_violating_turns": [
+    2,
+    5,
+    6,
+    7,
+    8
+   ],
+   "k8_turn_level": "fail",
+   "k8_turn_level_violating_turns": [
+    2,
+    5,
+    6,
+    7,
+    8
+   ],
+   "k8_by_first_compaction": {
+    "before": {
+     "segments": 1,
+     "prose_chars": 555,
+     "hangul": 421,
+     "latin": 89,
+     "ratio": 0.8255
+    },
+    "after": {
+     "segments": 21,
+     "prose_chars": 17005,
+     "hangul": 3882,
+     "latin": 11366,
+     "ratio": 0.2546
+    },
+    "first_compaction_line": 237
+   }
+  },
+  {
+   "model": "claude-haiku-5-5",
+   "condition": "outbox",
+   "rep": 2,
+   "run_id": "haiku-5-5-outbox-r2-20261118T225054",
+   "included": true,
+   "compactions": 13,
+   "injections": 13,
+   "injected_tokens": 165093.0,
+   "tokens": 8950802,
+   "cost_usd": 0.4873,
+   "spend_recomputed": false,
+   "k8": "fail",
+   "k8_violating_turns": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "k8_turn_level": "fail",
+   "k8_turn_level_violating_turns": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "k8_by_first_compaction": {
+    "before": {
+     "segments": 1,
+     "prose_chars": 304,
+     "hangul": 250,
+     "latin": 28,
+     "ratio": 0.8993
+    },
+    "after": {
+     "segments": 21,
+     "prose_chars": 17875,
+     "hangul": 3002,
+     "latin": 13006,
+     "ratio": 0.1875
+    },
+    "first_compaction_line": 192
+   }
+  },
+  {
+   "model": "claude-haiku-5-5",
+   "condition": "outbox",
+   "rep": 3,
+   "run_id": "haiku-5-5-outbox-r3-20261119T005754",
+   "included": true,
+   "compactions": 10,
+   "injections": 10,
+   "injected_tokens": 122073,
+   "tokens": 6992305,
+   "cost_usd": 0.4052,
+   "spend_recomputed": false,
+   "k8": "fail",
+   "k8_violating_turns": [
+    5,
+    6,
+    7,
+    8
+   ],
+   "k8_turn_level": "fail",
+   "k8_turn_level_violating_turns": [
+    5,
+    6,
+    7,
+    8
+   ],
+   "k8_by_first_compaction": {
+    "before": {
+     "segments": 1,
+     "prose_chars": 505,
+     "hangul": 366,
+     "latin": 92,
+     "ratio": 0.7991
+    },
+    "after": {
+     "segments": 18,
+     "prose_chars": 17574,
+     "hangul": 3857,
+     "latin": 11903,
+     "ratio": 0.2447
+    },
+    "first_compaction_line": 202
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "condition": "compact",
+   "rep": 1,
+   "run_id": "sonnet-5-5-compact-r1-20261118T153826",
+   "included": true,
+   "compactions": 4,
+   "injections": 0,
+   "injected_tokens": null,
+   "tokens": 4233112,
+   "cost_usd": 3.0655,
+   "spend_recomputed": true,
+   "k8": "pass",
+   "k8_violating_turns": [],
+   "k8_turn_level": "pass",
+   "k8_turn_level_violating_turns": [],
+   "k8_by_first_compaction": {
+    "before": {
+     "segments": 4,
+     "prose_chars": 1585,
+     "hangul": 1288,
+     "latin": 77,
+     "ratio": 0.9436
+    },
+    "after": {
+     "segments": 9,
+     "prose_chars": 5616,
+     "hangul": 4255,
+     "latin": 350,
+     "ratio": 0.924
+    },
+    "first_compaction_line": 361
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "condition": "control",
+   "rep": 1,
+   "run_id": "sonnet-5-5-control-r1-20261118T150842",
+   "included": true,
+   "compactions": 0,
+   "injections": 0,
+   "injected_tokens": null,
+   "tokens": 9004691,
+   "cost_usd": 3.2347,
+   "spend_recomputed": true,
+   "k8": "pass",
+   "k8_violating_turns": [],
+   "k8_turn_level": "pass",
+   "k8_turn_level_violating_turns": [],
+   "k8_by_first_compaction": {
+    "before": {
+     "segments": 9,
+     "prose_chars": 9002,
+     "hangul": 6811,
+     "latin": 662,
+     "ratio": 0.9114
+    },
+    "after": {
+     "segments": 0,
+     "prose_chars": 0,
+     "hangul": 0,
+     "latin": 0,
+     "ratio": null
+    },
+    "first_compaction_line": null
+   }
+  },
+  {
+   "model": "claude-sonnet-5-5",
+   "condition": "outbox",
+   "rep": 1,
+   "run_id": "sonnet-5-5-outbox-r1-20261118T170414",
+   "included": true,
+   "compactions": 6,
+   "injections": 6,
+   "injected_tokens": 81134,
+   "tokens": 4512606,
+   "cost_usd": 3.7867,
+   "spend_recomputed": true,
+   "k8": "pass",
+   "k8_violating_turns": [],
+   "k8_turn_level": "pass",
+   "k8_turn_level_violating_turns": [],
+   "k8_by_first_compaction": {
+    "before": {
+     "segments": 4,
+     "prose_chars": 1681,
+     "hangul": 1282,
+     "latin": 129,
+     "ratio": 0.9086
+    },
+    "after": {
+     "segments": 11,
+     "prose_chars": 5338,
+     "hangul": 4084,
+     "latin": 407,
+     "ratio": 0.9094
+    },
+    "first_compaction_line": 308
+   }
+  }
+ ],
+ "k_items": {
+  "claude-haiku-5-5": {
+   "compact": {
+    "K1": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K2": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K3": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K4": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K5": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K6": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K7a": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K7b": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K8": [
+     [
+      1,
+      "fail"
+     ],
+     [
+      2,
+      "fail"
+     ],
+     [
+      3,
+      "fail"
+     ]
+    ]
+   },
+   "control": {
+    "K1": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K2": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K3": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K4": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K5": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K6": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K7a": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K7b": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K8": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ]
+   },
+   "outbox": {
+    "K1": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K2": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K3": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K4": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K5": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K6": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K7a": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K7b": [
+     [
+      1,
+      "pass"
+     ],
+     [
+      2,
+      "pass"
+     ],
+     [
+      3,
+      "pass"
+     ]
+    ],
+    "K8": [
+     [
+      1,
+      "fail"
+     ],
+     [
+      2,
+      "fail"
+     ],
+     [
+      3,
+      "fail"
+     ]
+    ]
+   }
+  },
+  "claude-sonnet-5-5": {
+   "compact": {
+    "K1": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K2": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K3": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K4": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K5": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K6": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K7a": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K7b": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K8": [
+     [
+      1,
+      "pass"
+     ]
+    ]
+   },
+   "control": {
+    "K1": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K2": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K3": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K4": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K5": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K6": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K7a": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K7b": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K8": [
+     [
+      1,
+      "pass"
+     ]
+    ]
+   },
+   "outbox": {
+    "K1": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K2": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K3": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K4": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K5": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K6": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K7a": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K7b": [
+     [
+      1,
+      "pass"
+     ]
+    ],
+    "K8": [
+     [
+      1,
+      "pass"
+     ]
+    ]
+   }
+  }
+ },
+ "excluded": []
+}
