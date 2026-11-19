@@ -53,14 +53,14 @@
    "history_rewritten": 0,
    "reread_runs": 0,
    "memo_runs": 0,
-   "violation_rate": 0.010256410256410256,
+   "violation_rate": 0.0,
    "judged": 195,
    "drop_candidate_rate": 0.23809523809523808,
    "drop_candidate_judged": 21,
    "run_violation_rates": [
     0.0,
-    0.015384615384615385,
-    0.015384615384615385
+    0.0,
+    0.0
    ],
    "not_judged": {
     "unscorable": 3
@@ -4691,7 +4691,7 @@
       0
      ],
      "none": [
-      2,
+      0,
       3
      ],
      "unknown": [
@@ -6752,24 +6752,24 @@
      "compared": 65,
      "left_out": 0,
      "rate": 0.015384615384615385,
-     "control_rate": 0.015384615384615385,
-     "diff": 0.0
+     "control_rate": 0.0,
+     "diff": 0.015384615384615385
     },
     {
      "control": "haiku-5-5-control-r3-20261119T021801",
      "compared": 65,
      "left_out": 0,
      "rate": 0.015384615384615385,
-     "control_rate": 0.015384615384615385,
-     "diff": 0.0
+     "control_rate": 0.0,
+     "diff": 0.015384615384615385
     }
    ],
-   "control_rate_mean": 0.010256410256410256,
+   "control_rate_mean": 0.0,
    "control_rate_span": [
     0.0,
-    0.015384615384615385
+    0.0
    ],
-   "diff": 0.005128205128205128
+   "diff": 0.015384615384615385
   },
   {
    "model": "claude-haiku-5-5",
@@ -6806,24 +6806,24 @@
      "compared": 65,
      "left_out": 0,
      "rate": 0.015384615384615385,
-     "control_rate": 0.015384615384615385,
-     "diff": 0.0
+     "control_rate": 0.0,
+     "diff": 0.015384615384615385
     },
     {
      "control": "haiku-5-5-control-r3-20261119T021801",
      "compared": 65,
      "left_out": 0,
      "rate": 0.015384615384615385,
-     "control_rate": 0.015384615384615385,
-     "diff": 0.0
+     "control_rate": 0.0,
+     "diff": 0.015384615384615385
     }
    ],
-   "control_rate_mean": 0.010256410256410256,
+   "control_rate_mean": 0.0,
    "control_rate_span": [
     0.0,
-    0.015384615384615385
+    0.0
    ],
-   "diff": 0.005128205128205128
+   "diff": 0.015384615384615385
   },
   {
    "model": "claude-haiku-5-5",
@@ -6860,24 +6860,24 @@
      "compared": 65,
      "left_out": 0,
      "rate": 0.015384615384615385,
-     "control_rate": 0.015384615384615385,
-     "diff": 0.0
+     "control_rate": 0.0,
+     "diff": 0.015384615384615385
     },
     {
      "control": "haiku-5-5-control-r3-20261119T021801",
      "compared": 65,
      "left_out": 0,
      "rate": 0.015384615384615385,
-     "control_rate": 0.015384615384615385,
-     "diff": 0.0
+     "control_rate": 0.0,
+     "diff": 0.015384615384615385
     }
    ],
-   "control_rate_mean": 0.010256410256410256,
+   "control_rate_mean": 0.0,
    "control_rate_span": [
     0.0,
-    0.015384615384615385
+    0.0
    ],
-   "diff": 0.005128205128205128
+   "diff": 0.015384615384615385
   },
   {
    "model": "claude-haiku-5-5",
@@ -6914,24 +6914,24 @@
      "compared": 65,
      "left_out": 0,
      "rate": 0.015384615384615385,
-     "control_rate": 0.015384615384615385,
-     "diff": 0.0
+     "control_rate": 0.0,
+     "diff": 0.015384615384615385
     },
     {
      "control": "haiku-5-5-control-r3-20261119T021801",
      "compared": 65,
      "left_out": 0,
      "rate": 0.015384615384615385,
-     "control_rate": 0.015384615384615385,
-     "diff": 0.0
+     "control_rate": 0.0,
+     "diff": 0.015384615384615385
     }
    ],
-   "control_rate_mean": 0.010256410256410256,
+   "control_rate_mean": 0.0,
    "control_rate_span": [
     0.0,
-    0.015384615384615385
+    0.0
    ],
-   "diff": 0.005128205128205128
+   "diff": 0.015384615384615385
   },
   {
    "model": "claude-haiku-5-5",
@@ -6968,24 +6968,24 @@
      "compared": 65,
      "left_out": 0,
      "rate": 0.015384615384615385,
-     "control_rate": 0.015384615384615385,
-     "diff": 0.0
+     "control_rate": 0.0,
+     "diff": 0.015384615384615385
     },
     {
      "control": "haiku-5-5-control-r3-20261119T021801",
      "compared": 65,
      "left_out": 0,
      "rate": 0.015384615384615385,
-     "control_rate": 0.015384615384615385,
-     "diff": 0.0
+     "control_rate": 0.0,
+     "diff": 0.015384615384615385
     }
    ],
-   "control_rate_mean": 0.010256410256410256,
+   "control_rate_mean": 0.0,
    "control_rate_span": [
     0.0,
-    0.015384615384615385
+    0.0
    ],
-   "diff": 0.005128205128205128
+   "diff": 0.015384615384615385
   },
   {
    "model": "claude-haiku-5-5",
@@ -7022,24 +7022,24 @@
      "compared": 65,
      "left_out": 0,
      "rate": 0.015384615384615385,
-     "control_rate": 0.015384615384615385,
-     "diff": 0.0
+     "control_rate": 0.0,
+     "diff": 0.015384615384615385
     },
     {
      "control": "haiku-5-5-control-r3-20261119T021801",
      "compared": 65,
      "left_out": 0,
      "rate": 0.015384615384615385,
-     "control_rate": 0.015384615384615385,
-     "diff": 0.0
+     "control_rate": 0.0,
+     "diff": 0.015384615384615385
     }
    ],
-   "control_rate_mean": 0.010256410256410256,
+   "control_rate_mean": 0.0,
    "control_rate_span": [
     0.0,
-    0.015384615384615385
+    0.0
    ],
-   "diff": 0.005128205128205128
+   "diff": 0.015384615384615385
   },
   {
    "model": "claude-sonnet-5-5",
@@ -7117,11 +7117,11 @@
    "runs": 3,
    "runs_with_diff": 3,
    "rate_mean": 0.015384615384615385,
-   "control_rate_mean": 0.010256410256410256,
-   "diff_mean": 0.005128205128205128,
+   "control_rate_mean": 0.0,
+   "diff_mean": 0.015384615384615385,
    "diff_span": [
-    0.005128205128205128,
-    0.005128205128205128
+    0.015384615384615385,
+    0.015384615384615385
    ]
   },
   {
@@ -7130,11 +7130,11 @@
    "runs": 3,
    "runs_with_diff": 3,
    "rate_mean": 0.015384615384615385,
-   "control_rate_mean": 0.010256410256410256,
-   "diff_mean": 0.005128205128205128,
+   "control_rate_mean": 0.0,
+   "diff_mean": 0.015384615384615385,
    "diff_span": [
-    0.005128205128205128,
-    0.005128205128205128
+    0.015384615384615385,
+    0.015384615384615385
    ]
   },
   {
