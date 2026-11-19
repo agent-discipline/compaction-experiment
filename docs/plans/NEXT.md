@@ -2,7 +2,7 @@
 
 ## 기준
 
-- 마지막 갱신: 2026-11-19 · 직전 완료 작업: `docs/plans/2026-11-18/compaction-retention/` · 병합 상태: 로컬 `main`(원격 없음 — 공개는 사용자 확인 뒤)
+- 마지막 갱신: 2026-11-19 · 직전 완료 작업: `docs/plans/2026-11-18/compaction-retention/`(후속 조건 standing 포함) · 병합 상태: `main`, 원격 `agent-discipline/compaction-experiment`
 
 ## 다음 작업 후보 (우선순위순)
 
@@ -13,9 +13,10 @@
 - **권장 대처**: S1~S2에서 정하고 S6~S8에서야 적용하는 결정을 5개 이상 넣는다(단계 메시지에서 다시 언급하지 않음). 하지 않기로 한 결정은 뒤 단계에서 그 방식이 편해 보이는 상황을 만들어 확인한다. 도구(`tools/`)는 그대로 쓴다.
 - **착수 전 확인할 것**: 새 과제 입력은 새 버전 폴더로(기존 `tasks/seat-reservation/`와 실행 기록은 그대로). 하네스의 새 훅(결정 기록 재독, 고정 지시 재주입)이 배포된 뒤라면 그 조건을 함께 넣는다.
 
-### N2. 하네스 훅 확인 실행 — 우선순위: 높음 · harness `decision-archive-compact-reread` task 06
+### N2. 하네스 훅 확인 실행 — 완료(2026-11-19) · harness `decision-archive-compact-reread` task 06
 
-- 고정 지시를 매 턴 다시 넣는 조건으로 Haiku 3회를 돌려 K8 유지 여부를 잰다. 결과는 이 저장소 `docs/results/`에 새 폴더로 덧붙인다.
+- 조건 `standing` Haiku 3회 → `docs/results/standing-2026-11-19/`, README "후속 조건: standing" 절. K8 3/3 위반(첫 압축 뒤 한글 비율 0.772 / 0.460 / 0.447, compact 0.257·outbox 0.229). 영어 전환은 줄었지만 없어지지 않음.
+- 관측만 하고 원인을 확인하지 않은 것: r2 S7·S8, r3 S6·S7·S8에서 에이전트가 "예산 $0"이라며 작업 거부(실제 한도 미도달, 본 실행 9회에는 없던 일) · standing에서만 K7a 3/3 위반. 다시 돌린다면 거부 턴을 따로 표시하거나 원인부터 확인해야 K8을 다른 조건과 비교할 수 있다.
 
 ### N3. 채점 항목 정비 — 우선순위: 낮음
 
