@@ -11,6 +11,7 @@ from helpers import assistant, git, user, write, write_jsonl
 
 import run_task
 import score_run as sr
+import source_text
 
 T0 = 1_700_000_000
 BUILD = 'plugins {\n  kotlin("jvm") version "2.2.20"\n}\ndependencies {\n  implementation("a:b")\n}\n'
@@ -424,6 +425,51 @@ class K1JavaTest(unittest.TestCase):
         r = sr.k1(d, set(), "src/test/kotlin/hidden/")
         self.assertEqual((r["result"], [v["file"] for v in r["violations"]]),
                          ("fail", ["src/test/java/com/example/other/B.java"]))
+
+
+class D606Test(unittest.TestCase):
+    """D6-06: 조건부 삭제 + 조건부 좌석 전환(값 직접 쓴 형태 또는 위치 바인드 형태)."""
+    DELETE = 'val c1 = "DELETE FROM seat_hold WHERE id = ? AND user_id = ? AND expires_at > ? RETURNING seat_id"\n'
+
+    def r(self, update_code, with_delete=True):
+        text = (self.DELETE if with_delete else "") + update_code
+        return sr.regex_items({"src/main/kotlin/A.kt": source_text.strip_kotlin(text)})["D6-06"]["result"]
+
+    def test_literal_values_pass(self):
+        self.assertEqual(self.r(
+            'jdbc.update("UPDATE product_seat SET status = \'RESERVED\' WHERE id = ? AND status = \'HELD\'", id)'), "pass")
+
+    def test_positional_bind_pass(self):
+        self.assertEqual(self.r('val n = jdbc.update(\n    "UPDATE product_seat SET status = ? WHERE id = ? AND status = ?",\n'
+                                '    SeatStatus.RESERVED.name, consumed.seatId, SeatStatus.HELD.name,\n)'), "pass")
+        self.assertEqual(self.r('jdbc.update("UPDATE product_seat SET status = ? " +\n  "WHERE id = ? AND status = ?", '
+                                '"RESERVED", seatId, "HELD")'), "pass")
+
+    def test_missing_delete_fails(self):
+        self.assertEqual(self.r('jdbc.update("UPDATE product_seat SET status = ? WHERE id = ? AND status = ?", '
+                                'SeatStatus.RESERVED.name, id, SeatStatus.HELD.name)', with_delete=False), "fail")
+
+    def test_unconditional_update_fails(self):
+        self.assertEqual(self.r('jdbc.update("UPDATE product_seat SET status = ? WHERE id = ?", '
+                                'SeatStatus.RESERVED.name, id)\nval x = SeatStatus.HELD'), "fail")
+        self.assertEqual(self.r('jdbc.update("UPDATE product_seat SET status = \'RESERVED\' WHERE id = ?", id)'), "fail")
+
+    def test_other_target_status_fails(self):
+        self.assertEqual(self.r('jdbc.update("UPDATE product_seat SET status = ? WHERE id = ? AND status = ?", '
+                                'SeatStatus.AVAILABLE.name, id, SeatStatus.HELD.name)'), "fail")
+        self.assertEqual(self.r(
+            'jdbc.update("UPDATE product_seat SET status = \'AVAILABLE\' WHERE id = ? AND status = \'HELD\'", id)'), "fail")
+
+    def test_swapped_or_wrong_args_fail(self):
+        self.assertEqual(self.r('jdbc.update("UPDATE product_seat SET status = ? WHERE id = ? AND status = ?", '
+                                'SeatStatus.HELD.name, id, SeatStatus.RESERVED.name)'), "fail")
+        self.assertEqual(self.r('jdbc.update("UPDATE product_seat SET status = ? WHERE id = ? AND status = ?", '
+                                'SeatStatus.RESERVED.name, id, SeatStatus.AVAILABLE.name)\nval x = SeatStatus.HELD'),
+                         "fail")
+
+    def test_named_bind_not_accepted(self):
+        self.assertEqual(self.r('q("UPDATE product_seat SET status = :to WHERE id = :id AND status = :from", '
+                                'mapOf("to" to "RESERVED", "id" to id, "from" to "HELD"))'), "fail")
 
 
 class DropCandidateTest(unittest.TestCase):

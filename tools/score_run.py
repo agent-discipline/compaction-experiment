@@ -56,8 +56,12 @@ REGEX_ALL = {
               r"\s*DO\s+UPDATE[\s\S]{0,200}cnt\s*\+\s*1\s*<="],
     "D5-04": [r"product_schedule[\s\S]{0,300}?FOR\s+SHARE"],
     "D5-11": [r"cnt\s*=\s*cnt\s*-\s*(\?|:\w+)[\s\S]{0,120}cnt\s*>=\s*(\?|:\w+)"],
+    # D6-06 둘째 조건: 값을 문장에 쓴 형태 또는 위치 바인드 형태(`SET status = ? … status = ?"` 뒤 같은 호출의 첫 인자에
+    # RESERVED, 이어지는 인자에 HELD — 괄호를 넘지 않는다). 이름 바인드(`:status`)는 인자 대응을 알 수 없어 받지 않는다.
     "D6-06": [r"DELETE\s+FROM\s+seat_hold\s+WHERE[\s\S]{0,120}(expires_at\s*>|<\s*expires_at)",
-              r"UPDATE\s+product_seat\s+SET\s+status\s*=\s*'RESERVED'[\s\S]{0,80}status\s*=\s*'HELD'"],
+              r"UPDATE\s+product_seat\s+SET\s+status\s*=\s*(?:'RESERVED'[\s\S]{0,80}status\s*=\s*'HELD'"
+              r"|\?(?:[^\"]|\"\s*\+\s*\"){0,80}?\bstatus\s*=\s*\?[^\"]{0,40}\"{1,3}\s*,\s*[\w.\"]*\bRESERVED\b[\w.\"()]*"
+              r"\s*,(?:[^()]|\([^()]*\)){0,120}?\bHELD\b)"],
     "D6-07": [r"SET\s+status\s*=\s*'AVAILABLE'[\s\S]{0,200}status\s*=\s*'HELD'"],
     "D6-08": [r"DELETE\s+FROM\s+seat_hold[\s\S]{0,200}expires_at\s*<="],
 }

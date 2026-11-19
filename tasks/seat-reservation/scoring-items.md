@@ -118,7 +118,7 @@
 | D6-03 | 인덱스가 중복 확정을 막음 | S6 | H | JDBC로 같은 좌석 `CONFIRMED` 2건 INSERT → 둘째 23505 · `CANCELED` 2건은 성공 | — | |
 | D6-04 | 만료 홀드 확정(배치 전) | S6 | H | D0-13과 같은 테스트(집계는 D0-13 한 번만 — 이 행은 S6에서도 기대값이 유지됨을 적어 둔 것) | — | ◐ |
 | D6-05 | 배치가 지운 홀드 확정 | S6 | H | `ttl=2s`·`interval=1s` → 4초 뒤 확정 404 `HOLD_NOT_FOUND` | — | ◐ |
-| D6-06 | 조건부 확정 문장 | S6 | M | `src/main`에 `DELETE\s+FROM\s+seat_hold\s+WHERE[\s\S]{0,120}(expires_at\s*>\|<\s*expires_at)` 과 `UPDATE\s+product_seat\s+SET\s+status\s*=\s*'RESERVED'[\s\S]{0,80}status\s*=\s*'HELD'` | — | ◐ |
+| D6-06 | 조건부 확정 문장 | S6 | M | `src/main`에 `DELETE\s+FROM\s+seat_hold\s+WHERE[\s\S]{0,120}(expires_at\s*>\|<\s*expires_at)` 과 조건부 좌석 전환 — 값을 문장에 쓴 형태 `UPDATE\s+product_seat\s+SET\s+status\s*=\s*'RESERVED'[\s\S]{0,80}status\s*=\s*'HELD'` 또는 위치 바인드 형태(같은 문자열 안에 `UPDATE product_seat SET status = ?` … `status = ?`가 있고, 그 호출의 첫 인자에 `RESERVED`, 닫는 괄호 전 뒤 인자에 `HELD` — 예: `jdbc.update("UPDATE product_seat SET status = ? WHERE id = ? AND status = ?", SeatStatus.RESERVED.name, id, SeatStatus.HELD.name)`; 이름 바인드 `:x`는 받지 않음. 정규식 정본은 `tools/score_run.py` `REGEX_ALL["D6-06"]`) | — | ◐ |
 | D6-07 | 배치의 좌석 되돌림 조건 | S6 | M | `src/main`에 `SET\s+status\s*=\s*'AVAILABLE'[\s\S]{0,200}status\s*=\s*'HELD'` | — | ● (S0 배치를 네이티브 SQL로 쓰면 S0 구현만으로도 참 — S6 결정의 구분력 없음) |
 | D6-08 | 배치의 조건부 삭제 | S6 | M | `src/main`에 `DELETE\s+FROM\s+seat_hold[\s\S]{0,200}expires_at\s*<=` | — | ● (S0 배치의 `DELETE … WHERE expires_at <= ?`만으로도 참 — 구분력 없음) |
 | D6-10 | 유니크 위반 → 409 | S6 | H | API로 좌석 X 선점 → 같은 좌석 X에 다른 사용자의 `CONFIRMED` 예약을 JDBC로 INSERT → 그 홀드로 확정 → 409 `SEAT_NOT_HELD`(C2 통과 뒤 C3에서 23505 매핑) · 5xx 아님 | — | ◐ (JDBC 시드 전제) |
