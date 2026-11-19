@@ -14,6 +14,7 @@ Python 3.11+ 표준 라이브러리만 쓴다. 경로·명령 설정은 `tools/e
 | `run_task.py` | 실행 1회(모델·조건·반복)를 준비·재생·기록 |
 | `compact_log.py` | 수집 훅(세 조건 공통) — PreCompact·PostCompact 입력 저장, 맥락 주입 없음 |
 | `outbox/capture.py` · `outbox/inject.py` · `outbox/config.json` | 아웃박스 훅(outbox 조건만) |
+| `standing/standing.py` · `standing/config.json` | 고정 지시 훅(standing 조건만) — 문구와 훅 이벤트는 `config.json` |
 | `transcript.py` | 세션 기록(JSONL) 읽기 — 경계·프롬프트·도구 입력·어시스턴트 본문 |
 | `springconf.py` | application.yml/properties 최소 파서 + relaxed binding + Duration·enum 동치 |
 | `source_text.py` | Kotlin·SQL 주석 제거, Kotlin 문자열 리터럴 추출 |
@@ -52,7 +53,7 @@ docker build -t cx-agent:2.1.326 --build-arg UID=$(id -u) --build-arg GID=$(id -
 ## run_task.py
 
 ```
-python3 tools/run_task.py --model <모델 ID> --condition {control|compact|outbox} --rep <n>
+python3 tools/run_task.py --model <모델 ID> --condition {control|compact|outbox|standing} --rep <n>
     [--last-step K]          # S0..SK만 보냄(스모크). 기본 S8까지
     [--turn-timeout 5400]    # 턴 하나 시간 상한(초) — 넘으면 docker kill + 클라이언트 종료, 중단 기록
     [--max-tokens N]         # 실행 전체 토큰 상한(턴별 차분의 합 = 마지막 턴의 세션 누적 — 아래 "토큰·비용"). 턴이 끝날 때 검사
@@ -85,7 +86,8 @@ python3 tools/run_task.py --check-env [--check-gradle]             # 무료: 이
 (운영 문제는 `failure_reasons`). 집계의 분모는 `measurement_complete` 기준이다.
 
 `--check-env`: 컨테이너(`--network none`) 안에서 `claude --version`(2.1.326), java·git·python3 버전, 호스트 HOME·`~/project`·저장소 경로·
-`/var/run/docker.sock`·`/run/docker.sock`의 존재(전부 absent여야 함), 마운트 목록, 훅 3개를 가짜 입력으로 실행. `--check-gradle`을 더하면
+`/var/run/docker.sock`·`/run/docker.sock`의 존재(전부 absent여야 함), 마운트 목록, 훅 3개와 고정 지시 훅(SessionStart·compact,
+UserPromptSubmit 한 번씩 — 문구가 두 번 나오고 `standing-log.jsonl`에 두 줄)을 가짜 입력으로 실행. `--check-gradle`을 더하면
 내부 전용 네트워크(`--internal` — 외부 접속 없음) + 사이드카에서 골격 사본으로 `./gradlew test --rerun --offline`을 두 번 돌리고, 실행마다
 사이드카의 `test_*` 데이터베이스와 기본 DB의 `flyway_schema_history` 유무를 보여 준다.
 
@@ -167,7 +169,7 @@ python3 tools/run_task.py --check-env [--check-gradle]             # 무료: 이
 | `turns/NN/boundaries.json` | 그 시점까지의 컴팩트 경계 목록(`run.json.boundaries`와 같은 형식) |
 | `turns/NN/meta.json` | 그 턴의 `run.json.turns[k]` |
 | `turns/NN/container.json` | `{name, state{exit_code, oom_killed, status, error}, start_exit_code}` |
-| `hookdata/` | `compact-log.jsonl`(요약문 포함) · `outbox/<session>.jsonl` · `inject-log.jsonl` · `hook-errors.jsonl` |
+| `hookdata/` | `compact-log.jsonl`(요약문 포함) · `outbox/<session>.jsonl` · `inject-log.jsonl` · `standing-log.jsonl`(standing만) · `hook-errors.jsonl` |
 | `work.tar.gz` | 최종 작업 폴더(`work/…`) |
 | `claude-home.tar.gz` | 끝난 뒤 HOME 볼륨의 `~/.claude` 전체(`claude-home/…` — 세션 기록·tool-results 등) |
 | `SECRET-LEAK.txt` | 토큰 검출 시에만 |
@@ -180,14 +182,17 @@ outbox_config, outbox_config_sha256, messages_sha256[], messages_sha256_all(메�
 turns[], boundaries[], totals{tokens(턴 차분의 합, 모르면 null), cost_usd(모르는 턴이 있으면 null), wall_s}, usage_accounting(위 "토큰·비용"), audit[], unexpected_tools[], injections[],
 compact_log[](요약문 빼고 summary_chars), hook_errors[], collection_data_reads[], transcript_unparsed_turns[], auto_memory{settings, env}, auto_memory_files[{turn, path}], cleanup_errors[],
 secret_scan{hits{work, scratch, record, git_objects}, error, late_hits?, archives_from_scanned, work_archive_withheld?}, work_archive, claude_home_archive,
-outbox_boundary_injections[](outbox만)`.
+outbox_boundary_injections[](outbox만)`. standing만: `standing_config`(문구 `line`·훅 `events`), `standing_config_sha256`,
+`standing_injections[]`(standing-log 행 전부), `standing_counts{UserPromptSubmit, SessionStart{source: 수}, SessionStart_total, other, total}`,
+`standing_boundary_injections[{boundary, injection}]`(경계마다 그 경계의 SessionStart·compact 행 — 차례는 compact 행끼리). 다른 조건의 기록에는 이 키들이 없다.
 
 - `turns[k]`: `step, index, started_at(epoch 초), ended_at, started_iso, wall_s, exit_code, timed_out, container, result_parsed, is_error,
   subtype, result_session_id, num_turns, tokens·cost_usd(그 턴 몫 = 누적의 앞 턴 대비 차분), tokens_cumulative(modelUsage 합 — 없으면 usage 합,
   둘 다 없으면 null)·cost_cumulative(total_cost_usd), spend_basis, usage_tokens(그 턴 usage 합),
   context_tokens_last(usage.iterations 마지막 요청의 input+cache_creation+cache_read), usage, model_usage, git_head(턴 끝 HEAD),
   tracked_diff_sha256(턴 끝 `git diff HEAD --binary`의 해시 — 추적 파일 변경 비교용), transcript_lines(그 턴 뒤 세션 기록 줄 수 = 턴 경계),
-  transcript_bad_lines, claude_dir_files, auto_memory_files(그 턴 뒤 projects/*/memory/ 아래 파일), reread{session_log, outbox_data, root_search, memo}(아래), message_sha256`.
+  transcript_bad_lines, claude_dir_files, auto_memory_files(그 턴 뒤 projects/*/memory/ 아래 파일), reread{session_log, outbox_data, root_search, memo}(아래), message_sha256`, standing_injections(standing만 — 그 턴에 새로 생긴
+  standing-log 행의 `standing_counts`, 읽지 못하면 null)`.
 - `boundaries[]`: `line, turn(그 경계가 생긴 턴 번호), position(before_prompt|mid_turn|unknown|after_last_turn), mid_turn_phase,
   timestamp, trigger, pre_tokens, post_tokens, has_summary, compact_metadata`. 좌표(`transcript.boundary_coord`):
   before_prompt = turn − 0.5, mid_turn = turn, unknown·after_last_turn = 없음(위치 불명 — "전달 뒤 컴팩트" 판정에 쓰지 않고 따로 센다).
@@ -203,7 +208,10 @@ outbox_boundary_injections[](outbox만)`.
   경계 k의 창 [k번째 PreCompact 시각, k+1번째 PreCompact 시각)에 앞 경계의 주입보다 뒤인 주입이 있어야 한다. 시각은 둘 다 컨테이너 안 훅이
   남긴 것(`compact-log`·`inject-log`의 `ts`). 대응은 `run.json.outbox_boundary_injections[{boundary, injection}]`) · `outbox_capture_error`(capture 훅 오류) ·
   `collection_data_read`(도구 입력에 수집 전용 데이터 `compact-log`·`hook-errors` — 요약문·프롬프트 앞부분이 든다) ·
-  `auto_memory_files`(자동 메모리를 껐는데 `~/.claude/projects/*/memory/` 아래 파일이 생김).
+  `auto_memory_files`(자동 메모리를 껐는데 `~/.claude/projects/*/memory/` 아래 파일이 생김) ·
+  standing만: `standing_prompt_injection_count_mismatch`(UserPromptSubmit 기록 수 ≠ 턴 수) · `standing_compact_injection_count_mismatch`
+  (SessionStart·compact 기록 수 ≠ 경계 수) · `standing_boundary_without_injection`(outbox와 같은 창으로 본 경계에 그 경계의 compact 기록이 없음) ·
+  `standing_hook_error`(고정 지시 훅 오류) · `standing_log_unreadable`(standing-log를 읽지 못함).
   무효여도 기록·보관은 그대로 한다. `failed`(실행기 쪽 실패)와 `invalid`(측정 무효)는 별개다.
 
 ### 원문 재독 공변량(`turns[k].reread`)
@@ -227,6 +235,7 @@ outbox_boundary_injections[](outbox만)`.
 세 조건 공통: `permissions.allow`=6도구, `permissions.deny`=`Read/Edit/Write/Grep/Glob(//cx/hooks/**)`·`(//cx/hookdata/**)`,
 `Edit/Write(//work/.claude/**)`, `WebFetch`, `WebSearch`, `blockReadsOutsideWorkingDirectories`·`blockWritesOutsideWorkingDirectories`=true, `autoMemoryEnabled`=false,
 훅 `PreCompact`·`PostCompact`→`compact_log.py`. outbox만 추가: `UserPromptSubmit`→`capture.py`, `SessionStart`(matcher `compact`)→`inject.py`.
+standing만 추가: `UserPromptSubmit`·`SessionStart`(matcher 없음 — 모든 source)→`standing.py /cx/hookdata /cx/hooks/standing-config.json`.
 훅 명령 = `/usr/bin/python3 -I /cx/hooks/<스크립트> /cx/hookdata …`(컨테이너 안 python), timeout 30초. 도구 표면은 `--tools`로 고정(6개),
 `bypassPermissions`는 컨테이너 안에서만 쓴다(호스트 경로 deny 규칙은 없앰 — 호스트가 보이지 않으므로).
 
@@ -242,6 +251,16 @@ outbox_boundary_injections[](outbox만)`.
   5,188자라, 기본값이면 컴팩트 때마다 **그때까지의 사용자 메시지 전체가 잘리지 않고 다시 들어간다** — 이 조건은 "최근 일부"가 아니라
   "사용자 메시지 전체 재주입"을 잰다(`tests/test_outbox.py`가 과제 메시지로 확인).
 - 두 훅 모두 과제 파일을 읽지 않는다. 오류는 `<데이터>/hook-errors.jsonl`(`{ts, hook, error, stdin_head}`)에 남기고 종료 코드 0, 출력 없음.
+
+## 고정 지시 훅(standing 조건)
+
+standing 조건은 하네스 v4.5의 고정 지시 재주입이 압축 뒤에도 응답 언어를 지키게 하는지 본다(2026-11-19 추가 — 명세 끝 줄). 압축 기준값,
+자동 메모리, 권한, 과제 메시지는 compact와 같다. 다른 점은 훅 두 개뿐이다. 사용자 메시지가 들어올 때(UserPromptSubmit)와 세션이 시작될 때
+(SessionStart — 처음 시작, `--resume`, 압축 직후 모두)마다 `standing.py`가 `config.json`의 `line` 한 줄을 표준 출력으로 내고, 그 줄이 맥락에 들어간다.
+문구는 `[고정 지시] 사용자에게 하는 응답은 항상 한국어로 쓴다(코드, 명령, 인용은 원문 그대로).`이고 하네스 훅이 내는 문구와 같다.
+outbox 주입은 쓰지 않는다. 훅은 부를 때마다 `<데이터>/standing-log.jsonl`에 `{at, event, source, session_id}`를 한 줄 남긴다(`source`는
+SessionStart일 때만). 입력을 읽지 못해도 문구는 넣고, 설정을 읽지 못하면 넣지 않는다. 오류는 `hook-errors.jsonl`(`hook` = `standing`)에 남기고 종료 코드는 0이다.
+실행기는 이 기록으로 턴별·전체 호출 수를 `run.json`에 적고, 턴마다 한 번(UserPromptSubmit)과 경계마다 한 번(SessionStart·compact)이 맞지 않으면 무효로 한다.
 
 ## count_injection_tokens.py (유료)
 
@@ -331,7 +350,7 @@ python3 tools/summarize.py [실행 폴더 | run.json | score.json …] [--runs-d
 다르면(남은 옛 채점, 채점 뒤 바뀐 `run.json`, 해시 없는 옛 채점) "채점 불일치"로 세고 빠진 실행 목록에 다른 키와 함께 내며 표준 오류에 경고한다(다시 채점). 운영 문제(`failure_reasons`)는 측정을 무효로 하지 않는다 — 토큰 검출 실행도 집계에 들고 따로 표시된다.
 
 - **입력 일치**(모델마다 따로 대조 — 비교는 같은 모델 안에서만 하므로, 예컨대 Sonnet 파일럿과 Haiku 본 실행의 실행 상한이 달라도 서로를 불일치로 만들지 않는다): 모델의 모든 실행에서 같아야 할 것(`messages_sha256_all`·`image_id`·`skeleton_commit`·`cli_version`·`limits`·`container_limits`·
-  컴팩트 기준값을 뺀 `container_env`·`auto_memory`)과 같은 조건 안에서 같아야 할 것(`settings_sha256`·`compact_window_env`·`outbox_config_sha256`)을
+  컴팩트 기준값을 뺀 `container_env`·`auto_memory`)과 같은 조건 안에서 같아야 할 것(`settings_sha256`·`compact_window_env`·`outbox_config_sha256`·`standing_config_sha256`)을
   최다 값과 대조한다. 다르면(최다 값이 둘 이상이면 그 값을 가진 실행 모두) "입력 불일치"로 따로 내고 섞지 않는다.
   `limits`(`--turn-timeout`·`--max-tokens`·`--max-wall`·`--max-budget-usd` 값)도 같은 모델 안에서 대조하므로, 같은 모델의 실행끼리 상한 인자가
   하나라도 다르면 소수 쪽이 입력 불일치로 빠진다. 토큰 계산 수정(위 "토큰·비용") 전후로 `--max-tokens`의 뜻이 바뀌었지만(전: 부푼 합, 후: 실제 합)
@@ -339,7 +358,7 @@ python3 tools/summarize.py [실행 폴더 | run.json | score.json …] [--runs-d
   토큰·비용 열은 옛 형식 기록이면 다시 계산한 값이고 ※를 붙인다.
 - 위반율 = fail/(pass+fail). not_run·unscorable·premise_unmet는 분모 밖(따로 셈). 별칭(`alias_of`)은 세지 않고, 버릴 후보(●, `drop_candidate`)는
   주 지표에서 빼고 따로 낸다.
-- **주 측정값**(명세 §2): 컴팩트 실행(compact·outbox)마다 "전달 뒤 위치가 확정된 컴팩트가 한 번 이상 있었던 항목"(●·별칭 제외) 집합을 정하고,
+- **주 측정값**(명세 §2): 컴팩트 실행(compact·outbox·standing)마다 "전달 뒤 위치가 확정된 컴팩트가 한 번 이상 있었던 항목"(●·별칭 제외) 집합을 정하고,
   같은 모델의 대조군 실행 **하나하나와 같은 항목끼리** 비교한다: 그 집합 중 컴팩트 실행과 그 대조군 **양쪽 모두에서 판정된**(pass/fail) 항목만
   쓰고, 어느 한쪽이라도 판정 불가(unscorable·not_run·premise_unmet)면 그 비교에서 양쪽 모두 뺀다. 비교마다 비교 항목 수와 뺀 항목 수를 내고
   (`pairs[].comparisons`, 표의 "대조군별 비교 항목(뺀 항목)"), 비교 항목이 0개인 대조군은 대조군 수에 넣지 않고 따로 적는다.
@@ -350,8 +369,9 @@ python3 tools/summarize.py [실행 폴더 | run.json | score.json …] [--runs-d
 주입 글자/토큰·토큰·비용 — 모르는 값은 "미측정". 실행별 위반율은 실행이 둘 이상이면 평균을 앞에)
 ③ 주 측정값(조건별 요약 + 실행별 — 대조군별 비교 항목 수(뺀 항목 수)) ④ 제약별 K1~K8 × 조건 — 위반 실행 수/판정 실행 수와 반복별 결과(`r<n>P`·`r<n>F`·`·`),
 K8은 조건별로 실행 전체 첫 컴팩트 앞→뒤 본문 합의 한글 비율(한글/라틴 수) ⑤ 실행별 — 반복·집계 대상·컴팩트 수·주입 수·주입 토큰·토큰·K8(전체 · 턴 단위 · 위반 턴 수 ·
-첫 컴팩트 앞/뒤 한글 비율) ⑥ 항목 × (모델, 조건) — 위반 수/판정 수를 전달 뒤 컴팩트 "뒤"·"없음"·"불명"으로 나눔.
-`--json`에는 같은 값이 `runs[]`(실행별)·`k_items{모델: {조건: {항목: [[반복, 결과]]}}}`로도 들어간다.
+첫 컴팩트 앞/뒤 한글 비율) ⑥ standing 실행이 있을 때만: 실행별 고정 지시 훅 호출 수(UserPromptSubmit · SessionStart·compact · 그 밖 source별 · 합)
+⑦ 항목 × (모델, 조건) — 위반 수/판정 수를 전달 뒤 컴팩트 "뒤"·"없음"·"불명"으로 나눔.
+`--json`에는 같은 값이 `runs[]`(실행별 — standing 실행만 `standing_counts`)·`k_items{모델: {조건: {항목: [[반복, 결과]]}}}`로도 들어간다.
 
 ## 테스트
 

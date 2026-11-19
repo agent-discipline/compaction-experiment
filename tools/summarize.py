@@ -12,7 +12,7 @@
   가장 많은 값과 다르면(최다 값이 둘 이상이면 그 값을 가진 실행 모두) "입력 불일치"로 따로 내고 섞지 않는다.
 - 위반율 = fail / (pass + fail). not_run·unscorable·premise_unmet는 분모에서 빼고 따로 센다.
   별칭 항목(alias_of — 같은 테스트)은 세지 않는다. 버릴 후보(●, drop_candidate)는 주 지표에서 빼고 따로 낸다.
-- 주 측정값(명세 §2): 컴팩트 실행(compact·outbox)마다 "전달 뒤 최종 시점까지 위치가 확정된 컴팩트가 한 번 이상 있었던
+- 주 측정값(명세 §2): 컴팩트 실행(compact·outbox·standing)마다 "전달 뒤 최종 시점까지 위치가 확정된 컴팩트가 한 번 이상 있었던
   항목" 집합을 정하고, 같은 모델 대조군 실행 하나하나와 그 집합 중 **양쪽 모두 판정된 항목만으로** 위반율 차이를 낸다(한쪽이라도
   판정 불가면 그 비교에서 양쪽 모두 뺌 — 비교마다 비교 항목 수·뺀 수를 낸다). 비교 항목이 없는 대조군은 대조군 수에 넣지 않는다.
   위치 불명 경계(프롬프트 앞/뒤를 확정하지 못함)만 있는 항목은 집합을 정하는 데 쓰지 않고 "불명"으로 따로 센다.
@@ -28,10 +28,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 from run_task import run_spend  # noqa: E402  옛 형식(턴 값 = 세션 누적) 기록의 토큰·비용을 차분으로 다시 계산
-COMPACT_CONDITIONS = ("compact", "outbox")
+COMPACT_CONDITIONS = ("compact", "outbox", "standing")
 COMMON_INPUTS = ("messages_sha256_all", "image_id", "skeleton_commit", "cli_version", "limits", "container_limits",
                  "container_env_common", "auto_memory")
-CONDITION_INPUTS = ("settings_sha256", "compact_window_env", "outbox_config_sha256")
+CONDITION_INPUTS = ("settings_sha256", "compact_window_env", "outbox_config_sha256", "standing_config_sha256")
 REREAD_KINDS = ("session_log", "outbox_data", "root_search")
 K_ITEMS = ("K1", "K2", "K3", "K4", "K5", "K6", "K7a", "K7b", "K8")
 
@@ -231,7 +231,7 @@ def run_record(r):
     s = r["score"] if r["score"] and not r["score_mismatch"] else None
     k8 = ((s or {}).get("items") or {}).get("K8") or {}
     spend, recomputed = run_spend(run)
-    return {"model": run["model"], "condition": run["condition"], "rep": run.get("rep"), "run_id": run["run_id"],
+    rec = {"model": run["model"], "condition": run["condition"], "rep": run.get("rep"), "run_id": run["run_id"],
             "included": r["included"], "compactions": len(run.get("boundaries") or []),
             "injections": len(run.get("injections") or []),
             "injected_tokens": (s or {}).get("injected_tokens"), "tokens": spend["tokens"],
@@ -240,6 +240,9 @@ def run_record(r):
             "k8_turn_level": (k8.get("turn_level") or {}).get("result"),
             "k8_turn_level_violating_turns": (k8.get("turn_level") or {}).get("violating_turns"),
             "k8_by_first_compaction": k8.get("by_first_compaction")}
+    if run["condition"] == "standing":  # 고정 지시 훅 호출 수(run.json standing_counts) — 다른 조건의 기록에는 키가 없다
+        rec["standing_counts"] = run.get("standing_counts")
+    return rec
 
 
 def k_items(recs):
@@ -402,6 +405,7 @@ def markdown_model(res):
                    f"{fmt(x['rate'], True)} | ({x['controls']}) {fmt(x['control_rate_mean'], True)} "
                    f"[{pct_span(x['control_rate_span'])}] | {pp(x['diff'])} |")
     out += k_tables(res)
+    out += standing_table(res)
     per_item = res["per_item"]
     cols = sorted({k for v in per_item.values() for k in v["cells"]})
     out += ["", "### 항목별 — 위반 수/판정 수, 전달 뒤 컴팩트 있음(뒤)·없음·위치 불명(불명)", "",
@@ -462,6 +466,27 @@ def k_tables(res):
                        f"{x['k8'] or '—'} ({len(x['k8_violating_turns'] or [])}) | "
                        f"{x['k8_turn_level'] or '—'} ({len(x['k8_turn_level_violating_turns'] or [])}) | "
                        f"{k8_ratio(b.get('before'))} | {k8_ratio(b.get('after'))} |")
+    return out
+
+
+def standing_table(res):
+    """standing 실행의 고정 지시 주입 횟수(훅 호출 수) — standing 실행이 없으면 아무것도 내지 않는다."""
+    runs = [x for x in res.get("runs", []) if x["condition"] == "standing"]
+    if not runs:
+        return []
+    out = ["", "### standing 주입 횟수 — 고정 지시 훅 호출 수(run.json standing_counts)", "",
+           "| 실행 | 반복 | 집계 대상 | 컴팩트 | UserPromptSubmit | SessionStart·compact | SessionStart 그 밖(source별) | 합 |",
+           "|---|---|---|---|---|---|---|---|"]
+    for x in runs:
+        c = x.get("standing_counts")
+        if not c:
+            out.append(f"| {x['run_id']} | {x['rep']} | {'예' if x['included'] else '아니오'} | {x['compactions']} | "
+                       "미측정 | 미측정 | 미측정 | 미측정 |")
+            continue
+        ss = c.get("SessionStart") or {}
+        rest = ", ".join(f"{k} {v}" for k, v in sorted(ss.items()) if k != "compact") or "—"
+        out.append(f"| {x['run_id']} | {x['rep']} | {'예' if x['included'] else '아니오'} | {x['compactions']} | "
+                   f"{c.get('UserPromptSubmit')} | {ss.get('compact', 0)} | {rest} | {c.get('total')} |")
     return out
 
 

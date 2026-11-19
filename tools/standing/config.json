@@ -1,0 +1,4 @@
+{
+  "line": "[고정 지시] 사용자에게 하는 응답은 항상 한국어로 쓴다(코드, 명령, 인용은 원문 그대로).",
+  "events": ["UserPromptSubmit", "SessionStart"]
+}

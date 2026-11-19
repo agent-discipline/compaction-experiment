@@ -38,7 +38,8 @@ import containers  # noqa: E402
 import transcript  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-CONDITIONS = ("control", "compact", "outbox")
+CONDITIONS = ("control", "compact", "outbox", "standing")
+STANDING_CONFIG = ROOT / "tools" / "standing" / "config.json"  # standing 조건의 고정 지시 문구·훅 이벤트
 COPY_IGNORE = shutil.ignore_patterns(".git", "build", ".gradle", ".kotlin", ".idea", "out")
 LABEL = containers.EXPERIMENT_LABEL
 EXIT = {"complete": 0, "aborted": 2, "failed": 3}
@@ -109,7 +110,7 @@ def hook_cmd(py, hooks_dir, script, *args):
 
 
 def settings_for(condition, cfg):
-    """작업 폴더 .claude/settings.json 내용(dict). 조건 간 차이는 outbox 훅 유무뿐."""
+    """작업 폴더 .claude/settings.json 내용(dict). 조건 간 차이는 outbox·standing 훅 유무뿐."""
     if condition not in CONDITIONS:
         raise ValueError(f"알 수 없는 조건: {condition}")
     c = cfg["container"]
@@ -122,6 +123,10 @@ def settings_for(condition, cfg):
         hk["SessionStart"] = [{"matcher": "compact", "hooks": [{
             "type": "command", "timeout": 30,
             "command": hook_cmd(py, hooks, "inject.py", data, f"{hooks}/outbox-config.json")}]}]
+    if condition == "standing":  # 매처 없음 — SessionStart는 모든 source(startup·resume·compact)에서
+        cmd = hook_cmd(py, hooks, "standing.py", data, f"{hooks}/standing-config.json")
+        for event in json.loads(STANDING_CONFIG.read_text(encoding="utf-8"))["events"]:
+            hk[event] = [{"hooks": [{"type": "command", "timeout": 30, "command": cmd}]}]
     file_tools = ("Read", "Edit", "Write", "Grep", "Glob")
     # HOME(~/.claude)은 막지 않는다 — CLI가 큰 도구 출력을 ~/.claude/projects/.../tool-results에 두고 에이전트가 Read로 읽는다
     deny = [f"{t}(/{d}/**)" for d in (hooks, data) for t in file_tools]
@@ -353,6 +358,9 @@ def stage_hooks(dest, condition):
         shutil.copy2(tools / "outbox" / "capture.py", dest / "capture.py")
         shutil.copy2(tools / "outbox" / "inject.py", dest / "inject.py")
         shutil.copy2(tools / "outbox" / "config.json", dest / "outbox-config.json")
+    if condition == "standing":
+        shutil.copy2(tools / "standing" / "standing.py", dest / "standing.py")
+        shutil.copy2(STANDING_CONFIG, dest / "standing-config.json")
 
 
 def prepare_root(cfg, condition, settings):
@@ -487,8 +495,34 @@ def auto_memory_files(projects):
         if projects.is_dir() else []
 
 
+def standing_counts(rows):
+    """standing-log 행 목록 → 주입 횟수 {UserPromptSubmit, SessionStart{source: 수}, SessionStart_total, other, total}.
+    source가 없거나 문자열이 아니면 "null"로 센다. other = 두 이벤트 밖(입력을 읽지 못한 호출 등)."""
+    ss = {}
+    for r in rows:
+        if r.get("event") == "SessionStart":
+            k = r.get("source") if isinstance(r.get("source"), str) else "null"
+            ss[k] = ss.get(k, 0) + 1
+    ups = sum(r.get("event") == "UserPromptSubmit" for r in rows)
+    return {"UserPromptSubmit": ups, "SessionStart": dict(sorted(ss.items())), "SessionStart_total": sum(ss.values()),
+            "other": len(rows) - ups - sum(ss.values()), "total": len(rows)}
+
+
+def standing_compact_rows(rows):
+    """standing-log 중 SessionStart(source=compact) 행을 boundary_injections 입력 모양({ts})으로."""
+    return [{"ts": r.get("at")} for r in rows if r.get("event") == "SessionStart" and r.get("source") == "compact"]
+
+
+def read_standing_log(path):
+    """(행 목록, 오류 문자열 또는 None) — 읽지 못하는 줄이 있어도 실행기를 죽이지 않는다."""
+    try:
+        return read_jsonl(path), None
+    except (ValueError, OSError) as e:
+        return [], repr(e)
+
+
 def invalid_reasons(condition, bounds, audit_hits, settings_tampered, injections, compact_log=(), hook_errors=(),
-                    transcript_unparsed=False, collection_reads=(), memory_files=()):
+                    transcript_unparsed=False, collection_reads=(), memory_files=(), standing_log=None, n_turns=None):
     out = []
     if condition == "control" and bounds:
         out.append("control_has_compaction")
@@ -510,6 +544,19 @@ def invalid_reasons(condition, bounds, audit_hits, settings_tampered, injections
             out.append("outbox_boundary_without_injection")  # 경계마다 그 경계의 주입이 있어야 한다(수만 같아도 안 됨)
         if any(e.get("hook") == "capture" for e in hook_errors):
             out.append("outbox_capture_error")
+    if condition == "standing":
+        rows = list(standing_log or [])
+        if standing_log is None:
+            out.append("standing_log_unreadable")
+        if n_turns is not None and standing_counts(rows)["UserPromptSubmit"] != n_turns:
+            out.append("standing_prompt_injection_count_mismatch")  # 턴(= 사용자 메시지)마다 한 번씩이어야 한다
+        compact_rows = standing_compact_rows(rows)
+        if len(compact_rows) != len(bounds):
+            out.append("standing_compact_injection_count_mismatch")  # 경계마다 SessionStart(compact) 한 번씩
+        if any(x["injection"] is None for x in boundary_injections(compact_log, compact_rows, len(bounds))):
+            out.append("standing_boundary_without_injection")
+        if any(e.get("hook") == "standing" for e in hook_errors):
+            out.append("standing_hook_error")
     if collection_reads:
         out.append("collection_data_read")
     if memory_files:  # 자동 메모리를 껐는데 메모리 파일이 생김 — 제약이 컴팩트와 무관하게 파일로 남았을 수 있다
@@ -713,6 +760,9 @@ def dry_run(cfg, a):
     if a.condition == "outbox":
         oc = (ROOT / "tools" / "outbox" / "config.json").read_bytes()
         print(f"outbox config sha256={sha256_bytes(oc)}: {oc.decode().strip()}")
+    if a.condition == "standing":
+        sc = STANDING_CONFIG.read_bytes()
+        print(f"standing config sha256={sha256_bytes(sc)}: {json.dumps(json.loads(sc), ensure_ascii=False)}")
     return 0
 
 
@@ -732,6 +782,9 @@ echo '{"session_id":"probe","hook_event_name":"PreCompact","trigger":"auto"}' | 
 echo '{"session_id":"probe","prompt":"hello"}' | python3 -I /cx/hooks/capture.py /cx/hookdata
 echo '{"session_id":"probe","source":"compact"}' | python3 -I /cx/hooks/inject.py /cx/hookdata /cx/hooks/outbox-config.json | cut -c1-160
 echo
+echo '{"session_id":"probe","hook_event_name":"SessionStart","source":"compact"}' | python3 -I /cx/hooks/standing.py /cx/hookdata /cx/hooks/standing-config.json
+echo '{"session_id":"probe","hook_event_name":"UserPromptSubmit","prompt":"hello"}' | python3 -I /cx/hooks/standing.py /cx/hookdata /cx/hooks/standing-config.json
+cat /cx/hookdata/standing-log.jsonl
 ls /cx/hookdata /cx/hookdata/outbox
 if [ -s /cx/hookdata/hook-errors.jsonl ]; then echo HOOK_ERRORS; cat /cx/hookdata/hook-errors.jsonl; fi
 """
@@ -762,6 +815,7 @@ def check_env(cfg, with_gradle):
     c = cfg["container"]
     try:
         stage_hooks(base / "hooks", "outbox")
+        stage_hooks(base / "hooks", "standing")
         (base / "work").mkdir()
         host_paths = " ".join(shlex.quote(p) for p in (str(Path.home()), str(Path.home() / "project"), str(ROOT)))
         p = docker.run("run", "--rm", "--name", f"{tag}-probe", "--label", LABEL, "--network", "none",
@@ -777,6 +831,9 @@ def check_env(cfg, with_gradle):
         show("호스트 경로·Docker 소켓이 보이지 않음", "VISIBLE" not in out, "")
         show("훅 3개 실행(오류 없음, 주입 출력 있음)", "HOOK_ERRORS" not in out and "hookSpecificOutput" in out
              and "compact-log.jsonl" in out, "")
+        line = json.loads(STANDING_CONFIG.read_text(encoding="utf-8"))["line"]
+        show("standing 훅 실행(고정 지시 두 번 출력, 기록 두 줄)", out.count(line + "\n") == 2
+             and '"event": "SessionStart", "source": "compact"' in out and '"event": "UserPromptSubmit"' in out, "")
         if with_gradle:
             ok &= check_gradle(cfg, docker, tag, base, show)
     finally:
@@ -887,11 +944,17 @@ def run(cfg, a):
         oc = (root / "hooks" / "outbox-config.json").read_bytes()
         state["outbox_config"] = json.loads(oc)
         state["outbox_config_sha256"] = sha256_bytes(oc)
+    if a.condition == "standing":  # 다른 조건의 run.json에는 이 키들이 없다(기록 형식 그대로)
+        sc = (root / "hooks" / "standing-config.json").read_bytes()
+        state["standing_config"] = json.loads(sc)
+        state["standing_config_sha256"] = sha256_bytes(sc)
+        state["standing_injections"], state["standing_counts"], state["standing_boundary_injections"] = [], None, []
     write_json(rdir / "run.json", state)
     created, entries, tampered = [], [], False
     line_ends, prev_size, prev_hash = [], 0, None
     t_start, tokens_total, cost_total, tokens_known, cost_known = time.time(), 0, 0.0, True, True
     spend_prev = None  # 앞 턴까지의 마지막 누적값 {session, tokens, cost}
+    standing_seen = 0  # standing: 앞 턴까지 회수한 standing-log 행 수
     try:
         setup_stack(docker, cfg, names, created)
         v = docker.run("run", "--rm", "--name", f"{names['tag']}-version", "--label", LABEL, "--network", "none",
@@ -984,6 +1047,12 @@ def run(cfg, a):
             for f in extra:  # 작업 폴더 .claude/ 아래 settings.json 밖의 파일 = 자기 메모(파일 시스템으로도 확인)
                 if f != "settings.json":
                     turn["reread"]["memo"].append({"line": None, "tool": None, "match": f".claude/{f}"})
+            if a.condition == "standing":  # 이 턴에 새로 생긴 standing-log 행(hookdata는 턴마다 통째로 회수 — 누적)
+                srows, serr = read_standing_log(rdir / "hookdata" / "standing-log.jsonl")
+                if serr:
+                    state["warnings"].append(f"turn {k}: standing-log 읽기 실패 {serr}")
+                turn["standing_injections"] = None if serr else standing_counts(srows[standing_seen:])
+                standing_seen = standing_seen if serr else len(srows)
             if res and res.get("session_id") not in (None, session_id):
                 state["warnings"].append(f"turn {k}: 결과의 session_id가 다름 ({res.get('session_id')})")
             for f in turn["auto_memory_files"]:
@@ -1069,12 +1138,23 @@ def finalize(docker, cfg, a, state, rdir, root, names, created, entries, tampere
     if state["condition"] == "outbox":
         state["outbox_boundary_injections"] = boundary_injections(state["compact_log"], state["injections"],
                                                                   len(state["boundaries"]))
+    standing_log = None
+    if state["condition"] == "standing":
+        rows, serr = read_standing_log(hd / "standing-log.jsonl")
+        if serr:
+            state["warnings"].append(f"finalize: standing-log 읽기 실패 {serr}")
+        else:
+            standing_log = rows
+        state["standing_injections"], state["standing_counts"] = rows, standing_counts(rows)
+        state["standing_boundary_injections"] = boundary_injections(state["compact_log"], standing_compact_rows(rows),
+                                                                    len(state["boundaries"]))
     state["audit"] = audit(entries, cfg)
     state["unexpected_tools"] = unexpected_tools(entries, cfg)
     state["collection_data_reads"] = collection_data_reads(entries)
     reasons = invalid_reasons(state["condition"], state["boundaries"], state["audit"], tampered, state["injections"],
                               state["compact_log"], state["hook_errors"], bool(state["transcript_unparsed_turns"]),
-                              state["collection_data_reads"], state["auto_memory_files"])
+                              state["collection_data_reads"], state["auto_memory_files"],
+                              standing_log=standing_log, n_turns=len(state["turns"]))
     state["invalid_reasons"], state["invalid"] = reasons, bool(reasons)
     if (state["secret_scan"].get("hits") or {}).get("git_objects"):
         archives = [a for a in archives if a[0] != work]

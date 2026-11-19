@@ -3,7 +3,7 @@
 
 - stdin 프롬프트를 세션 기록(CLAUDE_CONFIG_DIR/projects/-work/<sid>.jsonl)에 덧붙이고 한국어 응답 한 줄을 쓴다.
 - cwd/.claude/settings.json의 훅을 실제처럼 부른다(명령 속 컨테이너 경로는 FAKE_PATH_MAP으로 호스트 경로로 바꿈):
-  UserPromptSubmit(매 턴), 그리고 CLAUDE_CODE_AUTO_COMPACT_WINDOW=100000이고 두 번째 턴부터는 프롬프트 앞에서 컴팩트
+  SessionStart(매 호출 — 첫 턴 startup, 그 뒤 resume), UserPromptSubmit(매 턴), 그리고 CLAUDE_CODE_AUTO_COMPACT_WINDOW=100000이고 두 번째 턴부터는 프롬프트 앞에서 컴팩트
   (PreCompact → 경계·요약 줄 → PostCompact → SessionStart(compact)).
 - FAKE_FAIL_TURN=k 이면 k번째 턴(0부터)에서 exit 1. FAKE_LEAK_TURN=k 이면 그 턴에 환경의 토큰 값을 작업 폴더 파일에 쓴다.
   FAKE_COMMIT_LEAK_TURN=k 이면 그 턴에 토큰 값이 든 파일을 git에 커밋한 뒤 작업 트리에서는 지운다(git 객체에만 남음).
@@ -68,6 +68,9 @@ def hooks(event, payload, matcher=None):
 
 
 rows = []
+# 실제 CLI처럼 호출마다 세션 시작 훅(첫 턴 startup, 그 뒤 resume) — 매처가 compact인 outbox 훅은 여기서 불리지 않는다
+hooks("SessionStart", {"session_id": sid, "hook_event_name": "SessionStart", "source": "resume" if turn else "startup"},
+      "resume" if turn else "startup")
 if os.environ.get("CLAUDE_CODE_AUTO_COMPACT_WINDOW") == "100000" and turn >= 1:
     hooks("PreCompact", {"session_id": sid, "hook_event_name": "PreCompact", "trigger": "auto"})
     rows.append({"type": "system", "subtype": "compact_boundary", "timestamp": "t",

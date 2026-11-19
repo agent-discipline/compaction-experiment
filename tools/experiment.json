@@ -32,7 +32,7 @@
   },
   "allowed_tools": ["Bash", "Read", "Edit", "Write", "Grep", "Glob"],
   "permission_mode": "bypassPermissions",
-  "compact_window": {"control": "1000000", "compact": "100000", "outbox": "100000"},
+  "compact_window": {"control": "1000000", "compact": "100000", "outbox": "100000", "standing": "100000"},
   "skeleton_commit": {
     "message": "skeleton",
     "name": "booking",
